@@ -1,0 +1,42 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: teacher_videos
+      POSTGRES_USER: teacher
+      POSTGRES_PASSWORD: teacher
+    ports:
+      - "5432:5432"
+    volumes:
+      - teacher_db:/var/lib/postgresql/data
+      - ./docker/init:/docker-entrypoint-initdb.d
+
+  api:
+    build:
+      context: .
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/teacher_videos
+      SPRING_DATASOURCE_USERNAME: teacher
+      SPRING_DATASOURCE_PASSWORD: teacher
+      APP_STORAGE_S3_REGION: ap-south-1
+      APP_STORAGE_S3_BUCKET: your-s3-bucket
+      APP_STORAGE_S3_PRESIGN_EXPIRY_MINUTES: 10
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+
+  pgadmin:
+    image: dpage/pgadmin4:8.12
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+
+volumes:
+  teacher_db:
