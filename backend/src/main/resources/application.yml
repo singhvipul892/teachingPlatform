@@ -18,5 +18,5 @@ app:
   storage:
     s3:
       region: ap-south-1
-      bucket: your-s3-bucket
+      bucket: teacherplatform.503561455300
       presign-expiry-minutes: 10

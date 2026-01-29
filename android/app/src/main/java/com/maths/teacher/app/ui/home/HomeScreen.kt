@@ -3,56 +3,142 @@ package com.maths.teacher.app.ui.home
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Mail
+import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.DrawerState
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
-import com.maths.teacher.app.domain.model.SectionWithVideos
-import com.maths.teacher.app.domain.model.Video
+import com.maths.teacher.app.ui.components.AppFooter
+import com.maths.teacher.app.ui.components.AppHeader
+import com.maths.teacher.app.ui.components.AppNavigationDrawer
+import com.maths.teacher.app.ui.components.FooterLink
+import com.maths.teacher.app.ui.components.NavigationItem
+import com.maths.teacher.app.ui.components.PdfDownloadSection
+import com.maths.teacher.app.ui.components.VideoCardCarousel
+import androidx.navigation.NavController
+import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(viewModel: HomeViewModel) {
+fun HomeScreen(
+    viewModel: HomeViewModel,
+    navController: NavController
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val drawerState = rememberDrawerState(initialValue = androidx.compose.material3.DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
 
-    when {
-        uiState.isLoading -> {
-            LoadingState()
+    val navigationItems = listOf(
+        NavigationItem(
+            title = "Home",
+            icon = Icons.Default.Home,
+            onClick = {
+                scope.launch { drawerState.close() }
+            }
+        ),
+        NavigationItem(
+            title = "Courses",
+            icon = Icons.Default.MenuBook,
+            onClick = {
+                scope.launch { drawerState.close() }
+                // TODO: Navigate to courses
+            }
+        ),
+        NavigationItem(
+            title = "About",
+            icon = Icons.Default.Info,
+            onClick = {
+                scope.launch { drawerState.close() }
+                // TODO: Navigate to about
+            }
+        ),
+        NavigationItem(
+            title = "Contact",
+            icon = Icons.Default.Mail,
+            onClick = {
+                scope.launch { drawerState.close() }
+                // TODO: Navigate to contact
+            }
+        ),
+        NavigationItem(
+            title = "Settings",
+            icon = Icons.Default.Settings,
+            onClick = {
+                scope.launch { drawerState.close() }
+                // TODO: Navigate to settings
+            }
+        )
+    )
+
+    val footerLinks = listOf(
+        FooterLink(text = "Privacy Policy") {
+            // TODO: Handle privacy policy click
+        },
+        FooterLink(text = "Terms of Service") {
+            // TODO: Handle terms click
+        },
+        FooterLink(text = "Contact Us") {
+            // TODO: Handle contact click
         }
-        uiState.errorMessage != null -> {
-            ErrorState(uiState.errorMessage ?: "Something went wrong.")
-        }
-        else -> {
-            HomeContent(
-                sections = uiState.sections,
-                selectedVideoId = uiState.selectedVideoId,
-                onVideoSelected = { videoId -> viewModel.selectVideo(videoId) },
-                onDismissVideo = { viewModel.clearSelectedVideo() }
-            )
+    )
+
+    AppNavigationDrawer(
+        drawerState = drawerState,
+        navigationItems = navigationItems,
+        onItemClick = { item -> item.onClick() }
+    ) {
+        Scaffold(
+            topBar = {
+                AppHeader(
+                    onNavigationClick = {
+                        scope.launch {
+                            drawerState.open()
+                        }
+                    }
+                )
+            },
+            bottomBar = {
+                AppFooter(links = footerLinks)
+            }
+        ) { paddingValues ->
+            when {
+                uiState.isLoading -> {
+                    LoadingState()
+                }
+                uiState.errorMessage != null -> {
+                    ErrorState(uiState.errorMessage ?: "Something went wrong.")
+                }
+                else -> {
+                    HomeContent(
+                        sections = uiState.sections,
+                        selectedVideo = uiState.selectedVideo,
+                        onVideoSelected = { id -> viewModel.selectVideo(id) },
+                        onDismissVideo = { viewModel.clearSelectedVideo() },
+                        onOpenPdf = { v, p -> navController.navigate("pdf_viewer/$v/$p") },
+                        modifier = Modifier.padding(paddingValues)
+                    )
+                }
+            }
         }
     }
 }
@@ -62,9 +148,9 @@ private fun LoadingState() {
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
     ) {
-        CircularProgressIndicator()
+        androidx.compose.material3.CircularProgressIndicator()
     }
 }
 
@@ -73,7 +159,7 @@ private fun ErrorState(message: String) {
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
     ) {
         Text(text = message, color = MaterialTheme.colorScheme.error)
     }
@@ -81,24 +167,40 @@ private fun ErrorState(message: String) {
 
 @Composable
 private fun HomeContent(
-    sections: List<SectionWithVideos>,
-    selectedVideoId: String?,
-    onVideoSelected: (String) -> Unit,
-    onDismissVideo: () -> Unit
+    sections: List<com.maths.teacher.app.domain.model.SectionWithVideos>,
+    selectedVideo: com.maths.teacher.app.domain.model.Video?,
+    onVideoSelected: (Long) -> Unit,
+    onDismissVideo: () -> Unit,
+    onOpenPdf: (videoId: Long, pdfId: Long) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        // Show embedded video player at the top if a video is selected
-        selectedVideoId?.let { videoId ->
+        selectedVideo?.let { video ->
             item {
-                YouTubeEmbedPlayer(
-                    videoId = videoId,
-                    onDismiss = onDismissVideo,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Show video player first
+                    YouTubeEmbedPlayer(
+                        videoId = video.videoId,
+                        onDismiss = onDismissVideo,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    // Show PDF download section below the video player
+                    if (video.pdfs.isNotEmpty()) {
+                        PdfDownloadSection(
+                            pdfs = video.pdfs,
+                            videoId = video.id,
+                            onOpenPdf = onOpenPdf,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
             }
         }
 
@@ -110,65 +212,19 @@ private fun HomeContent(
 
 @Composable
 private fun SectionBlock(
-    section: SectionWithVideos,
-    onVideoSelected: (String) -> Unit
+    section: com.maths.teacher.app.domain.model.SectionWithVideos,
+    onVideoSelected: (Long) -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
             text = section.name,
             style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
         )
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(section.videos) { video ->
-                VideoCard(video, onVideoSelected)
-            }
-        }
+        VideoCardCarousel(
+            videos = section.videos,
+            onVideoSelected = onVideoSelected
+        )
     }
 }
-
-@Composable
-private fun VideoCard(
-    video: Video,
-    onVideoSelected: (String) -> Unit
-) {
-    Card(
-        modifier = Modifier.size(width = 220.dp, height = 200.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        onClick = { onVideoSelected(video.videoId) }
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            AsyncImage(
-                model = video.thumbnailUrl,
-                contentDescription = video.title,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp)
-            )
-            Column(modifier = Modifier.padding(12.dp)) {
-                Text(
-                    text = video.title,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = "Play",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.size(6.dp))
-                    Text(
-                        text = video.duration,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color.Gray
-                    )
-                }
-            }
-        }
-    }
-}
-
