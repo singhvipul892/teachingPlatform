@@ -84,9 +84,10 @@ private fun PdfDownloadCard(
     // Add refresh trigger to force recomposition after download completes
     var refreshTrigger by remember(pdf.id) { mutableStateOf(0) }
 
-    // Re-check download status when refreshTrigger changes
+    // Read refreshTrigger so Compose subscribes and recomposes when it changes
+    val refreshTriggerRead = refreshTrigger
     val path = getPdfPath(context, videoId, pdf.id)
-    val isDownloaded = path != null && File(path).exists()
+    val isDownloaded = path != null && File(path).exists() && refreshTriggerRead >= 0
 
     Card(
         modifier = Modifier
@@ -149,9 +150,9 @@ private fun PdfDownloadCard(
                                     f
                                 }
                                 savePdfPath(context, videoId, pdf.id, file.absolutePath)
-                                // Trigger recomposition by updating refreshTrigger
                                 refreshTrigger++
                                 Toast.makeText(context, "Downloaded: ${file.name}", Toast.LENGTH_LONG).show()
+                                onOpenPdf(videoId, pdf.id)
                             } catch (e: Exception) {
                                 Toast.makeText(context, "Download failed: ${e.message}", Toast.LENGTH_LONG).show()
                             } finally {
