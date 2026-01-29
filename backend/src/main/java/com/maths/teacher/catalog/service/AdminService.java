@@ -103,6 +103,7 @@ public class AdminService {
                 .toList();
 
         return new VideoResponse(
+                savedVideo.getId(),
                 savedVideo.getVideoId(),
                 savedVideo.getTitle(),
                 savedVideo.getThumbnailUrl(),

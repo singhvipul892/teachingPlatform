@@ -20,8 +20,11 @@
         android:allowBackup="true"
         android:appComponentFactory="androidx.core.app.CoreComponentFactory"
         android:extractNativeLibs="false"
-        android:label="Teacher Platform"
-        android:theme="@android:style/Theme.Material.Light.NoActionBar" >
+        android:icon="@drawable/app_logo"
+        android:label="Singh Sir"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:theme="@android:style/Theme.Material.Light.NoActionBar"
+        android:usesCleartextTraffic="true" >
         <activity
             android:name="com.maths.teacher.app.MainActivity"
             android:exported="true" >

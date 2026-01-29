@@ -177,18 +177,27 @@ document.getElementById(id).style.display = 'none';
 <div class="mdl-layout mdl-js-layout mdl-layout--fixed-header">
   <header class="mdl-layout__header">
     <div class="mdl-layout__header-row">
-      <span class="mdl-layout-title">Lint Report: 7 warnings</span>
+      <span class="mdl-layout-title">Lint Report: 25 warnings</span>
       <div class="mdl-layout-spacer"></div>
-      <nav class="mdl-navigation mdl-layout--large-screen-only">Check performed at Mon Jan 19 18:04:18 IST 2026 by AGP (8.6.1)</nav>
+      <nav class="mdl-navigation mdl-layout--large-screen-only">Check performed at Thu Jan 29 18:01:05 IST 2026 by AGP (8.6.1)</nav>
     </div>
   </header>
   <div class="mdl-layout__drawer">
     <span class="mdl-layout-title">Issue Types</span>
     <nav class="mdl-navigation">
       <a class="mdl-navigation__link" href="#overview"><i class="material-icons">dashboard</i>Overview</a>
+      <a class="mdl-navigation__link" href="#ObsoleteLintCustomCheck"><i class="material-icons warning-icon">warning</i>Obsolete custom lint check (3)</a>
       <a class="mdl-navigation__link" href="#OldTargetApi"><i class="material-icons warning-icon">warning</i>Target SDK attribute is not targeting latest version (1)</a>
-      <a class="mdl-navigation__link" href="#GradleDependency"><i class="material-icons warning-icon">warning</i>Obsolete Gradle Dependency (5)</a>
-      <a class="mdl-navigation__link" href="#MissingApplicationIcon"><i class="material-icons warning-icon">warning</i>Missing application icon (1)</a>
+      <a class="mdl-navigation__link" href="#GradleDependency"><i class="material-icons warning-icon">warning</i>Obsolete Gradle Dependency (6)</a>
+      <a class="mdl-navigation__link" href="#ModifierParameter"><i class="material-icons warning-icon">warning</i>Guidelines for Modifier parameters in a Composable function (1)</a>
+      <a class="mdl-navigation__link" href="#SetJavaScriptEnabled"><i class="material-icons warning-icon">warning</i>Using <code>setJavaScriptEnabled</code> (1)</a>
+      <a class="mdl-navigation__link" href="#AutoboxingStateCreation"><i class="material-icons warning-icon">warning</i><code>State&lt;T></code> will autobox values assigned to this state. Use a specialized state type instead. (1)</a>
+      <a class="mdl-navigation__link" href="#UnusedResources"><i class="material-icons warning-icon">warning</i>Unused resources (3)</a>
+      <a class="mdl-navigation__link" href="#IconLauncherShape"><i class="material-icons warning-icon">warning</i>The launcher icon shape should use a distinct silhouette (6)</a>
+      <a class="mdl-navigation__link" href="#MonochromeLauncherIcon"><i class="material-icons warning-icon">warning</i>Monochrome icon is not defined (1)</a>
+      <a class="mdl-navigation__link" href="#IconDipSize"><i class="material-icons warning-icon">warning</i>Icon density-independent size validation (1)</a>
+      <a class="mdl-navigation__link" href="#IconDuplicatesConfig"><i class="material-icons warning-icon">warning</i>Identical bitmaps across various configurations (1)</a>
+      <a class="mdl-navigation__link" href="#IconLocation"><i class="material-icons warning-icon">warning</i>Image defined in density-independent drawable folder (1)</a>
     </nav>
   </div>
   <main class="mdl-layout__content">
@@ -201,19 +210,52 @@ document.getElementById(id).style.display = 'none';
   </div>
               <div class="mdl-card__supporting-text">
 <table class="overview">
+<tr><td class="countColumn"></td><td class="categoryColumn"><a href="#Lint">Lint</a>
+</td></tr>
+<tr>
+<td class="countColumn">3</td><td class="issueColumn"><i class="material-icons warning-icon">warning</i>
+<a href="#ObsoleteLintCustomCheck">ObsoleteLintCustomCheck</a>: Obsolete custom lint check</td></tr>
 <tr><td class="countColumn"></td><td class="categoryColumn"><a href="#Correctness">Correctness</a>
 </td></tr>
 <tr>
 <td class="countColumn">1</td><td class="issueColumn"><i class="material-icons warning-icon">warning</i>
 <a href="#OldTargetApi">OldTargetApi</a>: Target SDK attribute is not targeting latest version</td></tr>
 <tr>
-<td class="countColumn">5</td><td class="issueColumn"><i class="material-icons warning-icon">warning</i>
+<td class="countColumn">6</td><td class="issueColumn"><i class="material-icons warning-icon">warning</i>
 <a href="#GradleDependency">GradleDependency</a>: Obsolete Gradle Dependency</td></tr>
-<tr><td class="countColumn"></td><td class="categoryColumn"><a href="#Usability:Icons">Usability:Icons</a>
+<tr>
+<td class="countColumn">1</td><td class="issueColumn"><i class="material-icons warning-icon">warning</i>
+<a href="#ModifierParameter">ModifierParameter</a>: Guidelines for Modifier parameters in a Composable function</td></tr>
+<tr><td class="countColumn"></td><td class="categoryColumn"><a href="#Security">Security</a>
 </td></tr>
 <tr>
 <td class="countColumn">1</td><td class="issueColumn"><i class="material-icons warning-icon">warning</i>
-<a href="#MissingApplicationIcon">MissingApplicationIcon</a>: Missing application icon</td></tr>
+<a href="#SetJavaScriptEnabled">SetJavaScriptEnabled</a>: Using <code>setJavaScriptEnabled</code></td></tr>
+<tr><td class="countColumn"></td><td class="categoryColumn"><a href="#Performance">Performance</a>
+</td></tr>
+<tr>
+<td class="countColumn">1</td><td class="issueColumn"><i class="material-icons warning-icon">warning</i>
+<a href="#AutoboxingStateCreation">AutoboxingStateCreation</a>: <code>State&lt;T></code> will autobox values assigned to this state. Use a specialized state type instead.</td></tr>
+<tr>
+<td class="countColumn">3</td><td class="issueColumn"><i class="material-icons warning-icon">warning</i>
+<a href="#UnusedResources">UnusedResources</a>: Unused resources</td></tr>
+<tr><td class="countColumn"></td><td class="categoryColumn"><a href="#Usability:Icons">Usability:Icons</a>
+</td></tr>
+<tr>
+<td class="countColumn">6</td><td class="issueColumn"><i class="material-icons warning-icon">warning</i>
+<a href="#IconLauncherShape">IconLauncherShape</a>: The launcher icon shape should use a distinct silhouette</td></tr>
+<tr>
+<td class="countColumn">1</td><td class="issueColumn"><i class="material-icons warning-icon">warning</i>
+<a href="#MonochromeLauncherIcon">MonochromeLauncherIcon</a>: Monochrome icon is not defined</td></tr>
+<tr>
+<td class="countColumn">1</td><td class="issueColumn"><i class="material-icons warning-icon">warning</i>
+<a href="#IconDipSize">IconDipSize</a>: Icon density-independent size validation</td></tr>
+<tr>
+<td class="countColumn">1</td><td class="issueColumn"><i class="material-icons warning-icon">warning</i>
+<a href="#IconDuplicatesConfig">IconDuplicatesConfig</a>: Identical bitmaps across various configurations</td></tr>
+<tr>
+<td class="countColumn">1</td><td class="issueColumn"><i class="material-icons warning-icon">warning</i>
+<a href="#IconLocation">IconLocation</a>: Image defined in density-independent drawable folder</td></tr>
 <tr><td></td><td class="categoryColumn"><a href="#ExtraIssues">Included Additional Checks (52)</a>
 </td></tr>
 <tr><td></td><td class="categoryColumn"><a href="#MissingIssues">Disabled Checks (41)</a>
@@ -222,6 +264,85 @@ document.getElementById(id).style.display = 'none';
 <br/>              </div>
               <div class="mdl-card__actions mdl-card--border">
 <button class="mdl-button mdl-js-button mdl-js-ripple-effect" id="OverviewCardLink" onclick="hideid('OverviewCard');">
+Dismiss</button>            </div>
+            </div>
+          </section>
+<a name="Lint"></a>
+<a name="ObsoleteLintCustomCheck"></a>
+<section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp" id="ObsoleteLintCustomCheckCard" style="display: block;">
+            <div class="mdl-card mdl-cell mdl-cell--12-col">
+  <div class="mdl-card__title">
+    <h2 class="mdl-card__title-text">Obsolete custom lint check</h2>
+  </div>
+              <div class="mdl-card__supporting-text">
+<div class="issue">
+<div class="warningslist">
+<span class="location"><a href="../../../../../../.gradle/caches/9.0-milestone-1/transforms/ec7f8145e97d7d92ad8fed8ba940df3c/transformed/navigation-common-2.8.1/jars/lint.jar">../../../../../../.gradle/caches/9.0-milestone-1/transforms/ec7f8145e97d7d92ad8fed8ba940df3c/transformed/navigation-common-2.8.1/jars/lint.jar</a></span>: <span class="message">Library lint checks reference invalid APIs; these checks <b>will be skipped</b>!<br/>
+<br/>
+Lint found an issue registry (<code>androidx.navigation.common.lint.NavigationCommonIssueRegistry</code>)<br/>
+which contains some references to invalid API:<br/>
+com.android.tools.lint.checks.infrastructure.TestFiles: com.android.tools.lint.checks.infrastructure.TestFile bytecode(java.lang.String,com.android.tools.lint.checks.infrastructure.TestFile,long,java.lang.String[])<br/>
+(Referenced from androidx/navigation/lint/common/LintUtilKt.class)<br/>
+<br/>
+Therefore, this lint check library is <b>not</b> included<br/>
+in analysis. This affects the following lint checks:<br/>
+<code>EmptyNavDeepLink</code>,<code>WrongStartDestinationType</code><br/>
+<br/>
+To use this lint check, upgrade to a more recent version<br/>
+of the library.</span><br />
+<span class="location"><a href="../../../../../../.gradle/caches/9.0-milestone-1/transforms/cd7bf249d1655b056dd9d8069c1ee326/transformed/navigation-compose-2.8.1/jars/lint.jar">../../../../../../.gradle/caches/9.0-milestone-1/transforms/cd7bf249d1655b056dd9d8069c1ee326/transformed/navigation-compose-2.8.1/jars/lint.jar</a></span>: <span class="message">Library lint checks reference invalid APIs; these checks <b>will be skipped</b>!<br/>
+<br/>
+Lint found an issue registry (<code>androidx.navigation.compose.lint.NavigationComposeIssueRegistry</code>)<br/>
+which contains some references to invalid API:<br/>
+com.android.tools.lint.checks.infrastructure.TestFiles: com.android.tools.lint.checks.infrastructure.TestFile bytecode(java.lang.String,com.android.tools.lint.checks.infrastructure.TestFile,long,java.lang.String[])<br/>
+(Referenced from androidx/navigation/lint/common/LintUtilKt.class)<br/>
+<br/>
+Therefore, this lint check library is <b>not</b> included<br/>
+in analysis. This affects the following lint checks:<br/>
+<code>ComposableDestinationInComposeScope</code>,<code>ComposableNavGraphInComposeScope</code>,<code>UnrememberedGetBackStackEntry</code>,<code>WrongStartDestinationType</code><br/>
+<br/>
+To use this lint check, upgrade to a more recent version<br/>
+of the library.</span><br />
+<span class="location"><a href="../../../../../../.gradle/caches/9.0-milestone-1/transforms/a771308a5e695e800dffdf02ad9d3df3/transformed/navigation-runtime-2.8.1/jars/lint.jar">../../../../../../.gradle/caches/9.0-milestone-1/transforms/a771308a5e695e800dffdf02ad9d3df3/transformed/navigation-runtime-2.8.1/jars/lint.jar</a></span>: <span class="message">Library lint checks reference invalid APIs; these checks <b>will be skipped</b>!<br/>
+<br/>
+Lint found an issue registry (<code>androidx.navigation.runtime.lint.NavigationRuntimeIssueRegistry</code>)<br/>
+which contains some references to invalid API:<br/>
+com.android.tools.lint.checks.infrastructure.TestFiles: com.android.tools.lint.checks.infrastructure.TestFile bytecode(java.lang.String,com.android.tools.lint.checks.infrastructure.TestFile,long,java.lang.String[])<br/>
+(Referenced from androidx/navigation/lint/common/LintUtilKt.class)<br/>
+<br/>
+Therefore, this lint check library is <b>not</b> included<br/>
+in analysis. This affects the following lint checks:<br/>
+<code>DeepLinkInActivityDestination</code>,<code>WrongStartDestinationType</code>,<code>WrongNavigateRouteType</code><br/>
+<br/>
+To use this lint check, upgrade to a more recent version<br/>
+of the library.</span><br />
+</div>
+<div class="metadata"><div class="explanation" id="explanationObsoleteLintCustomCheck" style="display: none;">
+Lint can be extended with "custom checks": additional checks implemented by developers and libraries to for example enforce specific API usages required by a library or a company coding style guideline.<br/>
+<br/>
+The Lint APIs are not yet stable, so these checks may either cause a performance degradation, or stop working, or provide wrong results.<br/>
+<br/>
+This warning flags custom lint checks that are found to be using obsolete APIs and will need to be updated to run in the current lint environment.<br/>
+<br/>
+It may also flag issues found to be using a <b>newer</b> version of the API, meaning that you need to use a newer version of lint (or Android Studio or Gradle plugin etc) to work with these checks.<br/>To suppress this error, use the issue id "ObsoleteLintCustomCheck" as explained in the <a href="#SuppressInfo">Suppressing Warnings and Errors</a> section.<br/>
+<br/></div>
+</div>
+</div>
+<div class="chips">
+<span class="mdl-chip">
+    <span class="mdl-chip__text">ObsoleteLintCustomCheck</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Warning</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Priority 10/10</span>
+</span>
+</div>
+              </div>
+              <div class="mdl-card__actions mdl-card--border">
+<button class="mdl-button mdl-js-button mdl-js-ripple-effect" id="explanationObsoleteLintCustomCheckLink" onclick="reveal('explanationObsoleteLintCustomCheck');">
+Explain</button><button class="mdl-button mdl-js-button mdl-js-ripple-effect" id="ObsoleteLintCustomCheckCardLink" onclick="hideid('ObsoleteLintCustomCheckCard');">
 Dismiss</button>            </div>
             </div>
           </section>
@@ -325,14 +446,23 @@ Dismiss</button>            </div>
 <span class="lineno"> 57 </span>    implementation("androidx.compose.ui:ui-tooling-preview")
 </pre>
 
-<span class="location"><a href="../../build.gradle.kts">../../build.gradle.kts</a>:59</span>: <span class="message">A newer version of androidx.compose.material:material-icons-extended than 1.6.8 is available: 1.7.8</span><br /><pre class="errorlines">
-<span class="lineno"> 56 </span>    implementation("androidx.compose.ui:ui")
+<span class="location"><a href="../../build.gradle.kts">../../build.gradle.kts</a>:60</span>: <span class="message">A newer version of androidx.compose.material:material-icons-extended than 1.6.8 is available: 1.7.8</span><br /><pre class="errorlines">
 <span class="lineno"> 57 </span>    implementation("androidx.compose.ui:ui-tooling-preview")
-<span class="lineno"> 58 </span>    implementation("androidx.compose.material3:material3")
-<span class="caretline"><span class="lineno"> 59 </span>    implementation(<span class="warning">"androidx.compose.material:material-icons-extended:1.6.8"</span>)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-<span class="lineno"> 60 </span>    debugImplementation("androidx.compose.ui:ui-tooling")
-<span class="lineno"> 61 </span>
-<span class="lineno"> 62 </span>    implementation("io.coil-kt:coil-compose:2.6.0")
+<span class="lineno"> 58 </span>    implementation("androidx.compose.foundation:foundation")
+<span class="lineno"> 59 </span>    implementation("androidx.compose.material3:material3")
+<span class="caretline"><span class="lineno"> 60 </span>    implementation(<span class="warning">"androidx.compose.material:material-icons-extended:1.6.8"</span>)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+<span class="lineno"> 61 </span>    implementation("androidx.navigation:navigation-compose:2.8.1")
+<span class="lineno"> 62 </span>    debugImplementation("androidx.compose.ui:ui-tooling")
+</pre>
+
+<span class="location"><a href="../../build.gradle.kts">../../build.gradle.kts</a>:61</span>: <span class="message">A newer version of androidx.navigation:navigation-compose than 2.8.1 is available: 2.9.6</span><br /><pre class="errorlines">
+<span class="lineno"> 58 </span>    implementation("androidx.compose.foundation:foundation")
+<span class="lineno"> 59 </span>    implementation("androidx.compose.material3:material3")
+<span class="lineno"> 60 </span>    implementation("androidx.compose.material:material-icons-extended:1.6.8")
+<span class="caretline"><span class="lineno"> 61 </span>    implementation(<span class="warning">"androidx.navigation:navigation-compose:2.8.1"</span>)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+<span class="lineno"> 62 </span>    debugImplementation("androidx.compose.ui:ui-tooling")
+<span class="lineno"> 63 </span>
+<span class="lineno"> 64 </span>    implementation("io.coil-kt:coil-compose:2.6.0")
 </pre>
 
 </div>
@@ -362,38 +492,349 @@ To suppress this error, use the issue id "GradleDependency" as explained in the 
 Explain</button><button class="mdl-button mdl-js-button mdl-js-ripple-effect" id="GradleDependencyCardLink" onclick="hideid('GradleDependencyCard');">
 Dismiss</button>            </div>
             </div>
-          </section>
-<a name="Usability:Icons"></a>
-<a name="MissingApplicationIcon"></a>
-<section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp" id="MissingApplicationIconCard" style="display: block;">
+          </section><a name="ModifierParameter"></a>
+<section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp" id="ModifierParameterCard" style="display: block;">
             <div class="mdl-card mdl-cell mdl-cell--12-col">
   <div class="mdl-card__title">
-    <h2 class="mdl-card__title-text">Missing application icon</h2>
+    <h2 class="mdl-card__title-text">Guidelines for Modifier parameters in a Composable function</h2>
   </div>
               <div class="mdl-card__supporting-text">
 <div class="issue">
 <div class="warningslist">
-<span class="location"><a href="../../src/main/AndroidManifest.xml">../../src/main/AndroidManifest.xml</a>:5</span>: <span class="message">Should explicitly set <code>android:icon</code>, there is no default</span><br /><pre class="errorlines">
-<span class="lineno">  2 </span>
-<span class="lineno">  3 </span>    <span class="tag">&lt;uses-permission</span><span class="attribute"> </span><span class="prefix">android:</span><span class="attribute">name</span>=<span class="value">"android.permission.INTERNET"</span> />
-<span class="lineno">  4 </span>
-<span class="caretline"><span class="lineno">  5 </span>    <span class="tag">&lt;</span><span class="warning"><span class="tag">application</span></span><span class="attribute"></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="attribute">
-</span><span class="lineno">  6 </span><span class="attribute">        </span><span class="prefix">android:</span><span class="attribute">allowBackup</span>=<span class="value">"true"</span>
-<span class="lineno">  7 </span>        <span class="prefix">android:</span><span class="attribute">label</span>=<span class="value">"Teacher Platform"</span>
-<span class="lineno">  8 </span>        <span class="prefix">android:</span><span class="attribute">theme</span>=<span class="value">"@android:style/Theme.Material.Light.NoActionBar"</span>>
+<span class="location"><a href="../../src/main/java/com/maths/teacher/app/ui/components/AppFooter.kt">../../src/main/java/com/maths/teacher/app/ui/components/AppFooter.kt</a>:29</span>: <span class="message">Modifier parameter should be the first optional parameter</span><br /><pre class="errorlines">
+<span class="lineno"> 26 </span><span class="keyword">fun</span> AppFooter(
+<span class="lineno"> 27 </span>    links: List&lt;FooterLink> = emptyList(),
+<span class="lineno"> 28 </span>    copyrightText: String = <span class="string">"© 2026 Singh Sir. All rights reserved."</span>,
+<span class="caretline"><span class="lineno"> 29 </span>    <span class="warning">modifier</span>: Modifier = Modifier&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+<span class="lineno"> 30 </span>) {
+<span class="lineno"> 31 </span>    Column(
+<span class="lineno"> 32 </span>        modifier = modifier
 </pre>
 
 </div>
-<div class="metadata"><div class="explanation" id="explanationMissingApplicationIcon" style="display: none;">
-You should set an icon for the application as whole because there is no default. This attribute must be set as a reference to a drawable resource containing the image (for example <code>@drawable/icon</code>).<br/><div class="moreinfo">More info: <a href="https://developer.android.com/studio/publish/preparing#publishing-configure">https://developer.android.com/studio/publish/preparing#publishing-configure</a>
-</div>Note: This issue has an associated quickfix operation in Android Studio and IntelliJ IDEA.<br>
-To suppress this error, use the issue id "MissingApplicationIcon" as explained in the <a href="#SuppressInfo">Suppressing Warnings and Errors</a> section.<br/>
+<div class="metadata"><div class="explanation" id="explanationModifierParameter" style="display: none;">
+The first (or only) Modifier parameter in a Composable function should follow the following rules:<br/>
+- Be named <code>modifier</code><br/>
+- Have a type of <code>Modifier</code><br/>
+- Either have no default value, or have a default value of <code>Modifier</code><br/>
+- If optional, be the first optional parameter in the parameter list<br/>To suppress this error, use the issue id "ModifierParameter" as explained in the <a href="#SuppressInfo">Suppressing Warnings and Errors</a> section.<br/>
+<br/></div>
+</div>
+</div>
+<div class="vendor">
+Vendor: Jetpack Compose<br/>
+Identifier: androidx.compose.ui<br/>
+Feedback: <a href="https://issuetracker.google.com/issues/new?component=612128">https://issuetracker.google.com/issues/new?component=612128</a><br/>
+</div>
+<div class="chips">
+<span class="mdl-chip">
+    <span class="mdl-chip__text">ModifierParameter</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Correctness</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Warning</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Priority 3/10</span>
+</span>
+</div>
+              </div>
+              <div class="mdl-card__actions mdl-card--border">
+<button class="mdl-button mdl-js-button mdl-js-ripple-effect" id="explanationModifierParameterLink" onclick="reveal('explanationModifierParameter');">
+Explain</button><button class="mdl-button mdl-js-button mdl-js-ripple-effect" id="ModifierParameterCardLink" onclick="hideid('ModifierParameterCard');">
+Dismiss</button>            </div>
+            </div>
+          </section>
+<a name="Security"></a>
+<a name="SetJavaScriptEnabled"></a>
+<section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp" id="SetJavaScriptEnabledCard" style="display: block;">
+            <div class="mdl-card mdl-cell mdl-cell--12-col">
+  <div class="mdl-card__title">
+    <h2 class="mdl-card__title-text">Using setJavaScriptEnabled</h2>
+  </div>
+              <div class="mdl-card__supporting-text">
+<div class="issue">
+<div class="warningslist">
+<span class="location"><a href="../../src/main/java/com/maths/teacher/app/ui/home/YouTubeEmbedPlayer.kt">../../src/main/java/com/maths/teacher/app/ui/home/YouTubeEmbedPlayer.kt</a>:136</span>: <span class="message">Using <code>setJavaScriptEnabled</code> can introduce XSS vulnerabilities into your application, review carefully</span><br /><pre class="errorlines">
+<span class="lineno"> 133 </span>  settings.userAgentString = <span class="string">"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"</span>
+<span class="lineno"> 134 </span>  
+<span class="lineno"> 135 </span>  settings.apply {
+<span class="caretline"><span class="lineno"> 136 </span>      <span class="warning">javaScriptEnabled = <span class="keyword">true</span></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+<span class="lineno"> 137 </span>      domStorageEnabled = <span class="keyword">true</span>
+<span class="lineno"> 138 </span>      loadWithOverviewMode = <span class="keyword">true</span>
+<span class="lineno"> 139 </span>      useWideViewPort = <span class="keyword">true</span></pre>
+
+</div>
+<div class="metadata"><div class="explanation" id="explanationSetJavaScriptEnabled" style="display: none;">
+Your code should not invoke <code>setJavaScriptEnabled</code> if you are not sure that your app really requires JavaScript support.<br/><div class="moreinfo">More info: <ul><li><a href="https://goo.gle/SetJavaScriptEnabled">https://goo.gle/SetJavaScriptEnabled</a>
+<li><a href="https://developer.android.com/training/articles/security-tips">https://developer.android.com/training/articles/security-tips</a>
+</ul></div>To suppress this error, use the issue id "SetJavaScriptEnabled" as explained in the <a href="#SuppressInfo">Suppressing Warnings and Errors</a> section.<br/>
 <br/></div>
 </div>
 </div>
 <div class="chips">
 <span class="mdl-chip">
-    <span class="mdl-chip__text">MissingApplicationIcon</span>
+    <span class="mdl-chip__text">SetJavaScriptEnabled</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Security</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Warning</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Priority 6/10</span>
+</span>
+</div>
+              </div>
+              <div class="mdl-card__actions mdl-card--border">
+<button class="mdl-button mdl-js-button mdl-js-ripple-effect" id="explanationSetJavaScriptEnabledLink" onclick="reveal('explanationSetJavaScriptEnabled');">
+Explain</button><button class="mdl-button mdl-js-button mdl-js-ripple-effect" id="SetJavaScriptEnabledCardLink" onclick="hideid('SetJavaScriptEnabledCard');">
+Dismiss</button>            </div>
+            </div>
+          </section>
+<a name="Performance"></a>
+<a name="AutoboxingStateCreation"></a>
+<section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp" id="AutoboxingStateCreationCard" style="display: block;">
+            <div class="mdl-card mdl-cell mdl-cell--12-col">
+  <div class="mdl-card__title">
+    <h2 class="mdl-card__title-text">State&lt;T> will autobox values assigned to this state. Use a specialized state type instead.</h2>
+  </div>
+              <div class="mdl-card__supporting-text">
+<div class="issue">
+<div class="warningslist">
+<span class="location"><a href="../../src/main/java/com/maths/teacher/app/ui/components/PdfDownloadSection.kt">../../src/main/java/com/maths/teacher/app/ui/components/PdfDownloadSection.kt</a>:85</span>: <span class="message">Prefer <code>mutableIntStateOf</code> instead of <code>mutableStateOf</code></span><br /><pre class="errorlines">
+<span class="lineno">  82 </span>    <span class="keyword">val</span> context = LocalContext.current
+<span class="lineno">  83 </span>    <span class="keyword">var</span> isDownloading by remember(pdf.id) { mutableStateOf(<span class="keyword">false</span>) }
+<span class="lineno">  84 </span>    <span class="comment">// Add refresh trigger to force recomposition after download completes</span>
+<span class="caretline"><span class="lineno">  85 </span>    <span class="keyword">var</span> refreshTrigger by remember(pdf.id) { <span class="warning">mutableStateOf</span>(<span class="number">0</span>) }&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+<span class="lineno">  86 </span>
+<span class="lineno">  87 </span>    <span class="comment">// Re-check download status when refreshTrigger changes</span>
+<span class="lineno">  88 </span>    <span class="keyword">val</span> path = getPdfPath(context, videoId, pdf.id)
+</pre>
+
+</div>
+<div class="metadata"><div class="explanation" id="explanationAutoboxingStateCreation" style="display: none;">
+Calling <code>mutableStateOf&lt;T>()</code> when <code>T</code> is either backed by a primitive type on the JVM or is a value class results in a state implementation that requires all state values to be boxed. This usually causes an additional allocation for each state write, and adds some additional work to auto-unbox values when reading the value of the state. Instead, prefer to use a specialized primitive state implementation for <code>Int</code>, <code>Long</code>, <code>Float</code>, and <code>Double</code> when the state does not need to track null values and does not override the default <code>SnapshotMutationPolicy</code>. See <code>mutableIntStateOf()</code>, <code>mutableLongStateOf()</code>, <code>mutableFloatStateOf()</code>, and <code>mutableDoubleStateOf()</code> for more information.<br/>To suppress this error, use the issue id "AutoboxingStateCreation" as explained in the <a href="#SuppressInfo">Suppressing Warnings and Errors</a> section.<br/>
+<br/></div>
+</div>
+</div>
+<div class="vendor">
+Vendor: Jetpack Compose<br/>
+Identifier: androidx.compose.runtime<br/>
+Feedback: <a href="https://issuetracker.google.com/issues/new?component=612128">https://issuetracker.google.com/issues/new?component=612128</a><br/>
+</div>
+<div class="chips">
+<span class="mdl-chip">
+    <span class="mdl-chip__text">AutoboxingStateCreation</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Performance</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Information</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Priority 3/10</span>
+</span>
+</div>
+              </div>
+              <div class="mdl-card__actions mdl-card--border">
+<button class="mdl-button mdl-js-button mdl-js-ripple-effect" id="explanationAutoboxingStateCreationLink" onclick="reveal('explanationAutoboxingStateCreation');">
+Explain</button><button class="mdl-button mdl-js-button mdl-js-ripple-effect" id="AutoboxingStateCreationCardLink" onclick="hideid('AutoboxingStateCreationCard');">
+Dismiss</button>            </div>
+            </div>
+          </section><a name="UnusedResources"></a>
+<section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp" id="UnusedResourcesCard" style="display: block;">
+            <div class="mdl-card mdl-cell mdl-cell--12-col">
+  <div class="mdl-card__title">
+    <h2 class="mdl-card__title-text">Unused resources</h2>
+  </div>
+              <div class="mdl-card__supporting-text">
+<div class="issue">
+<div class="warningslist">
+<span class="location"><a href="../../src/main/res/mipmap-hdpi/ic_launcher.png">../../src/main/res/mipmap-hdpi/ic_launcher.png</a></span>: <img class="embedimage" align="right" src="../../src/main/res/mipmap-hdpi/ic_launcher.png" /><span class="message">The resource <code>R.mipmap.ic_launcher</code> appears to be unused</span><br clear="right"/>
+<span class="location"><a href="../../src/main/res/drawable/ic_launcher.xml">../../src/main/res/drawable/ic_launcher.xml</a>:1</span>: <span class="message">The resource <code>R.drawable.ic_launcher</code> appears to be unused</span><br /><pre class="errorlines">
+<span class="caretline"><span class="lineno">  1 </span><span class="warning"><span class="tag">&lt;vector</span><span class="attribute"> </span><span class="prefix">xmlns:</span><span class="attribute">android</span>=<span class="value">"http://schemas.android.com/apk/res/android"</span></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+<span class="lineno">  2 </span>    <span class="prefix">android:</span><span class="attribute">width</span>=<span class="value">"48dp"</span>
+<span class="lineno">  3 </span>    <span class="prefix">android:</span><span class="attribute">height</span>=<span class="value">"48dp"</span>
+<span class="lineno">  4 </span>    <span class="prefix">android:</span><span class="attribute">viewportWidth</span>=<span class="value">"108"</span>
+</pre>
+
+<span class="location"><a href="../../src/main/res/drawable/ic_logo.xml">../../src/main/res/drawable/ic_logo.xml</a>:1</span>: <span class="message">The resource <code>R.drawable.ic_logo</code> appears to be unused</span><br /><pre class="errorlines">
+<span class="caretline"><span class="lineno">  1 </span><span class="warning"><span class="tag">&lt;vector</span><span class="attribute"> </span><span class="prefix">xmlns:</span><span class="attribute">android</span>=<span class="value">"http://schemas.android.com/apk/res/android"</span></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+<span class="lineno">  2 </span>    <span class="prefix">android:</span><span class="attribute">width</span>=<span class="value">"108dp"</span>
+<span class="lineno">  3 </span>    <span class="prefix">android:</span><span class="attribute">height</span>=<span class="value">"108dp"</span>
+<span class="lineno">  4 </span>    <span class="prefix">android:</span><span class="attribute">viewportWidth</span>=<span class="value">"108"</span>
+</pre>
+
+</div>
+<div class="metadata"><div class="explanation" id="explanationUnusedResources" style="display: none;">
+Unused resources make applications larger and slow down builds.<br/>
+<br/>
+<br/>
+The unused resource check can ignore tests. If you want to include resources that are only referenced from tests, consider packaging them in a test source set instead.<br/>
+<br/>
+You can include test sources in the unused resource check by setting the system property lint.unused-resources.include-tests =true, and to exclude them (usually for performance reasons), use lint.unused-resources.exclude-tests =true.<br/>
+,<br/>Note: This issue has an associated quickfix operation in Android Studio and IntelliJ IDEA.<br>
+To suppress this error, use the issue id "UnusedResources" as explained in the <a href="#SuppressInfo">Suppressing Warnings and Errors</a> section.<br/>
+<br/></div>
+</div>
+</div>
+<div class="chips">
+<span class="mdl-chip">
+    <span class="mdl-chip__text">UnusedResources</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Performance</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Warning</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Priority 3/10</span>
+</span>
+</div>
+              </div>
+              <div class="mdl-card__actions mdl-card--border">
+<button class="mdl-button mdl-js-button mdl-js-ripple-effect" id="explanationUnusedResourcesLink" onclick="reveal('explanationUnusedResources');">
+Explain</button><button class="mdl-button mdl-js-button mdl-js-ripple-effect" id="UnusedResourcesCardLink" onclick="hideid('UnusedResourcesCard');">
+Dismiss</button>            </div>
+            </div>
+          </section>
+<a name="Usability:Icons"></a>
+<a name="IconLauncherShape"></a>
+<section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp" id="IconLauncherShapeCard" style="display: block;">
+            <div class="mdl-card mdl-cell mdl-cell--12-col">
+  <div class="mdl-card__title">
+    <h2 class="mdl-card__title-text">The launcher icon shape should use a distinct silhouette</h2>
+  </div>
+              <div class="mdl-card__supporting-text">
+<div class="issue">
+<div class="warningslist">
+<span class="location"><a href="../../src/main/res/drawable/app_logo.jpeg">../../src/main/res/drawable/app_logo.jpeg</a></span>: <img class="embedimage" align="right" src="../../src/main/res/drawable/app_logo.jpeg" /><span class="message">Launcher icons should not fill every pixel of their square region; see the design guide for details</span><br clear="right"/>
+<span class="location"><a href="../../src/main/res/mipmap-hdpi/ic_launcher.png">../../src/main/res/mipmap-hdpi/ic_launcher.png</a></span>: <img class="embedimage" align="right" src="../../src/main/res/mipmap-hdpi/ic_launcher.png" /><span class="message">Launcher icons should not fill every pixel of their square region; see the design guide for details</span><br clear="right"/>
+<span class="location"><a href="../../src/main/res/mipmap-mdpi/ic_launcher.png">../../src/main/res/mipmap-mdpi/ic_launcher.png</a></span>: <img class="embedimage" align="right" src="../../src/main/res/mipmap-mdpi/ic_launcher.png" /><span class="message">Launcher icons should not fill every pixel of their square region; see the design guide for details</span><br clear="right"/>
+<span class="location"><a href="../../src/main/res/mipmap-xhdpi/ic_launcher.png">../../src/main/res/mipmap-xhdpi/ic_launcher.png</a></span>: <img class="embedimage" align="right" src="../../src/main/res/mipmap-xhdpi/ic_launcher.png" /><span class="message">Launcher icons should not fill every pixel of their square region; see the design guide for details</span><br clear="right"/>
+<span class="location"><a href="../../src/main/res/mipmap-xxhdpi/ic_launcher.png">../../src/main/res/mipmap-xxhdpi/ic_launcher.png</a></span>: <img class="embedimage" align="right" src="../../src/main/res/mipmap-xxhdpi/ic_launcher.png" /><span class="message">Launcher icons should not fill every pixel of their square region; see the design guide for details</span><br clear="right"/>
+<span class="location"><a href="../../src/main/res/mipmap-xxxhdpi/ic_launcher.png">../../src/main/res/mipmap-xxxhdpi/ic_launcher.png</a></span>: <img class="embedimage" align="right" src="../../src/main/res/mipmap-xxxhdpi/ic_launcher.png" /><span class="message">Launcher icons should not fill every pixel of their square region; see the design guide for details</span><br clear="right"/>
+</div>
+<div class="metadata"><div class="explanation" id="explanationIconLauncherShape" style="display: none;">
+According to the Android Design Guide (<a href="https://d.android.com/r/studio-ui/designer/material/iconography">https://d.android.com/r/studio-ui/designer/material/iconography</a>) your launcher icons should "use a distinct silhouette", a "three-dimensional, front view, with a slight perspective as if viewed from above, so that users perceive some depth."<br/>
+<br/>
+The unique silhouette implies that your launcher icon should not be a filled square.<br/>To suppress this error, use the issue id "IconLauncherShape" as explained in the <a href="#SuppressInfo">Suppressing Warnings and Errors</a> section.<br/>
+<br/></div>
+</div>
+</div>
+<div class="chips">
+<span class="mdl-chip">
+    <span class="mdl-chip__text">IconLauncherShape</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Icons</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Usability</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Warning</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Priority 6/10</span>
+</span>
+</div>
+              </div>
+              <div class="mdl-card__actions mdl-card--border">
+<button class="mdl-button mdl-js-button mdl-js-ripple-effect" id="explanationIconLauncherShapeLink" onclick="reveal('explanationIconLauncherShape');">
+Explain</button><button class="mdl-button mdl-js-button mdl-js-ripple-effect" id="IconLauncherShapeCardLink" onclick="hideid('IconLauncherShapeCard');">
+Dismiss</button>            </div>
+            </div>
+          </section><a name="MonochromeLauncherIcon"></a>
+<section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp" id="MonochromeLauncherIconCard" style="display: block;">
+            <div class="mdl-card mdl-cell mdl-cell--12-col">
+  <div class="mdl-card__title">
+    <h2 class="mdl-card__title-text">Monochrome icon is not defined</h2>
+  </div>
+              <div class="mdl-card__supporting-text">
+<div class="issue">
+<div class="warningslist">
+<span class="location"><a href="../../src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml">../../src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml</a>:2</span>: <span class="message">The application adaptive roundIcon is missing a monochrome tag</span><br /><pre class="errorlines">
+<span class="lineno"> 1 </span><span class="prologue">&lt;?xml version="1.0" encoding="utf-8"?></span>
+<span class="caretline"><span class="lineno"> 2 </span><span class="warning"><span class="tag">&lt;adaptive-icon</span><span class="attribute"> </span><span class="prefix">xmlns:</span><span class="attribute">android</span>=<span class="value">"http://schemas.android.com/apk/res/android"</span>></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+<span class="lineno"> 3 </span>    <span class="tag">&lt;background</span><span class="attribute"> </span><span class="prefix">android:</span><span class="attribute">drawable</span>=<span class="value">"@color/ic_launcher_background"</span>/>
+<span class="lineno"> 4 </span>    <span class="tag">&lt;foreground</span><span class="attribute"> </span><span class="prefix">android:</span><span class="attribute">drawable</span>=<span class="value">"@drawable/ic_launcher_foreground"</span>/>
+<span class="lineno"> 5 </span><span class="tag">&lt;/adaptive-icon></span>
+</pre>
+
+</div>
+<div class="metadata"><div class="explanation" id="explanationMonochromeLauncherIcon" style="display: none;">
+If <code>android:roundIcon</code> and <code>android:icon</code> are both in your manifest, you must either remove the reference to <code>android:roundIcon</code> if it is not needed; or, supply the monochrome icon in the drawable defined by the <code>android:roundIcon</code> and <code>android:icon</code> attribute.<br/>
+<br/>
+For example, if <code>android:roundIcon</code> and <code>android:icon</code> are both in the manifest, a launcher might choose to use <code>android:roundIcon</code> over <code>android:icon</code> to display the adaptive app icon. Therefore, your themed application iconwill not show if your monochrome attribute is not also specified in <code>android:roundIcon</code>.<br/>To suppress this error, use the issue id "MonochromeLauncherIcon" as explained in the <a href="#SuppressInfo">Suppressing Warnings and Errors</a> section.<br/>
+<br/></div>
+</div>
+</div>
+<div class="chips">
+<span class="mdl-chip">
+    <span class="mdl-chip__text">MonochromeLauncherIcon</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Icons</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Usability</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Warning</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Priority 6/10</span>
+</span>
+</div>
+              </div>
+              <div class="mdl-card__actions mdl-card--border">
+<button class="mdl-button mdl-js-button mdl-js-ripple-effect" id="explanationMonochromeLauncherIconLink" onclick="reveal('explanationMonochromeLauncherIcon');">
+Explain</button><button class="mdl-button mdl-js-button mdl-js-ripple-effect" id="MonochromeLauncherIconCardLink" onclick="hideid('MonochromeLauncherIconCard');">
+Dismiss</button>            </div>
+            </div>
+          </section><a name="IconDipSize"></a>
+<section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp" id="IconDipSizeCard" style="display: block;">
+            <div class="mdl-card mdl-cell mdl-cell--12-col">
+  <div class="mdl-card__title">
+    <h2 class="mdl-card__title-text">Icon density-independent size validation</h2>
+  </div>
+              <div class="mdl-card__supporting-text">
+<div class="issue">
+<div class="warningslist">
+<span class="location"><a href="../../src/main/res/mipmap-xxxhdpi/ic_launcher.png">../../src/main/res/mipmap-xxxhdpi/ic_launcher.png</a></span>: <span class="message">The image <code>ic_launcher.png</code> varies significantly in its density-independent (dip) size across the various density versions: mipmap-hdpi/ic_launcher.png: 1067x1067 dp (1600x1600 px), mipmap-mdpi/ic_launcher.png: 1600x1600 dp (1600x1600 px), mipmap-xhdpi/ic_launcher.png: 800x800 dp (1600x1600 px), mipmap-xxhdpi/ic_launcher.png: 533x533 dp (1600x1600 px), mipmap-xxxhdpi/ic_launcher.png: 400x400 dp (1600x1600 px)</span><br />
+<ul></ul><button id="Location1DivLink" onclick="reveal('Location1Div');" />+ 4 Additional Locations...</button>
+<div id="Location1Div" style="display: none">
+Additional locations: <ul>
+<li> <span class="location"><a href="../../src/main/res/mipmap-xxhdpi/ic_launcher.png">../../src/main/res/mipmap-xxhdpi/ic_launcher.png</a></span>
+<li> <span class="location"><a href="../../src/main/res/mipmap-xhdpi/ic_launcher.png">../../src/main/res/mipmap-xhdpi/ic_launcher.png</a></span>
+<li> <span class="location"><a href="../../src/main/res/mipmap-hdpi/ic_launcher.png">../../src/main/res/mipmap-hdpi/ic_launcher.png</a></span>
+<li> <span class="location"><a href="../../src/main/res/mipmap-mdpi/ic_launcher.png">../../src/main/res/mipmap-mdpi/ic_launcher.png</a></span>
+</ul>
+</div><br/><br/>
+<table>
+<tr><td><a href="../../src/main/res/mipmap-mdpi/ic_launcher.png"><img border="0" align="top" src="../../src/main/res/mipmap-mdpi/ic_launcher.png" /></a>
+</td><td><a href="../../src/main/res/mipmap-hdpi/ic_launcher.png"><img border="0" align="top" src="../../src/main/res/mipmap-hdpi/ic_launcher.png" /></a>
+</td><td><a href="../../src/main/res/mipmap-xhdpi/ic_launcher.png"><img border="0" align="top" src="../../src/main/res/mipmap-xhdpi/ic_launcher.png" /></a>
+</td><td><a href="../../src/main/res/mipmap-xxhdpi/ic_launcher.png"><img border="0" align="top" src="../../src/main/res/mipmap-xxhdpi/ic_launcher.png" /></a>
+</td><td><a href="../../src/main/res/mipmap-xxxhdpi/ic_launcher.png"><img border="0" align="top" src="../../src/main/res/mipmap-xxxhdpi/ic_launcher.png" /></a>
+</td></tr><tr><th></th><th></th><th></th><th></th><th></th></tr>
+</table>
+</div>
+<div class="metadata"><div class="explanation" id="explanationIconDipSize" style="display: none;">
+Checks the all icons which are provided in multiple densities, all compute to roughly the same density-independent pixel (<code>dip</code>) size. This catches errors where images are either placed in the wrong folder, or icons are changed to new sizes but some folders are forgotten.<br/>To suppress this error, use the issue id "IconDipSize" as explained in the <a href="#SuppressInfo">Suppressing Warnings and Errors</a> section.<br/>
+<br/></div>
+</div>
+</div>
+<div class="chips">
+<span class="mdl-chip">
+    <span class="mdl-chip__text">IconDipSize</span>
 </span>
 <span class="mdl-chip">
     <span class="mdl-chip__text">Icons</span>
@@ -410,8 +851,104 @@ To suppress this error, use the issue id "MissingApplicationIcon" as explained i
 </div>
               </div>
               <div class="mdl-card__actions mdl-card--border">
-<button class="mdl-button mdl-js-button mdl-js-ripple-effect" id="explanationMissingApplicationIconLink" onclick="reveal('explanationMissingApplicationIcon');">
-Explain</button><button class="mdl-button mdl-js-button mdl-js-ripple-effect" id="MissingApplicationIconCardLink" onclick="hideid('MissingApplicationIconCard');">
+<button class="mdl-button mdl-js-button mdl-js-ripple-effect" id="explanationIconDipSizeLink" onclick="reveal('explanationIconDipSize');">
+Explain</button><button class="mdl-button mdl-js-button mdl-js-ripple-effect" id="IconDipSizeCardLink" onclick="hideid('IconDipSizeCard');">
+Dismiss</button>            </div>
+            </div>
+          </section><a name="IconDuplicatesConfig"></a>
+<section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp" id="IconDuplicatesConfigCard" style="display: block;">
+            <div class="mdl-card mdl-cell mdl-cell--12-col">
+  <div class="mdl-card__title">
+    <h2 class="mdl-card__title-text">Identical bitmaps across various configurations</h2>
+  </div>
+              <div class="mdl-card__supporting-text">
+<div class="issue">
+<div class="warningslist">
+<span class="location"><a href="../../src/main/res/mipmap-xxxhdpi/ic_launcher.png">../../src/main/res/mipmap-xxxhdpi/ic_launcher.png</a></span>: <span class="message">The <code>ic_launcher.png</code> icon has identical contents in the following configuration folders: mipmap-hdpi, mipmap-mdpi, mipmap-xhdpi, mipmap-xxhdpi, mipmap-xxxhdpi</span><br />
+<ul></ul><button id="Location1DivLink" onclick="reveal('Location1Div');" />+ 4 Additional Locations...</button>
+<div id="Location1Div" style="display: none">
+Additional locations: <ul>
+<li> <span class="location"><a href="../../src/main/res/mipmap-xxhdpi/ic_launcher.png">../../src/main/res/mipmap-xxhdpi/ic_launcher.png</a></span>
+<li> <span class="location"><a href="../../src/main/res/mipmap-xhdpi/ic_launcher.png">../../src/main/res/mipmap-xhdpi/ic_launcher.png</a></span>
+<li> <span class="location"><a href="../../src/main/res/mipmap-mdpi/ic_launcher.png">../../src/main/res/mipmap-mdpi/ic_launcher.png</a></span>
+<li> <span class="location"><a href="../../src/main/res/mipmap-hdpi/ic_launcher.png">../../src/main/res/mipmap-hdpi/ic_launcher.png</a></span>
+</ul>
+</div><br/><br/>
+<table>
+<tr><td><a href="../../src/main/res/mipmap-mdpi/ic_launcher.png"><img border="0" align="top" src="../../src/main/res/mipmap-mdpi/ic_launcher.png" /></a>
+</td><td><a href="../../src/main/res/mipmap-hdpi/ic_launcher.png"><img border="0" align="top" src="../../src/main/res/mipmap-hdpi/ic_launcher.png" /></a>
+</td><td><a href="../../src/main/res/mipmap-xhdpi/ic_launcher.png"><img border="0" align="top" src="../../src/main/res/mipmap-xhdpi/ic_launcher.png" /></a>
+</td><td><a href="../../src/main/res/mipmap-xxhdpi/ic_launcher.png"><img border="0" align="top" src="../../src/main/res/mipmap-xxhdpi/ic_launcher.png" /></a>
+</td><td><a href="../../src/main/res/mipmap-xxxhdpi/ic_launcher.png"><img border="0" align="top" src="../../src/main/res/mipmap-xxxhdpi/ic_launcher.png" /></a>
+</td></tr><tr><th></th><th></th><th></th><th></th><th></th></tr>
+</table>
+</div>
+<div class="metadata"><div class="explanation" id="explanationIconDuplicatesConfig" style="display: none;">
+If an icon is provided under different configuration parameters such as <code>drawable-hdpi</code> or <code>-v11</code>, they should typically be different. This detector catches cases where the same icon is provided in different configuration folder which is usually not intentional.<br/>To suppress this error, use the issue id "IconDuplicatesConfig" as explained in the <a href="#SuppressInfo">Suppressing Warnings and Errors</a> section.<br/>
+<br/></div>
+</div>
+</div>
+<div class="chips">
+<span class="mdl-chip">
+    <span class="mdl-chip__text">IconDuplicatesConfig</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Icons</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Usability</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Warning</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Priority 5/10</span>
+</span>
+</div>
+              </div>
+              <div class="mdl-card__actions mdl-card--border">
+<button class="mdl-button mdl-js-button mdl-js-ripple-effect" id="explanationIconDuplicatesConfigLink" onclick="reveal('explanationIconDuplicatesConfig');">
+Explain</button><button class="mdl-button mdl-js-button mdl-js-ripple-effect" id="IconDuplicatesConfigCardLink" onclick="hideid('IconDuplicatesConfigCard');">
+Dismiss</button>            </div>
+            </div>
+          </section><a name="IconLocation"></a>
+<section class="section--center mdl-grid mdl-grid--no-spacing mdl-shadow--2dp" id="IconLocationCard" style="display: block;">
+            <div class="mdl-card mdl-cell mdl-cell--12-col">
+  <div class="mdl-card__title">
+    <h2 class="mdl-card__title-text">Image defined in density-independent drawable folder</h2>
+  </div>
+              <div class="mdl-card__supporting-text">
+<div class="issue">
+<div class="warningslist">
+<span class="location"><a href="../../src/main/res/drawable/app_logo.jpeg">../../src/main/res/drawable/app_logo.jpeg</a></span>: <img class="embedimage" align="right" src="../../src/main/res/drawable/app_logo.jpeg" /><span class="message">Found bitmap drawable <code>res/drawable/app_logo.jpeg</code> in densityless folder</span><br clear="right"/>
+</div>
+<div class="metadata"><div class="explanation" id="explanationIconLocation" style="display: none;">
+The res/drawable folder is intended for density-independent graphics such as shapes defined in XML. For bitmaps, move it to <code>drawable-mdpi</code> and consider providing higher and lower resolution versions in <code>drawable-ldpi</code>, <code>drawable-hdpi</code> and <code>drawable-xhdpi</code>. If the icon <b>really</b> is density independent (for example a solid color) you can place it in <code>drawable-nodpi</code>.<br/><div class="moreinfo">More info: <a href="https://developer.android.com/guide/practices/screens_support.html">https://developer.android.com/guide/practices/screens_support.html</a>
+</div>To suppress this error, use the issue id "IconLocation" as explained in the <a href="#SuppressInfo">Suppressing Warnings and Errors</a> section.<br/>
+<br/></div>
+</div>
+</div>
+<div class="chips">
+<span class="mdl-chip">
+    <span class="mdl-chip__text">IconLocation</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Icons</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Usability</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Warning</span>
+</span>
+<span class="mdl-chip">
+    <span class="mdl-chip__text">Priority 5/10</span>
+</span>
+</div>
+              </div>
+              <div class="mdl-card__actions mdl-card--border">
+<button class="mdl-button mdl-js-button mdl-js-ripple-effect" id="explanationIconLocationLink" onclick="reveal('explanationIconLocation');">
+Explain</button><button class="mdl-button mdl-js-button mdl-js-ripple-effect" id="IconLocationCardLink" onclick="hideid('IconLocationCard');">
 Dismiss</button>            </div>
             </div>
           </section>

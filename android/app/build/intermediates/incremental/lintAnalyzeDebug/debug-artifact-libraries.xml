@@ -1,5 +1,70 @@
 <libraries>
   <library
+      name="androidx.navigation:navigation-common:2.8.1@aar"
+      jars="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\ec7f8145e97d7d92ad8fed8ba940df3c\transformed\navigation-common-2.8.1\jars\classes.jar"
+      resolved="androidx.navigation:navigation-common:2.8.1"
+      folder="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\ec7f8145e97d7d92ad8fed8ba940df3c\transformed\navigation-common-2.8.1"
+      manifest="AndroidManifest.xml"
+      resFolder="res"
+      assetsFolder="assets"
+      lintJar="lint.jar"
+      publicResources="public.txt"
+      symbolFile="R.txt"
+      externalAnnotations="annotations.zip"
+      proguardRules="proguard.txt"/>
+  <library
+      name="androidx.navigation:navigation-runtime:2.8.1@aar"
+      jars="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\a771308a5e695e800dffdf02ad9d3df3\transformed\navigation-runtime-2.8.1\jars\classes.jar"
+      resolved="androidx.navigation:navigation-runtime:2.8.1"
+      folder="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\a771308a5e695e800dffdf02ad9d3df3\transformed\navigation-runtime-2.8.1"
+      manifest="AndroidManifest.xml"
+      resFolder="res"
+      assetsFolder="assets"
+      lintJar="lint.jar"
+      publicResources="public.txt"
+      symbolFile="R.txt"
+      externalAnnotations="annotations.zip"
+      proguardRules="proguard.txt"/>
+  <library
+      name="androidx.navigation:navigation-common-ktx:2.8.1@aar"
+      jars="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\c10c27b81699d26ddb2f9d99107cc4cb\transformed\navigation-common-ktx-2.8.1\jars\classes.jar"
+      resolved="androidx.navigation:navigation-common-ktx:2.8.1"
+      folder="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\c10c27b81699d26ddb2f9d99107cc4cb\transformed\navigation-common-ktx-2.8.1"
+      manifest="AndroidManifest.xml"
+      resFolder="res"
+      assetsFolder="assets"
+      lintJar="lint.jar"
+      publicResources="public.txt"
+      symbolFile="R.txt"
+      externalAnnotations="annotations.zip"
+      proguardRules="proguard.txt"/>
+  <library
+      name="androidx.navigation:navigation-runtime-ktx:2.8.1@aar"
+      jars="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\714d4226c4374058f228954696c8a2d7\transformed\navigation-runtime-ktx-2.8.1\jars\classes.jar"
+      resolved="androidx.navigation:navigation-runtime-ktx:2.8.1"
+      folder="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\714d4226c4374058f228954696c8a2d7\transformed\navigation-runtime-ktx-2.8.1"
+      manifest="AndroidManifest.xml"
+      resFolder="res"
+      assetsFolder="assets"
+      lintJar="lint.jar"
+      publicResources="public.txt"
+      symbolFile="R.txt"
+      externalAnnotations="annotations.zip"
+      proguardRules="proguard.txt"/>
+  <library
+      name="androidx.navigation:navigation-compose:2.8.1@aar"
+      jars="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\cd7bf249d1655b056dd9d8069c1ee326\transformed\navigation-compose-2.8.1\jars\classes.jar"
+      resolved="androidx.navigation:navigation-compose:2.8.1"
+      folder="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\cd7bf249d1655b056dd9d8069c1ee326\transformed\navigation-compose-2.8.1"
+      manifest="AndroidManifest.xml"
+      resFolder="res"
+      assetsFolder="assets"
+      lintJar="lint.jar"
+      publicResources="public.txt"
+      symbolFile="R.txt"
+      externalAnnotations="annotations.zip"
+      proguardRules="proguard.txt"/>
+  <library
       name="androidx.activity:activity:1.9.2@aar"
       jars="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\1868a8c23dece5246e077fe21261f8c0\transformed\activity-1.9.2\jars\classes.jar"
       resolved="androidx.activity:activity:1.9.2"
@@ -43,58 +108,6 @@
       jars="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\eeec4adf4bccfae2a5bc382566d9b494\transformed\material3-release\jars\classes.jar"
       resolved="androidx.compose.material3:material3-android:1.3.0"
       folder="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\eeec4adf4bccfae2a5bc382566d9b494\transformed\material3-release"
-      manifest="AndroidManifest.xml"
-      resFolder="res"
-      assetsFolder="assets"
-      lintJar="lint.jar"
-      publicResources="public.txt"
-      symbolFile="R.txt"
-      externalAnnotations="annotations.zip"
-      proguardRules="proguard.txt"/>
-  <library
-      name="androidx.compose.ui:ui-util-android:1.7.3@aar"
-      jars="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\559a237fe2431520d276e611d39b9961\transformed\ui-util-release\jars\classes.jar"
-      resolved="androidx.compose.ui:ui-util-android:1.7.3"
-      folder="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\559a237fe2431520d276e611d39b9961\transformed\ui-util-release"
-      manifest="AndroidManifest.xml"
-      resFolder="res"
-      assetsFolder="assets"
-      lintJar="lint.jar"
-      publicResources="public.txt"
-      symbolFile="R.txt"
-      externalAnnotations="annotations.zip"
-      proguardRules="proguard.txt"/>
-  <library
-      name="androidx.compose.ui:ui-unit-android:1.7.3@aar"
-      jars="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\0b7e92c918279979f06c2bb88f980be4\transformed\ui-unit-release\jars\classes.jar"
-      resolved="androidx.compose.ui:ui-unit-android:1.7.3"
-      folder="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\0b7e92c918279979f06c2bb88f980be4\transformed\ui-unit-release"
-      manifest="AndroidManifest.xml"
-      resFolder="res"
-      assetsFolder="assets"
-      lintJar="lint.jar"
-      publicResources="public.txt"
-      symbolFile="R.txt"
-      externalAnnotations="annotations.zip"
-      proguardRules="proguard.txt"/>
-  <library
-      name="androidx.compose.ui:ui-text-android:1.7.3@aar"
-      jars="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\6bcd66aedffafdd324513e1455f6e5cb\transformed\ui-text-release\jars\classes.jar"
-      resolved="androidx.compose.ui:ui-text-android:1.7.3"
-      folder="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\6bcd66aedffafdd324513e1455f6e5cb\transformed\ui-text-release"
-      manifest="AndroidManifest.xml"
-      resFolder="res"
-      assetsFolder="assets"
-      lintJar="lint.jar"
-      publicResources="public.txt"
-      symbolFile="R.txt"
-      externalAnnotations="annotations.zip"
-      proguardRules="proguard.txt"/>
-  <library
-      name="androidx.compose.ui:ui-graphics-android:1.7.3@aar"
-      jars="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\bb84bf598c12076779849cbe65f076ed\transformed\ui-graphics-release\jars\classes.jar"
-      resolved="androidx.compose.ui:ui-graphics-android:1.7.3"
-      folder="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\bb84bf598c12076779849cbe65f076ed\transformed\ui-graphics-release"
       manifest="AndroidManifest.xml"
       resFolder="res"
       assetsFolder="assets"
@@ -186,6 +199,58 @@
       jars="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\8a8bd2a5745c9011097027303a271366\transformed\animation-release\jars\classes.jar"
       resolved="androidx.compose.animation:animation-android:1.7.3"
       folder="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\8a8bd2a5745c9011097027303a271366\transformed\animation-release"
+      manifest="AndroidManifest.xml"
+      resFolder="res"
+      assetsFolder="assets"
+      lintJar="lint.jar"
+      publicResources="public.txt"
+      symbolFile="R.txt"
+      externalAnnotations="annotations.zip"
+      proguardRules="proguard.txt"/>
+  <library
+      name="androidx.compose.ui:ui-util-android:1.7.3@aar"
+      jars="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\559a237fe2431520d276e611d39b9961\transformed\ui-util-release\jars\classes.jar"
+      resolved="androidx.compose.ui:ui-util-android:1.7.3"
+      folder="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\559a237fe2431520d276e611d39b9961\transformed\ui-util-release"
+      manifest="AndroidManifest.xml"
+      resFolder="res"
+      assetsFolder="assets"
+      lintJar="lint.jar"
+      publicResources="public.txt"
+      symbolFile="R.txt"
+      externalAnnotations="annotations.zip"
+      proguardRules="proguard.txt"/>
+  <library
+      name="androidx.compose.ui:ui-unit-android:1.7.3@aar"
+      jars="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\0b7e92c918279979f06c2bb88f980be4\transformed\ui-unit-release\jars\classes.jar"
+      resolved="androidx.compose.ui:ui-unit-android:1.7.3"
+      folder="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\0b7e92c918279979f06c2bb88f980be4\transformed\ui-unit-release"
+      manifest="AndroidManifest.xml"
+      resFolder="res"
+      assetsFolder="assets"
+      lintJar="lint.jar"
+      publicResources="public.txt"
+      symbolFile="R.txt"
+      externalAnnotations="annotations.zip"
+      proguardRules="proguard.txt"/>
+  <library
+      name="androidx.compose.ui:ui-text-android:1.7.3@aar"
+      jars="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\6bcd66aedffafdd324513e1455f6e5cb\transformed\ui-text-release\jars\classes.jar"
+      resolved="androidx.compose.ui:ui-text-android:1.7.3"
+      folder="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\6bcd66aedffafdd324513e1455f6e5cb\transformed\ui-text-release"
+      manifest="AndroidManifest.xml"
+      resFolder="res"
+      assetsFolder="assets"
+      lintJar="lint.jar"
+      publicResources="public.txt"
+      symbolFile="R.txt"
+      externalAnnotations="annotations.zip"
+      proguardRules="proguard.txt"/>
+  <library
+      name="androidx.compose.ui:ui-graphics-android:1.7.3@aar"
+      jars="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\bb84bf598c12076779849cbe65f076ed\transformed\ui-graphics-release\jars\classes.jar"
+      resolved="androidx.compose.ui:ui-graphics-android:1.7.3"
+      folder="C:\Users\Vipul Singh\.gradle\caches\9.0-milestone-1\transforms\bb84bf598c12076779849cbe65f076ed\transformed\ui-graphics-release"
       manifest="AndroidManifest.xml"
       resFolder="res"
       assetsFolder="assets"
@@ -519,13 +584,13 @@
       externalAnnotations="annotations.zip"
       proguardRules="proguard.txt"/>
   <library
-      name="androidx.arch.core:core-common:2.2.0@jar"
-      jars="C:\Users\Vipul Singh\.gradle\caches\modules-2\files-2.1\androidx.arch.core\core-common\2.2.0\5e1b8b81dfd5f52c56a8d53b18ca759c19a301f3\core-common-2.2.0.jar"
-      resolved="androidx.arch.core:core-common:2.2.0"/>
-  <library
       name="androidx.collection:collection-jvm:1.4.4@jar"
       jars="C:\Users\Vipul Singh\.gradle\caches\modules-2\files-2.1\androidx.collection\collection-jvm\1.4.4\da13a7e557c430276b8cb490420effebc1398c0d\collection-jvm-1.4.4.jar"
       resolved="androidx.collection:collection-jvm:1.4.4"/>
+  <library
+      name="androidx.arch.core:core-common:2.2.0@jar"
+      jars="C:\Users\Vipul Singh\.gradle\caches\modules-2\files-2.1\androidx.arch.core\core-common\2.2.0\5e1b8b81dfd5f52c56a8d53b18ca759c19a301f3\core-common-2.2.0.jar"
+      resolved="androidx.arch.core:core-common:2.2.0"/>
   <library
       name="androidx.annotation:annotation-jvm:1.8.1@jar"
       jars="C:\Users\Vipul Singh\.gradle\caches\modules-2\files-2.1\androidx.annotation\annotation-jvm\1.8.1\b8a16fe526014b7941c1debaccaf9c5153692dbb\annotation-jvm-1.8.1.jar"
@@ -713,6 +778,10 @@
       symbolFile="R.txt"
       externalAnnotations="annotations.zip"
       proguardRules="proguard.txt"/>
+  <library
+      name="org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:1.6.3@jar"
+      jars="C:\Users\Vipul Singh\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlinx\kotlinx-serialization-core-jvm\1.6.3\6b6c17d0312ba7192893adea9d52959941d0119b\kotlinx-serialization-core-jvm-1.6.3.jar"
+      resolved="org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:1.6.3"/>
   <library
       name="androidx.collection:collection-ktx:1.4.4@jar"
       jars="C:\Users\Vipul Singh\.gradle\caches\modules-2\files-2.1\androidx.collection\collection-ktx\1.4.4\2ad14aed781c4a73ed4dbb421966d408a0a06686\collection-ktx-1.4.4.jar"

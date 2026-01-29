@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.maths.teacher.app-mergeReleaseResources-44:/values-ru/values-ru.xml",
+            "outputFile": "com.maths.teacher.app-mergeReleaseResources-49:/values-ru/values-ru.xml",
             "map": [
                 {
                     "source": "C:\\Users\\Vipul Singh\\.gradle\\caches\\9.0-milestone-1\\transforms\\6c55bfde1c1e1fa90ce6fd3bae0729ff\\transformed\\ui-release\\res\\values-ru\\values-ru.xml",
