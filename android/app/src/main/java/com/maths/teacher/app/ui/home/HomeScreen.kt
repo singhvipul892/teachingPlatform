@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Mail
@@ -54,6 +55,14 @@ fun HomeScreen(
             icon = Icons.Default.Home,
             onClick = {
                 scope.launch { drawerState.close() }
+            }
+        ),
+        NavigationItem(
+            title = "Resources",
+            icon = Icons.Default.Folder,
+            onClick = {
+                scope.launch { drawerState.close() }
+                navController.navigate("resources")
             }
         ),
         NavigationItem(

@@ -13,6 +13,9 @@ import com.maths.teacher.app.ui.home.HomeScreen
 import com.maths.teacher.app.ui.home.HomeViewModel
 import com.maths.teacher.app.ui.home.HomeViewModelFactory
 import com.maths.teacher.app.ui.pdfviewer.PdfViewerScreen
+import com.maths.teacher.app.ui.resources.ResourcesScreen
+import com.maths.teacher.app.ui.resources.ResourcesViewModel
+import com.maths.teacher.app.ui.resources.ResourcesViewModelFactory
 import com.maths.teacher.app.ui.theme.AppTheme
 
 class MainActivity : ComponentActivity() {
@@ -34,6 +37,15 @@ class MainActivity : ComponentActivity() {
                         )
                         HomeScreen(
                             viewModel = homeViewModel,
+                            navController = navController
+                        )
+                    }
+                    composable("resources") {
+                        val resourcesViewModel: ResourcesViewModel = viewModel(
+                            factory = ResourcesViewModelFactory(repository)
+                        )
+                        ResourcesScreen(
+                            viewModel = resourcesViewModel,
                             navController = navController
                         )
                     }
