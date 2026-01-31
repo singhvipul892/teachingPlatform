@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Mail
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Settings
@@ -38,6 +39,8 @@ fun AppNavigationDrawer(
     drawerState: DrawerState,
     navigationItems: List<NavigationItem>,
     onItemClick: (NavigationItem) -> Unit,
+    displayName: String? = null,
+    onLogout: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     ModalNavigationDrawer(
@@ -52,7 +55,7 @@ fun AppNavigationDrawer(
                         .padding(16.dp)
                 ) {
                     Text(
-                        text = "Singh Sir",
+                        text = displayName?.takeIf { it.isNotBlank() } ?: "Account",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -60,7 +63,7 @@ fun AppNavigationDrawer(
                     )
                     Divider()
                     Spacer(modifier = Modifier.height(8.dp))
-                    
+
                     navigationItems.forEach { item ->
                         NavigationDrawerItem(
                             icon = {
@@ -77,6 +80,23 @@ fun AppNavigationDrawer(
                                 onItemClick(item)
                                 item.onClick()
                             },
+                            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                        )
+                    }
+
+                    if (onLogout != null) {
+                        Spacer(modifier = Modifier.weight(1f))
+                        Divider()
+                        NavigationDrawerItem(
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Default.Logout,
+                                    contentDescription = "Log out"
+                                )
+                            },
+                            label = { Text("Log out") },
+                            selected = false,
+                            onClick = onLogout,
                             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                         )
                     }

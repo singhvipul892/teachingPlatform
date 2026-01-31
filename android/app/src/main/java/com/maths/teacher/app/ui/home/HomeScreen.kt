@@ -25,6 +25,8 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import com.maths.teacher.app.data.api.TeacherApi
+import com.maths.teacher.app.data.prefs.SessionManager
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -43,9 +45,12 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
-    navController: NavController
+    navController: NavController,
+    sessionManager: SessionManager,
+    api: TeacherApi
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val displayName by sessionManager.displayName.collectAsStateWithLifecycle(initialValue = null)
     val drawerState = rememberDrawerState(initialValue = androidx.compose.material3.DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -114,7 +119,17 @@ fun HomeScreen(
     AppNavigationDrawer(
         drawerState = drawerState,
         navigationItems = navigationItems,
-        onItemClick = { item -> item.onClick() }
+        onItemClick = { item -> item.onClick() },
+        displayName = displayName,
+        onLogout = {
+            scope.launch {
+                drawerState.close()
+                sessionManager.clearSession()
+                navController.navigate("login") {
+                    popUpTo("home") { inclusive = true }
+                }
+            }
+        }
     ) {
         Scaffold(
             topBar = {
@@ -144,6 +159,7 @@ fun HomeScreen(
                         onVideoSelected = { id -> viewModel.selectVideo(id) },
                         onDismissVideo = { viewModel.clearSelectedVideo() },
                         onOpenPdf = { v, p -> navController.navigate("pdf_viewer/$v/$p") },
+                        api = api,
                         modifier = Modifier.padding(paddingValues)
                     )
                 }
@@ -181,6 +197,7 @@ private fun HomeContent(
     onVideoSelected: (Long) -> Unit,
     onDismissVideo: () -> Unit,
     onOpenPdf: (videoId: Long, pdfId: Long) -> Unit,
+    api: TeacherApi,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -206,6 +223,7 @@ private fun HomeContent(
                             pdfs = video.pdfs,
                             videoId = video.id,
                             onOpenPdf = onOpenPdf,
+                            api = api,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }

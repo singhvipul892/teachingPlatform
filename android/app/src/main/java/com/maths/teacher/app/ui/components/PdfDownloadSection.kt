@@ -29,7 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.maths.teacher.app.data.api.ApiClient
+import com.maths.teacher.app.data.api.TeacherApi
 import com.maths.teacher.app.data.prefs.getPdfPath
 import com.maths.teacher.app.data.prefs.savePdfPath
 import com.maths.teacher.app.domain.model.Pdf
@@ -45,6 +45,7 @@ fun PdfDownloadSection(
     pdfs: List<Pdf>,
     videoId: Long,
     onOpenPdf: (videoId: Long, pdfId: Long) -> Unit,
+    api: TeacherApi,
     modifier: Modifier = Modifier
 ) {
     if (pdfs.isEmpty()) return
@@ -66,6 +67,7 @@ fun PdfDownloadSection(
                 pdf = pdf,
                 videoId = videoId,
                 onOpenPdf = onOpenPdf,
+                api = api,
                 scope = scope
             )
         }
@@ -77,6 +79,7 @@ private fun PdfDownloadCard(
     pdf: Pdf,
     videoId: Long,
     onOpenPdf: (videoId: Long, pdfId: Long) -> Unit,
+    api: TeacherApi,
     scope: kotlinx.coroutines.CoroutineScope
 ) {
     val context = LocalContext.current
@@ -135,7 +138,6 @@ private fun PdfDownloadCard(
                         isDownloading = true
                         scope.launch {
                             try {
-                                val api = ApiClient.api
                                 val file = withContext(Dispatchers.IO) {
                                     val resp = api.downloadPdf(videoId, pdf.id)
                                     val url = URL(resp.url)

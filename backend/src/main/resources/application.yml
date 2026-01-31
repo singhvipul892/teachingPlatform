@@ -15,6 +15,9 @@ server:
   port: 8080
 
 app:
+  jwt:
+    secret: ${JWT_SECRET:change-me-in-production-use-long-secret-key-at-least-32-chars}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
   storage:
     s3:
       region: ap-south-1

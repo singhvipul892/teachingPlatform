@@ -44,7 +44,8 @@ import com.maths.teacher.app.ui.components.PdfDownloadSection
 @Composable
 fun ResourcesScreen(
     viewModel: ResourcesViewModel,
-    navController: NavController
+    navController: NavController,
+    api: com.maths.teacher.app.data.api.TeacherApi
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var dropdownExpanded by remember { mutableStateOf(false) }
@@ -208,6 +209,7 @@ fun ResourcesScreen(
                                                 onOpenPdf = { v, p ->
                                                     navController.navigate("pdf_viewer/$v/$p")
                                                 },
+                                                api = api,
                                                 modifier = Modifier.fillMaxWidth()
                                             )
                                         }
