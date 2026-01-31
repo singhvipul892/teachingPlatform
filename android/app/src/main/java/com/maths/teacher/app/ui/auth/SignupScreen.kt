@@ -128,7 +128,7 @@ fun SignupScreen(
             CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
         } else {
             Button(
-                onClick = { viewModel.signup { navController.navigate("home") { popUpTo("login") { inclusive = true } } } },
+                onClick = { viewModel.signup { navController.navigate("login") { popUpTo("signup") { inclusive = true } } } },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Sign up")

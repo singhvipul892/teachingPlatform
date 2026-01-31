@@ -7,7 +7,6 @@ import com.google.gson.Gson
 import com.maths.teacher.app.data.api.TeacherApi
 import com.maths.teacher.app.data.model.ErrorResponse
 import com.maths.teacher.app.data.model.SignupRequest
-import com.maths.teacher.app.data.prefs.SessionManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,8 +25,7 @@ data class SignupUiState(
 )
 
 class SignupViewModel(
-    private val api: TeacherApi,
-    private val sessionManager: SessionManager
+    private val api: TeacherApi
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SignupUiState())
@@ -73,7 +71,7 @@ class SignupViewModel(
         viewModelScope.launch {
             _uiState.value = state.copy(isLoading = true, errorMessage = null)
             try {
-                val response = api.signup(
+                api.signup(
                     SignupRequest(
                         firstName = state.firstName.trim(),
                         lastName = state.lastName.trim(),
@@ -81,13 +79,6 @@ class SignupViewModel(
                         mobileNumber = state.mobileNumber.trim(),
                         password = state.password
                     )
-                )
-                sessionManager.saveSession(
-                    token = response.token,
-                    userId = response.userId,
-                    firstName = response.firstName,
-                    lastName = response.lastName,
-                    email = response.email
                 )
                 _uiState.value = state.copy(isLoading = false)
                 onSuccess()
@@ -119,13 +110,12 @@ class SignupViewModel(
 }
 
 class SignupViewModelFactory(
-    private val api: TeacherApi,
-    private val sessionManager: SessionManager
+    private val api: TeacherApi
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(SignupViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return SignupViewModel(api, sessionManager) as T
+            return SignupViewModel(api) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

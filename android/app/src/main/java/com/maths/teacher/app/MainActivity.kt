@@ -80,7 +80,7 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("signup") {
                             val signupViewModel: SignupViewModel = viewModel(
-                                factory = SignupViewModelFactory(api, sessionManager)
+                                factory = SignupViewModelFactory(api)
                             )
                             SignupScreen(
                                 viewModel = signupViewModel,
