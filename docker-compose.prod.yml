@@ -26,6 +26,7 @@ services:
       - "8080:8080"
     depends_on:
       - db
+    network_mode: host   
 
   pgadmin:
     image: dpage/pgadmin4:8.12

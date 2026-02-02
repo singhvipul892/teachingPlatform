@@ -122,6 +122,7 @@ rsync -avz -e "ssh -i /path/to/your-key.pem" --exclude '.git' --exclude 'android
 
 # Option B: clone from Git on EC2 (after SSH)
 # On EC2:
+sudo dnf install -y git
 git clone <your-repo-url> ~/app
 cd ~/app
 ```
