@@ -14,6 +14,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-teacher_videos}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-teacher}
@@ -22,11 +24,17 @@ services:
       APP_STORAGE_S3_BUCKET: ${APP_STORAGE_S3_BUCKET}
       APP_STORAGE_S3_PRESIGN_EXPIRY_MINUTES: ${APP_STORAGE_S3_PRESIGN_EXPIRY_MINUTES:-10}
       JWT_SECRET: ${JWT_SECRET}
+      AWS_EC2_METADATA_SERVICE_ENDPOINT: http://host.docker.internal:1338
     ports:
       - "8080:8080"
     depends_on:
       - db
-    network_mode: host   
+
+  metadata-proxy:
+    build:
+      context: ./docker/metadata-proxy
+      dockerfile: Dockerfile
+    network_mode: host
 
   pgadmin:
     image: dpage/pgadmin4:8.12
