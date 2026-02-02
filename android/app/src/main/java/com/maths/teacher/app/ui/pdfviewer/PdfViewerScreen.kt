@@ -45,10 +45,11 @@ import java.io.File
 fun PdfViewerScreen(
     videoId: Long,
     pdfId: Long,
+    userId: Long?,
     navController: NavController
 ) {
     val context = LocalContext.current
-    val path = getPdfPath(context, videoId, pdfId)
+    val path = getPdfPath(context, userId, videoId, pdfId)
     val file = path?.let { File(it) }
     val exists = file?.exists() == true
 

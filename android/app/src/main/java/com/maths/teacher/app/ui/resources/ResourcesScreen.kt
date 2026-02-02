@@ -38,6 +38,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Box
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import com.maths.teacher.app.data.prefs.SessionManager
 import com.maths.teacher.app.ui.components.PdfDownloadSection
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,9 +46,11 @@ import com.maths.teacher.app.ui.components.PdfDownloadSection
 fun ResourcesScreen(
     viewModel: ResourcesViewModel,
     navController: NavController,
+    sessionManager: SessionManager,
     api: com.maths.teacher.app.data.api.TeacherApi
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val userId by sessionManager.userId.collectAsStateWithLifecycle(initialValue = null)
     var dropdownExpanded by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -206,6 +209,7 @@ fun ResourcesScreen(
                                             PdfDownloadSection(
                                                 pdfs = video.pdfs,
                                                 videoId = video.id,
+                                                userId = userId,
                                                 onOpenPdf = { v, p ->
                                                     navController.navigate("pdf_viewer/$v/$p")
                                                 },

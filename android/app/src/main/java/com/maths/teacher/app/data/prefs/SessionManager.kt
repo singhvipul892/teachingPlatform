@@ -31,6 +31,10 @@ class SessionManager(private val context: Context) {
         prefs[SessionKeys.TOKEN]?.takeIf { it.isNotBlank() }
     }
 
+    val userId: Flow<Long?> = context.dataStore.data.map { prefs ->
+        prefs[SessionKeys.USER_ID]?.toLongOrNull()
+    }
+
     val displayName: Flow<String?> = context.dataStore.data.map { prefs ->
         val first = prefs[SessionKeys.FIRST_NAME] ?: ""
         val last = prefs[SessionKeys.LAST_NAME] ?: ""

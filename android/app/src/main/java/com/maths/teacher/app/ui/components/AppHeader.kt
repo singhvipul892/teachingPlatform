@@ -39,7 +39,7 @@ fun AppHeader(
                 Image(
                     painter = painterResource(id = R.drawable.app_logo),
                     contentDescription = "App Logo",
-                    modifier = Modifier.size(40.dp)
+                    modifier = Modifier.size(64.dp)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(

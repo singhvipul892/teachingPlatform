@@ -44,6 +44,7 @@ import java.net.URL
 fun PdfDownloadSection(
     pdfs: List<Pdf>,
     videoId: Long,
+    userId: Long?,
     onOpenPdf: (videoId: Long, pdfId: Long) -> Unit,
     api: TeacherApi,
     modifier: Modifier = Modifier
@@ -66,6 +67,7 @@ fun PdfDownloadSection(
             PdfDownloadCard(
                 pdf = pdf,
                 videoId = videoId,
+                userId = userId,
                 onOpenPdf = onOpenPdf,
                 api = api,
                 scope = scope
@@ -78,6 +80,7 @@ fun PdfDownloadSection(
 private fun PdfDownloadCard(
     pdf: Pdf,
     videoId: Long,
+    userId: Long?,
     onOpenPdf: (videoId: Long, pdfId: Long) -> Unit,
     api: TeacherApi,
     scope: kotlinx.coroutines.CoroutineScope
@@ -89,7 +92,7 @@ private fun PdfDownloadCard(
 
     // Read refreshTrigger so Compose subscribes and recomposes when it changes
     val refreshTriggerRead = refreshTrigger
-    val path = getPdfPath(context, videoId, pdf.id)
+    val path = getPdfPath(context, userId, videoId, pdf.id)
     val isDownloaded = path != null && File(path).exists() && refreshTriggerRead >= 0
 
     Card(
@@ -151,7 +154,7 @@ private fun PdfDownloadCard(
                                     FileOutputStream(f).use { out -> ins.copyTo(out) }
                                     f
                                 }
-                                savePdfPath(context, videoId, pdf.id, file.absolutePath)
+                                savePdfPath(context, userId, videoId, pdf.id, file.absolutePath)
                                 refreshTrigger++
                                 Toast.makeText(context, "Downloaded: ${file.name}", Toast.LENGTH_LONG).show()
                                 onOpenPdf(videoId, pdf.id)

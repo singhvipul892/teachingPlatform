@@ -51,6 +51,7 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val displayName by sessionManager.displayName.collectAsStateWithLifecycle(initialValue = null)
+    val userId by sessionManager.userId.collectAsStateWithLifecycle(initialValue = null)
     val drawerState = rememberDrawerState(initialValue = androidx.compose.material3.DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -159,6 +160,7 @@ fun HomeScreen(
                         onVideoSelected = { id -> viewModel.selectVideo(id) },
                         onDismissVideo = { viewModel.clearSelectedVideo() },
                         onOpenPdf = { v, p -> navController.navigate("pdf_viewer/$v/$p") },
+                        userId = userId,
                         api = api,
                         modifier = Modifier.padding(paddingValues)
                     )
@@ -197,6 +199,7 @@ private fun HomeContent(
     onVideoSelected: (Long) -> Unit,
     onDismissVideo: () -> Unit,
     onOpenPdf: (videoId: Long, pdfId: Long) -> Unit,
+    userId: Long?,
     api: TeacherApi,
     modifier: Modifier = Modifier
 ) {
@@ -222,6 +225,7 @@ private fun HomeContent(
                         PdfDownloadSection(
                             pdfs = video.pdfs,
                             videoId = video.id,
+                            userId = userId,
                             onOpenPdf = onOpenPdf,
                             api = api,
                             modifier = Modifier.fillMaxWidth()
