@@ -2,6 +2,7 @@ package com.maths.teacher.catalog.web.dto;
 
 public class VideoResponse {
 
+    private final Long id;
     private final String videoId;
     private final String title;
     private final String thumbnailUrl;
@@ -10,6 +11,7 @@ public class VideoResponse {
     private final java.util.List<PdfResponse> pdfs;
 
     public VideoResponse(
+            Long id,
             String videoId,
             String title,
             String thumbnailUrl,
@@ -17,12 +19,17 @@ public class VideoResponse {
             Integer displayOrder,
             java.util.List<PdfResponse> pdfs
     ) {
+        this.id = id;
         this.videoId = videoId;
         this.title = title;
         this.thumbnailUrl = thumbnailUrl;
         this.duration = duration;
         this.displayOrder = displayOrder;
         this.pdfs = pdfs;
+    }
+
+    public Long getId() {
+        return id;
     }
 
     public String getVideoId() {

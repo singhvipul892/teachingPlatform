@@ -27,6 +27,16 @@ public final class ErrorMessages {
 
     public static final String ACCESS_DENIED = "Access denied";
 
+    /** Shown when login identifier (email or mobile) does not match any account. */
+    public static final String NO_ACCOUNT_FOUND_EMAIL_OR_MOBILE = "No account found with this email or mobile number.";
+
+    /** Shown when the password is wrong for an existing account. */
+    public static final String PASSWORD_INVALID = "Password is invalid.";
+
+    public static final String EMAIL_ALREADY_REGISTERED = "An account with this email is already registered.";
+
+    public static final String MOBILE_ALREADY_REGISTERED = "An account with this mobile number is already registered.";
+
     // ==================== YouTube URL Errors ====================
 
     public static final String YOUTUBE_URL_CANNOT_BE_NULL_OR_EMPTY = 

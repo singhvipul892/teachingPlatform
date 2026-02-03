@@ -71,6 +71,7 @@ public class VideoCatalogService {
 
     private VideoResponse toVideoResponse(Video video, Map<Long, List<PdfResponse>> pdfsByVideoId) {
         return new VideoResponse(
+                video.getId(),
                 video.getVideoId(),
                 video.getTitle(),
                 video.getThumbnailUrl(),

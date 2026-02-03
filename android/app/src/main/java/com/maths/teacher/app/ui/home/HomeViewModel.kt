@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.maths.teacher.app.data.repository.VideoRepository
 import com.maths.teacher.app.domain.model.SectionWithVideos
+import com.maths.teacher.app.domain.model.Video
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,7 +15,7 @@ data class HomeUiState(
     val isLoading: Boolean = false,
     val sections: List<SectionWithVideos> = emptyList(),
     val errorMessage: String? = null,
-    val selectedVideoId: String? = null
+    val selectedVideo: Video? = null
 )
 
 class HomeViewModel(
@@ -46,12 +47,15 @@ class HomeViewModel(
         }
     }
 
-    fun selectVideo(videoId: String) {
-        _uiState.value = _uiState.value.copy(selectedVideoId = videoId)
+    fun selectVideo(videoId: Long) {
+        val video = _uiState.value.sections
+            .flatMap { it.videos }
+            .firstOrNull { it.id == videoId }
+        _uiState.value = _uiState.value.copy(selectedVideo = video)
     }
 
     fun clearSelectedVideo() {
-        _uiState.value = _uiState.value.copy(selectedVideoId = null)
+        _uiState.value = _uiState.value.copy(selectedVideo = null)
     }
 }
 
