@@ -1,0 +1,10 @@
+# Dev/local profile: uses separate bucket so local runs don't touch prod data.
+app:
+  jwt:
+    secret: ${JWT_SECRET:change-me-in-production-use-long-secret-key-at-least-32-chars}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+  storage:
+    s3:
+      region: ap-south-1
+      bucket: teacherplatform.503561455300.local  # Local bucket (prod uses teacherplatform.503561455300)
+      presign-expiry-minutes: 10
