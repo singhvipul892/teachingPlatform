@@ -45,6 +45,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.maths.teacher.app.ui.components.AppFooter
 import com.maths.teacher.app.ui.components.AppHeader
@@ -166,7 +167,7 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .background(MaterialTheme.colorScheme.background)
+                    .background(androidx.compose.ui.graphics.Color(0xFFF6F9FD))
             ) {
                 when {
                     uiState.isLoading -> {
@@ -238,32 +239,46 @@ private fun HomeContent(
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Welcome text with avatar
+        // Welcome text with avatar - scrolls with content
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(androidx.compose.ui.graphics.Color.White)
+                    .padding(vertical = 12.dp)
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.profile),
-                    contentDescription = "User Avatar",
+                Row(
                     modifier = Modifier
-                        .size(34.dp)
-                        .border(2.dp, com.maths.teacher.app.ui.theme.PrimaryBlueLight.copy(alpha = 0.8f), CircleShape)
-                        .clip(CircleShape),
-                    contentScale = ContentScale.Crop
-                )
-                Text(
-                    text = "Namaste, ${displayName?.split(" ")?.joinToString(" ") { it.replaceFirstChar { char -> char.uppercaseChar() } } ?: "User"}",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = com.maths.teacher.app.ui.theme.AccentSaffron,
-                    modifier = Modifier.weight(1f)
-                )
+                        .fillMaxWidth()
+                        .padding(horizontal = 0.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .background(androidx.compose.ui.graphics.Color(0xFFECF3FF), CircleShape)
+                            .clip(CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.profile),
+                            contentDescription = "User Avatar",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                    Text(
+                        text = "Namaste, ${displayName?.split(" ")?.joinToString(" ") { it.replaceFirstChar { char -> char.uppercaseChar() } } ?: "User"}",
+                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 20.sp),
+                        fontWeight = FontWeight.SemiBold,
+                        color = com.maths.teacher.app.ui.theme.AccentSaffron,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
         
@@ -274,7 +289,7 @@ private fun HomeContent(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 24.dp),
+                        .padding(top = 32.dp),
                     horizontalArrangement = Arrangement.Center
                 ) {
                     Spacer(modifier = Modifier.weight(0.2f))
