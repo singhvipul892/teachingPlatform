@@ -10,7 +10,7 @@
     
     <!-- Book spine -->
     <path
-        android:fillColor="#4A90E2"
+        android:fillColor="#0B2C5F"
         android:pathData="M28,22 L54,22 L54,86 L28,86 Z"/>
     
     <!-- Plus sign -->

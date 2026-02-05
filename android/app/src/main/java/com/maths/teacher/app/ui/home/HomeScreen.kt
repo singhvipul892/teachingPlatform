@@ -1,6 +1,8 @@
 package com.maths.teacher.app.ui.home
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -133,6 +135,7 @@ fun HomeScreen(
         }
     ) {
         Scaffold(
+            containerColor = MaterialTheme.colorScheme.surface,
             topBar = {
                 AppHeader(
                     onNavigationClick = {
@@ -146,24 +149,34 @@ fun HomeScreen(
                 AppFooter(links = footerLinks)
             }
         ) { paddingValues ->
-            when {
-                uiState.isLoading -> {
-                    LoadingState()
-                }
-                uiState.errorMessage != null -> {
-                    ErrorState(uiState.errorMessage ?: "Something went wrong.")
-                }
-                else -> {
-                    HomeContent(
-                        sections = uiState.sections,
-                        selectedVideo = uiState.selectedVideo,
-                        onVideoSelected = { id -> viewModel.selectVideo(id) },
-                        onDismissVideo = { viewModel.clearSelectedVideo() },
-                        onOpenPdf = { v, p -> navController.navigate("pdf_viewer/$v/$p") },
-                        userId = userId,
-                        api = api,
-                        modifier = Modifier.padding(paddingValues)
-                    )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .background(MaterialTheme.colorScheme.background)
+            ) {
+                when {
+                    uiState.isLoading -> {
+                        LoadingState()
+                    }
+                    uiState.errorMessage != null -> {
+                        ErrorState(uiState.errorMessage ?: "Something went wrong.")
+                    }
+                    uiState.sections.isEmpty() -> {
+                        EmptyState()
+                    }
+                    else -> {
+                        HomeContent(
+                            sections = uiState.sections,
+                            selectedVideo = uiState.selectedVideo,
+                            onVideoSelected = { id -> viewModel.selectVideo(id) },
+                            onDismissVideo = { viewModel.clearSelectedVideo() },
+                            onOpenPdf = { v, p -> navController.navigate("pdf_viewer/$v/$p") },
+                            userId = userId,
+                            api = api,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
             }
         }
@@ -189,6 +202,21 @@ private fun ErrorState(message: String) {
         horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
     ) {
         Text(text = message, color = MaterialTheme.colorScheme.error)
+    }
+}
+
+@Composable
+private fun EmptyState() {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "No content available yet.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyLarge
+        )
     }
 }
 

@@ -5,7 +5,7 @@
     android:viewportHeight="108">
     <!-- Background circle -->
     <path
-        android:fillColor="#4A90E2"
+        android:fillColor="#0B2C5F"
         android:pathData="M54,54m-50,0a50,50 0,1 1,100 0a50,50 0,1 1,-100 0"/>
     
     <!-- Book cover -->
@@ -15,7 +15,7 @@
     
     <!-- Book spine -->
     <path
-        android:fillColor="#4A90E2"
+        android:fillColor="#0B2C5F"
         android:pathData="M28,22 L54,22 L54,86 L28,86 Z"/>
     
     <!-- Plus sign -->
