@@ -30,6 +30,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.maths.teacher.app.domain.model.Video
 
@@ -42,7 +43,7 @@ fun VideoCardCarousel(
     LazyRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp)
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 0.dp)
     ) {
         items(videos) { video ->
             VideoCard(
@@ -61,12 +62,12 @@ private fun VideoCard(
     AppTooltip(text = "${video.title}\nDuration: ${video.duration}") {
         Card(
             modifier = Modifier
-                .size(width = 220.dp, height = 200.dp)
+                .size(width = 220.dp, height = 240.dp)
                 .clickable { onVideoSelected(video.id) },
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
             shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
+                containerColor = androidx.compose.ui.graphics.Color(0xFFECF3FF)
             )
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
@@ -74,14 +75,14 @@ private fun VideoCard(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(120.dp)
+                        .height(160.dp)
                 ) {
                     AsyncImage(
                         model = video.thumbnailUrl,
                         contentDescription = video.title,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(120.dp)
+                            .height(160.dp)
                             .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
                         contentScale = ContentScale.Crop
                     )
@@ -109,29 +110,12 @@ private fun VideoCard(
                 ) {
                     Text(
                         text = video.title,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
                         fontWeight = FontWeight.Medium,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = "Duration",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.size(6.dp))
-                        Text(
-                            text = video.duration,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
-                    }
                 }
             }
         }

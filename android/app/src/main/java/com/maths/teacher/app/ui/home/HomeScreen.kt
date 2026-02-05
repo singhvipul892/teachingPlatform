@@ -1,15 +1,24 @@
 package com.maths.teacher.app.ui.home
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Home
@@ -29,7 +38,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import com.maths.teacher.app.data.api.TeacherApi
 import com.maths.teacher.app.data.prefs.SessionManager
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -38,8 +51,8 @@ import com.maths.teacher.app.ui.components.AppHeader
 import com.maths.teacher.app.ui.components.AppNavigationDrawer
 import com.maths.teacher.app.ui.components.FooterLink
 import com.maths.teacher.app.ui.components.NavigationItem
-import com.maths.teacher.app.ui.components.PdfDownloadSection
 import com.maths.teacher.app.ui.components.VideoCardCarousel
+import com.maths.teacher.app.R
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 
@@ -168,12 +181,8 @@ fun HomeScreen(
                     else -> {
                         HomeContent(
                             sections = uiState.sections,
-                            selectedVideo = uiState.selectedVideo,
-                            onVideoSelected = { id -> viewModel.selectVideo(id) },
-                            onDismissVideo = { viewModel.clearSelectedVideo() },
-                            onOpenPdf = { v, p -> navController.navigate("pdf_viewer/$v/$p") },
-                            userId = userId,
-                            api = api,
+                            onVideoSelected = { id, sectionName -> navController.navigate("video_detail/$id/${java.net.URLEncoder.encode(sectionName, "UTF-8")}") },
+                            displayName = displayName,
                             modifier = Modifier.fillMaxSize()
                         )
                     }
@@ -223,48 +232,61 @@ private fun EmptyState() {
 @Composable
 private fun HomeContent(
     sections: List<com.maths.teacher.app.domain.model.SectionWithVideos>,
-    selectedVideo: com.maths.teacher.app.domain.model.Video?,
-    onVideoSelected: (Long) -> Unit,
-    onDismissVideo: () -> Unit,
-    onOpenPdf: (videoId: Long, pdfId: Long) -> Unit,
-    userId: Long?,
-    api: TeacherApi,
+    onVideoSelected: (Long, String) -> Unit,
+    displayName: String?,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        selectedVideo?.let { video ->
-            item {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Show video player first
-                    YouTubeEmbedPlayer(
-                        videoId = video.videoId,
-                        onDismiss = onDismissVideo,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    // Show PDF download section below the video player
-                    if (video.pdfs.isNotEmpty()) {
-                        PdfDownloadSection(
-                            pdfs = video.pdfs,
-                            videoId = video.id,
-                            userId = userId,
-                            onOpenPdf = onOpenPdf,
-                            api = api,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
+        // Welcome text with avatar
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.profile),
+                    contentDescription = "User Avatar",
+                    modifier = Modifier
+                        .size(34.dp)
+                        .border(2.dp, com.maths.teacher.app.ui.theme.PrimaryBlueLight.copy(alpha = 0.8f), CircleShape)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+                Text(
+                    text = "Namaste, ${displayName?.split(" ")?.joinToString(" ") { it.replaceFirstChar { char -> char.uppercaseChar() } } ?: "User"}",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = com.maths.teacher.app.ui.theme.AccentSaffron,
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
-
-        items(sections) { section ->
-            SectionBlock(section, onVideoSelected)
+        
+        itemsIndexed(sections) { index, section ->
+            SectionBlock(section, onVideoSelected = { id -> onVideoSelected(id, section.name) })
+            if (index < sections.size - 1) {
+                // Divider with 20% left and right spacing (60% width in center)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 24.dp),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Spacer(modifier = Modifier.weight(0.2f))
+                    Box(
+                        modifier = Modifier
+                            .weight(0.6f)
+                            .height(1.dp)
+                            .background(androidx.compose.ui.graphics.Color(0xFFD6DDE7))
+                    )
+                    Spacer(modifier = Modifier.weight(0.2f))
+                }
+            }
         }
     }
 }
@@ -274,12 +296,13 @@ private fun SectionBlock(
     section: com.maths.teacher.app.domain.model.SectionWithVideos,
     onVideoSelected: (Long) -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = section.name,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(horizontal = 0.dp)
         )
         VideoCardCarousel(
             videos = section.videos,

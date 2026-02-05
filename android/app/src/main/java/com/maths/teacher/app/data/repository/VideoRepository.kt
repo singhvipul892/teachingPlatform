@@ -10,6 +10,7 @@ interface VideoRepository {
     suspend fun getHomeSections(): List<SectionWithVideos>
     suspend fun getSections(): List<String>
     suspend fun getVideosBySection(section: String): List<Video>
+    suspend fun getVideoById(videoId: Long): Video?
 }
 
 class DefaultVideoRepository(
@@ -35,6 +36,12 @@ class DefaultVideoRepository(
     override suspend fun getVideosBySection(section: String): List<Video> {
         val encodedSection = Uri.encode(section)
         return fetchVideosForSection(encodedSection)
+    }
+
+    override suspend fun getVideoById(videoId: Long): Video? {
+        return getHomeSections()
+            .flatMap { it.videos }
+            .firstOrNull { it.id == videoId }
     }
 
     private suspend fun fetchVideosForSection(encodedSection: String): List<Video> {

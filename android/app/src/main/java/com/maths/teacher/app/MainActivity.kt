@@ -1,8 +1,10 @@
 package com.maths.teacher.app
 
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.core.content.ContextCompat
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -21,6 +23,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,6 +56,9 @@ import com.maths.teacher.app.ui.home.HomeViewModel
 import com.maths.teacher.app.ui.home.HomeViewModelFactory
 import com.maths.teacher.app.ui.pdfviewer.PdfViewerScreen
 import com.maths.teacher.app.ui.resources.ResourcesScreen
+import com.maths.teacher.app.ui.videodetail.VideoDetailScreen
+import com.maths.teacher.app.ui.videodetail.VideoDetailViewModel
+import com.maths.teacher.app.ui.videodetail.VideoDetailViewModelFactory
 import com.maths.teacher.app.ui.resources.ResourcesViewModel
 import com.maths.teacher.app.ui.resources.ResourcesViewModelFactory
 import com.maths.teacher.app.ui.theme.AppTheme
@@ -61,38 +68,44 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.setBackgroundDrawable(ColorDrawable(ContextCompat.getColor(this, R.color.window_background)))
         val sessionManager = SessionManager(applicationContext)
         runBlocking { sessionManager.loadFromStore() }
         val api = ApiClient.createApi(sessionManager)
         val repository = DefaultVideoRepository(api)
 
-        // Single NavHost from first frame avoids root composition swap, reducing window
-        // lifecycle churn. DeadObjectException in WindowManager (EXITING) is a known
-        // system-server race when the window is destroyed; it cannot be fixed in app code.
         setContent {
-            AppTheme {
-                val navController = rememberNavController()
+            AppTheme(darkTheme = false) {
+                var isSessionReady by remember { mutableStateOf(false) }
+                var startDestination by remember { mutableStateOf("login") }
+
+                LaunchedEffect(Unit) {
+                    coroutineScope {
+                        val dest = async(Dispatchers.Default) {
+                            sessionManager.loadFromStore()
+                            if (!sessionManager.currentToken.isNullOrBlank()) "home" else "login"
+                        }
+                        delay(3500)
+                        startDestination = dest.await()
+                        isSessionReady = true
+                    }
+                }
+
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.background)
                 ) {
-                    NavHost(
-                        navController = navController,
-                        startDestination = "splash",
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                    composable("splash") {
-                        SplashContent(
-                            onSplashComplete = { destination ->
-                                navController.navigate(destination) {
-                                    popUpTo("splash") { inclusive = true }
-                                }
-                            },
-                            sessionManager = sessionManager
-                        )
-                    }
-                    composable("login") {
+                    if (!isSessionReady) {
+                        SplashContent()
+                    } else {
+                        val navController = rememberNavController()
+                        NavHost(
+                            navController = navController,
+                            startDestination = startDestination,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                        composable("login") {
                         val loginViewModel: LoginViewModel = viewModel(
                             factory = LoginViewModelFactory(api, sessionManager)
                         )
@@ -132,6 +145,34 @@ class MainActivity : ComponentActivity() {
                             api = api
                         )
                     }
+                    composable("video_detail/{videoId}/{sectionName}") { backStackEntry ->
+                        val videoId = backStackEntry.arguments?.getString("videoId")?.toLongOrNull() ?: 0L
+                        val sectionTitle = backStackEntry.arguments?.getString("sectionName")?.let {
+                            java.net.URLDecoder.decode(it, "UTF-8")
+                        }.takeIf { !it.isNullOrBlank() }
+                        val detailViewModel: VideoDetailViewModel = viewModel(
+                            factory = VideoDetailViewModelFactory(repository, videoId)
+                        )
+                        VideoDetailScreen(
+                            viewModel = detailViewModel,
+                            navController = navController,
+                            sessionManager = sessionManager,
+                            api = api,
+                            sectionTitle = sectionTitle
+                        )
+                    }
+                    composable("video_detail/{videoId}") { backStackEntry ->
+                        val videoId = backStackEntry.arguments?.getString("videoId")?.toLongOrNull() ?: 0L
+                        val detailViewModel: VideoDetailViewModel = viewModel(
+                            factory = VideoDetailViewModelFactory(repository, videoId)
+                        )
+                        VideoDetailScreen(
+                            viewModel = detailViewModel,
+                            navController = navController,
+                            sessionManager = sessionManager,
+                            api = api
+                        )
+                    }
                     composable("pdf_viewer/{videoId}/{pdfId}") { backStackEntry ->
                         val videoId = backStackEntry.arguments?.getString("videoId")?.toLongOrNull() ?: 0L
                         val pdfId = backStackEntry.arguments?.getString("pdfId")?.toLongOrNull() ?: 0L
@@ -145,26 +186,14 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun SplashContent(
-    onSplashComplete: (String) -> Unit,
-    sessionManager: SessionManager
-) {
-    LaunchedEffect(Unit) {
-        coroutineScope {
-            val dest = async(Dispatchers.Default) {
-                sessionManager.loadFromStore()
-                if (!sessionManager.currentToken.isNullOrBlank()) "home" else "login"
-            }
-            delay(3500)
-            onSplashComplete(dest.await())
-        }
-    }
+private fun SplashContent() {
     val infiniteTransition = rememberInfiniteTransition(label = "splash_loader")
     val rotation by infiniteTransition.animateFloat(
         initialValue = 0f,

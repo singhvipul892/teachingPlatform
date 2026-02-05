@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
@@ -38,7 +39,8 @@ fun YouTubeEmbedPlayer(
     videoId: String,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
-    showCloseButton: Boolean = true
+    showCloseButton: Boolean = true,
+    heightDp: Int? = null
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val embedUrl = remember(videoId) {
@@ -112,13 +114,16 @@ fun YouTubeEmbedPlayer(
             }
         }
 
-        // WebView with 16:9 aspect ratio
+        // WebView: fixed height when heightDp set, otherwise 16:9 aspect ratio
         var webView by remember { mutableStateOf<WebView?>(null) }
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(16f / 9f)
+                .then(
+                    if (heightDp != null) Modifier.height(heightDp.dp)
+                    else Modifier.aspectRatio(16f / 9f)
+                )
         ) {
             AndroidView(
                 factory = { ctx ->
