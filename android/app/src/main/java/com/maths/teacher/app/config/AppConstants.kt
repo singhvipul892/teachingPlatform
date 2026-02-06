@@ -2,7 +2,7 @@ package com.maths.teacher.app.config
 
 object AppConstants {
     // For Android Emulator, 10.0.2.2 maps to localhost of the dev machine.
-    const val BASE_URL = "http://10.0.2.2:8080/"
+    const val BASE_URL = "http://13.205.19.207:8080/"
 
     const val YOUTUBE_APP_URI_PREFIX = "vnd.youtube:"
     const val YOUTUBE_WEB_URL_PREFIX = "https://www.youtube.com/watch?v="

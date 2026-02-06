@@ -22,7 +22,7 @@ interface TeacherApi {
     suspend fun getSections(): List<SectionDto>
 
     @GET("api/sections/{section}/videos")
-    suspend fun getVideosBySection(@Path("section") section: String): List<VideoDto>
+    suspend fun getVideosBySection(@Path(value = "section", encoded = true) section: String): List<VideoDto>
 
     @GET("api/videos/{videoId}/pdfs/{pdfId}/download")
     suspend fun downloadPdf(

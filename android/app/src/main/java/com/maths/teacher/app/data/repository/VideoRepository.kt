@@ -19,7 +19,7 @@ class DefaultVideoRepository(
     override suspend fun getHomeSections(): List<SectionWithVideos> {
         val sections = api.getSections()
         return sections.map { sectionDto ->
-            val encodedSection = Uri.encode(sectionDto.name)
+                val encodedSection = Uri.encode(sectionDto.name)
             val videos = fetchVideosForSection(encodedSection)
             SectionWithVideos(
                 name = sectionDto.name,
