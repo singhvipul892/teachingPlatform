@@ -1,13 +1,24 @@
 package com.maths.teacher.app.ui.home
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Home
@@ -27,17 +38,22 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import com.maths.teacher.app.data.api.TeacherApi
 import com.maths.teacher.app.data.prefs.SessionManager
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.maths.teacher.app.ui.components.AppFooter
 import com.maths.teacher.app.ui.components.AppHeader
 import com.maths.teacher.app.ui.components.AppNavigationDrawer
 import com.maths.teacher.app.ui.components.FooterLink
 import com.maths.teacher.app.ui.components.NavigationItem
-import com.maths.teacher.app.ui.components.PdfDownloadSection
 import com.maths.teacher.app.ui.components.VideoCardCarousel
+import com.maths.teacher.app.R
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 
@@ -133,6 +149,7 @@ fun HomeScreen(
         }
     ) {
         Scaffold(
+            containerColor = MaterialTheme.colorScheme.surface,
             topBar = {
                 AppHeader(
                     onNavigationClick = {
@@ -146,24 +163,30 @@ fun HomeScreen(
                 AppFooter(links = footerLinks)
             }
         ) { paddingValues ->
-            when {
-                uiState.isLoading -> {
-                    LoadingState()
-                }
-                uiState.errorMessage != null -> {
-                    ErrorState(uiState.errorMessage ?: "Something went wrong.")
-                }
-                else -> {
-                    HomeContent(
-                        sections = uiState.sections,
-                        selectedVideo = uiState.selectedVideo,
-                        onVideoSelected = { id -> viewModel.selectVideo(id) },
-                        onDismissVideo = { viewModel.clearSelectedVideo() },
-                        onOpenPdf = { v, p -> navController.navigate("pdf_viewer/$v/$p") },
-                        userId = userId,
-                        api = api,
-                        modifier = Modifier.padding(paddingValues)
-                    )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .background(androidx.compose.ui.graphics.Color(0xFFF6F9FD))
+            ) {
+                when {
+                    uiState.isLoading -> {
+                        LoadingState()
+                    }
+                    uiState.errorMessage != null -> {
+                        ErrorState(uiState.errorMessage ?: "Something went wrong.")
+                    }
+                    uiState.sections.isEmpty() -> {
+                        EmptyState()
+                    }
+                    else -> {
+                        HomeContent(
+                            sections = uiState.sections,
+                            onVideoSelected = { id, sectionName -> navController.navigate("video_detail/$id/${java.net.URLEncoder.encode(sectionName, "UTF-8")}") },
+                            displayName = displayName,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
             }
         }
@@ -193,50 +216,92 @@ private fun ErrorState(message: String) {
 }
 
 @Composable
+private fun EmptyState() {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "No content available yet.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyLarge
+        )
+    }
+}
+
+@Composable
 private fun HomeContent(
     sections: List<com.maths.teacher.app.domain.model.SectionWithVideos>,
-    selectedVideo: com.maths.teacher.app.domain.model.Video?,
-    onVideoSelected: (Long) -> Unit,
-    onDismissVideo: () -> Unit,
-    onOpenPdf: (videoId: Long, pdfId: Long) -> Unit,
-    userId: Long?,
-    api: TeacherApi,
+    onVideoSelected: (Long, String) -> Unit,
+    displayName: String?,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        selectedVideo?.let { video ->
-            item {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+        // Welcome text with avatar - scrolls with content
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(androidx.compose.ui.graphics.Color.White)
+                    .padding(vertical = 12.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 0.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Show video player first
-                    YouTubeEmbedPlayer(
-                        videoId = video.videoId,
-                        onDismiss = onDismissVideo,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    // Show PDF download section below the video player
-                    if (video.pdfs.isNotEmpty()) {
-                        PdfDownloadSection(
-                            pdfs = video.pdfs,
-                            videoId = video.id,
-                            userId = userId,
-                            onOpenPdf = onOpenPdf,
-                            api = api,
-                            modifier = Modifier.fillMaxWidth()
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .background(androidx.compose.ui.graphics.Color(0xFFECF3FF), CircleShape)
+                            .clip(CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.profile),
+                            contentDescription = "User Avatar",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
                         )
                     }
+                    Text(
+                        text = "Namaste, ${displayName?.split(" ")?.joinToString(" ") { it.replaceFirstChar { char -> char.uppercaseChar() } } ?: "User"}",
+                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 20.sp),
+                        fontWeight = FontWeight.SemiBold,
+                        color = com.maths.teacher.app.ui.theme.AccentSaffron,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
         }
-
-        items(sections) { section ->
-            SectionBlock(section, onVideoSelected)
+        
+        itemsIndexed(sections) { index, section ->
+            SectionBlock(section, onVideoSelected = { id -> onVideoSelected(id, section.name) })
+            if (index < sections.size - 1) {
+                // Divider with 20% left and right spacing (60% width in center)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 32.dp),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Spacer(modifier = Modifier.weight(0.2f))
+                    Box(
+                        modifier = Modifier
+                            .weight(0.6f)
+                            .height(1.dp)
+                            .background(androidx.compose.ui.graphics.Color(0xFFD6DDE7))
+                    )
+                    Spacer(modifier = Modifier.weight(0.2f))
+                }
+            }
         }
     }
 }
@@ -246,12 +311,13 @@ private fun SectionBlock(
     section: com.maths.teacher.app.domain.model.SectionWithVideos,
     onVideoSelected: (Long) -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = section.name,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(horizontal = 0.dp)
         )
         VideoCardCarousel(
             videos = section.videos,

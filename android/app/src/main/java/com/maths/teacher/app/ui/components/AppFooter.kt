@@ -31,13 +31,13 @@ fun AppFooter(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(16.dp)
+            .padding(horizontal = 16.dp, vertical = 4.dp)
     ) {
         Divider(
             modifier = Modifier.fillMaxWidth(),
             color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(4.dp))
         
         if (links.isNotEmpty()) {
             Row(
@@ -45,7 +45,10 @@ fun AppFooter(
                 horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceEvenly
             ) {
                 links.forEach { link ->
-                    TextButton(onClick = link.onClick) {
+                    TextButton(
+                        onClick = link.onClick,
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+                    ) {
                         Text(
                             text = link.text,
                             style = MaterialTheme.typography.bodySmall,
@@ -54,7 +57,7 @@ fun AppFooter(
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(2.dp))
         }
         
         Text(

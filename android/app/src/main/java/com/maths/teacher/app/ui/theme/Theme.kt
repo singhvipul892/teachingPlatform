@@ -1,17 +1,13 @@
 package com.maths.teacher.app.ui.theme
 
 import android.app.Activity
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
@@ -20,12 +16,16 @@ private val DarkColorScheme = darkColorScheme(
     onPrimary = OnPrimary,
     secondary = SecondaryTealLight,
     onSecondary = OnSecondary,
-    tertiary = TertiaryOrangeLight,
+    tertiary = AccentSaffronLight,
     onTertiary = OnTertiary,
-    background = BackgroundDark,
-    onBackground = OnSurfaceDark,
-    surface = SurfaceDark,
+    background = BackgroundMainDark,
+    onBackground = OnBackgroundDark,
+    surface = BackgroundCardDark,
     onSurface = OnSurfaceDark,
+    surfaceVariant = BackgroundCardDark,
+    onSurfaceVariant = OnSurfaceVariantDark,
+    outline = OutlineDark,
+    outlineVariant = OutlineDark,
     error = ErrorDark,
     onError = OnError
 )
@@ -35,12 +35,16 @@ private val LightColorScheme = lightColorScheme(
     onPrimary = OnPrimary,
     secondary = SecondaryTeal,
     onSecondary = OnSecondary,
-    tertiary = TertiaryOrange,
+    tertiary = AccentSaffron,
     onTertiary = OnTertiary,
-    background = BackgroundLight,
+    background = BackgroundMain,
     onBackground = OnBackground,
-    surface = SurfaceLight,
+    surface = BackgroundCard,
     onSurface = OnSurface,
+    surfaceVariant = BackgroundCard,
+    onSurfaceVariant = OnSurfaceVariant,
+    outline = Outline,
+    outlineVariant = Outline,
     error = Error,
     onError = OnError
 )
@@ -48,18 +52,11 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun AppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
-    
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {

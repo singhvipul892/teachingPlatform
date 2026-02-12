@@ -25,12 +25,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.maths.teacher.app.domain.model.Video
 
@@ -42,8 +45,8 @@ fun VideoCardCarousel(
 ) {
     LazyRow(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp)
+        horizontalArrangement = Arrangement.spacedBy(28.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 0.dp)
     ) {
         items(videos) { video ->
             VideoCard(
@@ -60,14 +63,25 @@ private fun VideoCard(
     onVideoSelected: (Long) -> Unit
 ) {
     AppTooltip(text = "${video.title}\nDuration: ${video.duration}") {
+        val cardWidth = 264.dp // 220.dp * 1.2 (20% increase)
+        val cardBorderRadius = 25.dp
+        val thumbnailBorderRadius = 20.dp
+        val cardPadding = 12.dp
         Card(
             modifier = Modifier
-                .size(width = 220.dp, height = 200.dp)
+                .size(width = cardWidth, height = 220.dp)
+                .shadow(
+                    elevation = 9.dp,
+                    shape = RoundedCornerShape(cardBorderRadius),
+                    spotColor = Color.Black.copy(alpha = 0.49f),
+                    ambientColor = Color.Black.copy(alpha = 0.49f),
+                    clip = false
+                )
                 .clickable { onVideoSelected(video.id) },
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-            shape = RoundedCornerShape(12.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            shape = RoundedCornerShape(cardBorderRadius),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
+                containerColor = androidx.compose.ui.graphics.Color.White
             )
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
@@ -75,15 +89,15 @@ private fun VideoCard(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(120.dp)
+                        .height(160.dp)
+                        .padding(horizontal = cardPadding, vertical = cardPadding)
                 ) {
                     AsyncImage(
                         model = video.thumbnailUrl,
                         contentDescription = video.title,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(120.dp)
-                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(thumbnailBorderRadius)),
                         contentScale = ContentScale.Crop
                     )
                     // Play button overlay
@@ -96,8 +110,10 @@ private fun VideoCard(
                         Icon(
                             imageVector = Icons.Default.PlayArrow,
                             contentDescription = "Play",
-                            tint = Color.White,
-                            modifier = Modifier.size(48.dp)
+                            tint = MaterialTheme.colorScheme.surface,
+                            modifier = Modifier
+                                .size(58.dp)
+                                .alpha(0.8f)
                         )
                     }
                 }
@@ -106,33 +122,17 @@ private fun VideoCard(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(12.dp)
+                        .padding(horizontal = cardPadding, vertical = 8.dp)
                 ) {
                     Text(
                         text = video.title,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
                         fontWeight = FontWeight.Medium,
-                        maxLines = 2,
+                        maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        lineHeight = 20.sp
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = "Duration",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.size(6.dp))
-                        Text(
-                            text = video.duration,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
-                    }
                 }
             }
         }

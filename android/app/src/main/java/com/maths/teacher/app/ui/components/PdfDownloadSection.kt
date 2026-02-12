@@ -60,8 +60,7 @@ fun PdfDownloadSection(
             text = "Download PDFs",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(horizontal = 16.dp)
+            color = MaterialTheme.colorScheme.onSurface
         )
         pdfs.forEach { pdf ->
             PdfDownloadCard(
@@ -96,9 +95,7 @@ private fun PdfDownloadCard(
     val isDownloaded = path != null && File(path).exists() && refreshTriggerRead >= 0
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+        modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
