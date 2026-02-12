@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
@@ -40,7 +42,8 @@ fun YouTubeEmbedPlayer(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     showCloseButton: Boolean = true,
-    heightDp: Int? = null
+    heightDp: Int? = null,
+    isFullscreen: Boolean = false
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val embedUrl = remember(videoId) {
@@ -114,15 +117,15 @@ fun YouTubeEmbedPlayer(
             }
         }
 
-        // WebView: fixed height when heightDp set, otherwise 16:9 aspect ratio
+        // WebView: fixed height when heightDp set, fullscreen when isFullscreen, otherwise 16:9 aspect ratio
         var webView by remember { mutableStateOf<WebView?>(null) }
 
         Box(
             modifier = Modifier
-                .fillMaxWidth()
                 .then(
-                    if (heightDp != null) Modifier.height(heightDp.dp)
-                    else Modifier.aspectRatio(16f / 9f)
+                    if (isFullscreen) Modifier.fillMaxSize()
+                    else if (heightDp != null) Modifier.fillMaxWidth().height(heightDp.dp)
+                    else Modifier.fillMaxWidth().aspectRatio(16f / 9f)
                 )
         ) {
             AndroidView(
@@ -200,7 +203,7 @@ fun YouTubeEmbedPlayer(
                         loadDataWithBaseURL(baseUrl, htmlContent, "text/html", "UTF-8", null)
                     }
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = if (isFullscreen) Modifier.fillMaxSize() else Modifier.fillMaxWidth()
             )
         }
 

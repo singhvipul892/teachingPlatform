@@ -32,9 +32,11 @@ import com.maths.teacher.app.R
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import android.content.res.Configuration
 import com.maths.teacher.app.data.api.TeacherApi
 import com.maths.teacher.app.data.prefs.SessionManager
 import com.maths.teacher.app.domain.model.Video
@@ -56,6 +58,24 @@ fun VideoDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val userId by sessionManager.userId.collectAsStateWithLifecycle(initialValue = null)
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    // In landscape mode, show only fullscreen video (if video is loaded)
+    if (isLandscape && uiState.video != null && !uiState.isLoading && uiState.errorMessage == null) {
+        Box(
+            modifier = modifier.fillMaxSize()
+        ) {
+            YouTubeEmbedPlayer(
+                videoId = uiState.video!!.videoId,
+                onDismiss = { },
+                modifier = Modifier.fillMaxSize(),
+                showCloseButton = false,
+                isFullscreen = true
+            )
+        }
+        return
+    }
 
     Scaffold(
         topBar = {
