@@ -1,14 +1,17 @@
 package com.maths.teacher.app.ui.resources
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.maths.teacher.app.data.prefs.SessionManager
 import com.maths.teacher.app.data.repository.VideoRepository
 import com.maths.teacher.app.domain.model.Video
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class ResourcesUiState(
     val sections: List<String> = emptyList(),
@@ -16,15 +19,23 @@ data class ResourcesUiState(
     val videos: List<Video> = emptyList(),
     val isLoadingSections: Boolean = false,
     val isLoadingVideos: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val downloadingPdfId: Long? = null
 )
 
-class ResourcesViewModel(
-    private val repository: VideoRepository
+@HiltViewModel
+class ResourcesViewModel @Inject constructor(
+    private val repository: VideoRepository,
+    private val sessionManager: SessionManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ResourcesUiState(isLoadingSections = true))
     val uiState: StateFlow<ResourcesUiState> = _uiState.asStateFlow()
+
+    val userId = sessionManager.userId
+
+    private val _openPdfAfterDownload = MutableStateFlow<Pair<Long, Long>?>(null)
+    val openPdfAfterDownload: StateFlow<Pair<Long, Long>?> = _openPdfAfterDownload.asStateFlow()
 
     init {
         loadSections()
@@ -80,16 +91,21 @@ class ResourcesViewModel(
     fun clearError() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
     }
-}
 
-class ResourcesViewModelFactory(
-    private val repository: VideoRepository
-) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(ResourcesViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return ResourcesViewModel(repository) as T
+    fun downloadPdf(videoId: Long, pdfId: Long, pdfTitle: String) {
+        viewModelScope.launch {
+            val uid = userId.first() ?: return@launch
+            _uiState.value = _uiState.value.copy(downloadingPdfId = pdfId)
+            repository.downloadPdf(videoId, pdfId, uid, pdfTitle)
+                .onSuccess {
+                    _uiState.value = _uiState.value.copy(downloadingPdfId = null)
+                    _openPdfAfterDownload.value = Pair(videoId, pdfId)
+                }
+                .onFailure { _uiState.value = _uiState.value.copy(downloadingPdfId = null) }
         }
-        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+
+    fun clearOpenPdfRequest() {
+        _openPdfAfterDownload.value = null
     }
 }

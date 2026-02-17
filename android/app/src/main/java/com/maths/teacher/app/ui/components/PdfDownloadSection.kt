@@ -22,23 +22,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.maths.teacher.app.data.api.TeacherApi
 import com.maths.teacher.app.data.prefs.getPdfPath
-import com.maths.teacher.app.data.prefs.savePdfPath
 import com.maths.teacher.app.domain.model.Pdf
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.io.File
-import java.io.FileOutputStream
-import java.net.URL
 
 @Composable
 fun PdfDownloadSection(
@@ -46,11 +38,11 @@ fun PdfDownloadSection(
     videoId: Long,
     userId: Long?,
     onOpenPdf: (videoId: Long, pdfId: Long) -> Unit,
-    api: TeacherApi,
+    onDownloadPdf: (videoId: Long, pdfId: Long, pdfTitle: String) -> Unit,
+    downloadingPdfId: Long? = null,
     modifier: Modifier = Modifier
 ) {
     if (pdfs.isEmpty()) return
-    val scope = rememberCoroutineScope()
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -68,8 +60,8 @@ fun PdfDownloadSection(
                 videoId = videoId,
                 userId = userId,
                 onOpenPdf = onOpenPdf,
-                api = api,
-                scope = scope
+                onDownloadPdf = onDownloadPdf,
+                isDownloading = downloadingPdfId == pdf.id
             )
         }
     }
@@ -81,18 +73,12 @@ private fun PdfDownloadCard(
     videoId: Long,
     userId: Long?,
     onOpenPdf: (videoId: Long, pdfId: Long) -> Unit,
-    api: TeacherApi,
-    scope: kotlinx.coroutines.CoroutineScope
+    onDownloadPdf: (videoId: Long, pdfId: Long, pdfTitle: String) -> Unit,
+    isDownloading: Boolean
 ) {
     val context = LocalContext.current
-    var isDownloading by remember(pdf.id) { mutableStateOf(false) }
-    // Add refresh trigger to force recomposition after download completes
-    var refreshTrigger by remember(pdf.id) { mutableStateOf(0) }
-
-    // Read refreshTrigger so Compose subscribes and recomposes when it changes
-    val refreshTriggerRead = refreshTrigger
     val path = getPdfPath(context, userId, videoId, pdf.id)
-    val isDownloaded = path != null && File(path).exists() && refreshTriggerRead >= 0
+    val isDownloaded = path != null && File(path).exists()
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -135,32 +121,7 @@ private fun PdfDownloadCard(
                 TextButton(
                     onClick = {
                         if (isDownloading) return@TextButton
-                        isDownloading = true
-                        scope.launch {
-                            try {
-                                val file = withContext(Dispatchers.IO) {
-                                    val resp = api.downloadPdf(videoId, pdf.id)
-                                    val url = URL(resp.url)
-                                    val conn = url.openConnection()
-                                    conn.connect()
-                                    val ins = conn.getInputStream()
-                                    val dir = context.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS)
-                                        ?: context.filesDir
-                                    val safeName = pdf.title.replace(Regex("[\\\\/:*?\"<>|]"), "_").trim()
-                                    val f = File(dir, "$safeName.pdf")
-                                    FileOutputStream(f).use { out -> ins.copyTo(out) }
-                                    f
-                                }
-                                savePdfPath(context, userId, videoId, pdf.id, file.absolutePath)
-                                refreshTrigger++
-                                Toast.makeText(context, "Downloaded: ${file.name}", Toast.LENGTH_LONG).show()
-                                onOpenPdf(videoId, pdf.id)
-                            } catch (e: Exception) {
-                                Toast.makeText(context, "Download failed: ${e.message}", Toast.LENGTH_LONG).show()
-                            } finally {
-                                isDownloading = false
-                            }
-                        }
+                        onDownloadPdf(videoId, pdf.id, pdf.title)
                     },
                     enabled = !isDownloading
                 ) {

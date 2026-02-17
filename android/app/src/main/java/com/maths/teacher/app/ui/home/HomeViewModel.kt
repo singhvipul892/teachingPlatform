@@ -1,15 +1,17 @@
 package com.maths.teacher.app.ui.home
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.maths.teacher.app.data.prefs.SessionManager
 import com.maths.teacher.app.data.repository.VideoRepository
 import com.maths.teacher.app.domain.model.SectionWithVideos
 import com.maths.teacher.app.domain.model.Video
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 data class HomeUiState(
     val isLoading: Boolean = false,
@@ -18,12 +20,17 @@ data class HomeUiState(
     val selectedVideo: Video? = null
 )
 
-class HomeViewModel(
-    private val repository: VideoRepository
+@HiltViewModel
+class HomeViewModel @Inject constructor(
+    private val repository: VideoRepository,
+    private val sessionManager: SessionManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState(isLoading = true))
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+
+    val userId = sessionManager.userId
+    val displayName = sessionManager.displayName
 
     init {
         loadHomeSections()
@@ -57,16 +64,8 @@ class HomeViewModel(
     fun clearSelectedVideo() {
         _uiState.value = _uiState.value.copy(selectedVideo = null)
     }
-}
 
-class HomeViewModelFactory(
-    private val repository: VideoRepository
-) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(HomeViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return HomeViewModel(repository) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
+    suspend fun logout() {
+        sessionManager.clearSession()
     }
 }

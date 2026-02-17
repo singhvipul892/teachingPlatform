@@ -33,46 +33,36 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.maths.teacher.app.data.api.ApiClient
 import com.maths.teacher.app.data.prefs.SessionManager
-import com.maths.teacher.app.data.repository.DefaultVideoRepository
 import com.maths.teacher.app.ui.auth.LoginScreen
 import com.maths.teacher.app.ui.auth.LoginViewModel
-import com.maths.teacher.app.ui.auth.LoginViewModelFactory
 import com.maths.teacher.app.ui.auth.SignupScreen
 import com.maths.teacher.app.ui.auth.SignupViewModel
-import com.maths.teacher.app.ui.auth.SignupViewModelFactory
 import com.maths.teacher.app.ui.home.HomeScreen
 import com.maths.teacher.app.ui.home.HomeViewModel
-import com.maths.teacher.app.ui.home.HomeViewModelFactory
 import com.maths.teacher.app.ui.pdfviewer.PdfViewerScreen
 import com.maths.teacher.app.ui.resources.ResourcesScreen
+import com.maths.teacher.app.ui.resources.ResourcesViewModel
 import com.maths.teacher.app.ui.videodetail.VideoDetailScreen
 import com.maths.teacher.app.ui.videodetail.VideoDetailViewModel
-import com.maths.teacher.app.ui.videodetail.VideoDetailViewModelFactory
-import com.maths.teacher.app.ui.resources.ResourcesViewModel
-import com.maths.teacher.app.ui.resources.ResourcesViewModelFactory
 import com.maths.teacher.app.ui.theme.AppTheme
-import kotlinx.coroutines.runBlocking
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @javax.inject.Inject
+    lateinit var sessionManager: SessionManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.setBackgroundDrawable(ColorDrawable(ContextCompat.getColor(this, R.color.window_background)))
-        val sessionManager = SessionManager(applicationContext)
-        runBlocking { sessionManager.loadFromStore() }
-        val api = ApiClient.createApi(sessionManager)
-        val repository = DefaultVideoRepository(api)
 
         setContent {
             AppTheme(darkTheme = false) {
@@ -80,15 +70,11 @@ class MainActivity : ComponentActivity() {
                 var startDestination by remember { mutableStateOf("login") }
 
                 LaunchedEffect(Unit) {
-                    coroutineScope {
-                        val dest = async(Dispatchers.Default) {
-                            sessionManager.loadFromStore()
-                            if (!sessionManager.currentToken.isNullOrBlank()) "home" else "login"
-                        }
-                        delay(3500)
-                        startDestination = dest.await()
-                        isSessionReady = true
+                    withContext(Dispatchers.Default) {
+                        sessionManager.loadFromStore()
                     }
+                    startDestination = if (!sessionManager.currentToken.isNullOrBlank()) "home" else "login"
+                    isSessionReady = true
                 }
 
                 Box(
@@ -105,87 +91,65 @@ class MainActivity : ComponentActivity() {
                             startDestination = startDestination,
                             modifier = Modifier.fillMaxSize()
                         ) {
-                        composable("login") {
-                        val loginViewModel: LoginViewModel = viewModel(
-                            factory = LoginViewModelFactory(api, sessionManager)
-                        )
-                        LoginScreen(
-                            viewModel = loginViewModel,
-                            navController = navController
-                        )
+                            composable("login") {
+                                val loginViewModel: LoginViewModel = hiltViewModel()
+                                LoginScreen(
+                                    viewModel = loginViewModel,
+                                    navController = navController
+                                )
+                            }
+                            composable("signup") {
+                                val signupViewModel: SignupViewModel = hiltViewModel()
+                                SignupScreen(
+                                    viewModel = signupViewModel,
+                                    navController = navController
+                                )
+                            }
+                            composable("home") {
+                                val homeViewModel: HomeViewModel = hiltViewModel()
+                                HomeScreen(
+                                    viewModel = homeViewModel,
+                                    navController = navController
+                                )
+                            }
+                            composable("resources") {
+                                val resourcesViewModel: ResourcesViewModel = hiltViewModel()
+                                ResourcesScreen(
+                                    viewModel = resourcesViewModel,
+                                    navController = navController
+                                )
+                            }
+                            composable("video_detail/{videoId}/{sectionName}") {
+                                val detailViewModel: VideoDetailViewModel = hiltViewModel()
+                                val sectionTitle = it.arguments?.getString("sectionName")?.let { name ->
+                                    java.net.URLDecoder.decode(name, "UTF-8")
+                                }.takeIf { s -> !s.isNullOrBlank() }
+                                VideoDetailScreen(
+                                    viewModel = detailViewModel,
+                                    navController = navController,
+                                    sectionTitle = sectionTitle
+                                )
+                            }
+                            composable("video_detail/{videoId}") {
+                                val detailViewModel: VideoDetailViewModel = hiltViewModel()
+                                VideoDetailScreen(
+                                    viewModel = detailViewModel,
+                                    navController = navController
+                                )
+                            }
+                            composable("pdf_viewer/{videoId}/{pdfId}/{userId}") { backStackEntry ->
+                                val videoId = backStackEntry.arguments?.getString("videoId")?.toLongOrNull() ?: 0L
+                                val pdfId = backStackEntry.arguments?.getString("pdfId")?.toLongOrNull() ?: 0L
+                                val userId = backStackEntry.arguments?.getString("userId")?.toLongOrNull()
+                                PdfViewerScreen(
+                                    videoId = videoId,
+                                    pdfId = pdfId,
+                                    userId = userId?.takeIf { it > 0 },
+                                    navController = navController
+                                )
+                            }
+                        }
                     }
-                    composable("signup") {
-                        val signupViewModel: SignupViewModel = viewModel(
-                            factory = SignupViewModelFactory(api)
-                        )
-                        SignupScreen(
-                            viewModel = signupViewModel,
-                            navController = navController
-                        )
-                    }
-                    composable("home") {
-                        val homeViewModel: HomeViewModel = viewModel(
-                            factory = HomeViewModelFactory(repository)
-                        )
-                        HomeScreen(
-                            viewModel = homeViewModel,
-                            navController = navController,
-                            sessionManager = sessionManager,
-                            api = api
-                        )
-                    }
-                    composable("resources") {
-                        val resourcesViewModel: ResourcesViewModel = viewModel(
-                            factory = ResourcesViewModelFactory(repository)
-                        )
-                        ResourcesScreen(
-                            viewModel = resourcesViewModel,
-                            navController = navController,
-                            sessionManager = sessionManager,
-                            api = api
-                        )
-                    }
-                    composable("video_detail/{videoId}/{sectionName}") { backStackEntry ->
-                        val videoId = backStackEntry.arguments?.getString("videoId")?.toLongOrNull() ?: 0L
-                        val sectionTitle = backStackEntry.arguments?.getString("sectionName")?.let {
-                            java.net.URLDecoder.decode(it, "UTF-8")
-                        }.takeIf { !it.isNullOrBlank() }
-                        val detailViewModel: VideoDetailViewModel = viewModel(
-                            factory = VideoDetailViewModelFactory(repository, videoId)
-                        )
-                        VideoDetailScreen(
-                            viewModel = detailViewModel,
-                            navController = navController,
-                            sessionManager = sessionManager,
-                            api = api,
-                            sectionTitle = sectionTitle
-                        )
-                    }
-                    composable("video_detail/{videoId}") { backStackEntry ->
-                        val videoId = backStackEntry.arguments?.getString("videoId")?.toLongOrNull() ?: 0L
-                        val detailViewModel: VideoDetailViewModel = viewModel(
-                            factory = VideoDetailViewModelFactory(repository, videoId)
-                        )
-                        VideoDetailScreen(
-                            viewModel = detailViewModel,
-                            navController = navController,
-                            sessionManager = sessionManager,
-                            api = api
-                        )
-                    }
-                    composable("pdf_viewer/{videoId}/{pdfId}") { backStackEntry ->
-                        val videoId = backStackEntry.arguments?.getString("videoId")?.toLongOrNull() ?: 0L
-                        val pdfId = backStackEntry.arguments?.getString("pdfId")?.toLongOrNull() ?: 0L
-                        val userId by sessionManager.userId.collectAsStateWithLifecycle(initialValue = null)
-                        PdfViewerScreen(
-                            videoId = videoId,
-                            pdfId = pdfId,
-                            userId = userId,
-                            navController = navController
-                        )
-                    }
-                }
-                }
                 }
             }
         }

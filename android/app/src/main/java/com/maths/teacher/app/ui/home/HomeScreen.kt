@@ -36,8 +36,6 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
-import com.maths.teacher.app.data.api.TeacherApi
-import com.maths.teacher.app.data.prefs.SessionManager
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -61,13 +59,11 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
-    navController: NavController,
-    sessionManager: SessionManager,
-    api: TeacherApi
+    navController: NavController
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val displayName by sessionManager.displayName.collectAsStateWithLifecycle(initialValue = null)
-    val userId by sessionManager.userId.collectAsStateWithLifecycle(initialValue = null)
+    val displayName by viewModel.displayName.collectAsStateWithLifecycle(initialValue = null)
+    val userId by viewModel.userId.collectAsStateWithLifecycle(initialValue = null)
     val drawerState = rememberDrawerState(initialValue = androidx.compose.material3.DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -141,7 +137,7 @@ fun HomeScreen(
         onLogout = {
             scope.launch {
                 drawerState.close()
-                sessionManager.clearSession()
+                viewModel.logout()
                 navController.navigate("login") {
                     popUpTo("home") { inclusive = true }
                 }

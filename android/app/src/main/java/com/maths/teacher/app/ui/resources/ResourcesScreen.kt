@@ -26,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.foundation.clickable
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,20 +39,25 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Box
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.maths.teacher.app.data.prefs.SessionManager
 import com.maths.teacher.app.ui.components.PdfDownloadSection
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResourcesScreen(
     viewModel: ResourcesViewModel,
-    navController: NavController,
-    sessionManager: SessionManager,
-    api: com.maths.teacher.app.data.api.TeacherApi
+    navController: NavController
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val userId by sessionManager.userId.collectAsStateWithLifecycle(initialValue = null)
+    val userId by viewModel.userId.collectAsStateWithLifecycle(initialValue = null)
+    val openPdfRequest by viewModel.openPdfAfterDownload.collectAsStateWithLifecycle(initialValue = null)
     var dropdownExpanded by remember { mutableStateOf(false) }
+
+    LaunchedEffect(openPdfRequest) {
+        openPdfRequest?.let { (v, p) ->
+            navController.navigate("pdf_viewer/$v/$p/${userId ?: 0}")
+            viewModel.clearOpenPdfRequest()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -211,9 +217,12 @@ fun ResourcesScreen(
                                                 videoId = video.id,
                                                 userId = userId,
                                                 onOpenPdf = { v, p ->
-                                                    navController.navigate("pdf_viewer/$v/$p")
+                                                    navController.navigate("pdf_viewer/$v/$p/${userId ?: 0}")
                                                 },
-                                                api = api,
+                                                onDownloadPdf = { v, p, title ->
+                                                    viewModel.downloadPdf(v, p, title)
+                                                },
+                                                downloadingPdfId = uiState.downloadingPdfId,
                                                 modifier = Modifier.fillMaxWidth()
                                             )
                                         }

@@ -1,17 +1,14 @@
 package com.maths.teacher.app.ui.auth
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.google.gson.Gson
-import com.maths.teacher.app.data.api.TeacherApi
-import com.maths.teacher.app.data.model.ErrorResponse
-import com.maths.teacher.app.data.model.SignupRequest
+import com.maths.teacher.app.data.repository.AuthRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import retrofit2.HttpException
+import javax.inject.Inject
 
 data class SignupUiState(
     val firstName: String = "",
@@ -24,8 +21,9 @@ data class SignupUiState(
     val errorMessage: String? = null
 )
 
-class SignupViewModel(
-    private val api: TeacherApi
+@HiltViewModel
+class SignupViewModel @Inject constructor(
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SignupUiState())
@@ -70,53 +68,27 @@ class SignupViewModel(
         }
         viewModelScope.launch {
             _uiState.value = state.copy(isLoading = true, errorMessage = null)
-            try {
-                api.signup(
-                    SignupRequest(
-                        firstName = state.firstName.trim(),
-                        lastName = state.lastName.trim(),
-                        email = state.email.trim(),
-                        mobileNumber = state.mobileNumber.trim(),
-                        password = state.password
+            authRepository.signup(
+                firstName = state.firstName.trim(),
+                lastName = state.lastName.trim(),
+                email = state.email.trim(),
+                mobileNumber = state.mobileNumber.trim(),
+                password = state.password
+            )
+                .onSuccess {
+                    _uiState.value = state.copy(isLoading = false)
+                    onSuccess()
+                }
+                .onFailure { e ->
+                    _uiState.value = state.copy(
+                        isLoading = false,
+                        errorMessage = e.message ?: "Something went wrong. Please try again."
                     )
-                )
-                _uiState.value = state.copy(isLoading = false)
-                onSuccess()
-            } catch (e: HttpException) {
-                val message = parseErrorMessage(e)
-                _uiState.value = state.copy(isLoading = false, errorMessage = message)
-            } catch (e: Exception) {
-                _uiState.value = state.copy(
-                    isLoading = false,
-                    errorMessage = e.message ?: "Something went wrong. Please try again."
-                )
-            }
-        }
-    }
-
-    private fun parseErrorMessage(e: HttpException): String {
-        val body = e.response()?.errorBody()?.string() ?: return e.message()
-        return try {
-            Gson().fromJson(body, ErrorResponse::class.java)?.message
-                ?: e.message()
-        } catch (_: Exception) {
-            e.message()
+                }
         }
     }
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
-    }
-}
-
-class SignupViewModelFactory(
-    private val api: TeacherApi
-) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(SignupViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return SignupViewModel(api) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
