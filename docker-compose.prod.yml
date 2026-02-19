@@ -43,10 +43,12 @@ services:
 
   certbot:
     image: certbot/certbot
+    profiles:
+      - certbot
     volumes:
       - letsencrypt_certs:/etc/letsencrypt
       - certbot_webroot:/var/www/certbot
-    # Run one-off: docker compose -f docker-compose.prod.yml run --rm certbot certonly --webroot -w /var/www/certbot -d teacherplatform.duckdns.org --email YOUR_EMAIL --agree-tos --non-interactive
+    # Not started on 'up'. Run one-off: docker compose -f docker-compose.prod.yml run --rm certbot certonly --webroot -w /var/www/certbot -d teacherplatform.duckdns.org --email YOUR_EMAIL --agree-tos --non-interactive
 
   metadata-proxy:
     build:
