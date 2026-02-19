@@ -1,6 +1,6 @@
 # SSL setup with Let's Encrypt
 
-This guide covers obtaining and renewing Let's Encrypt certificates so nginx can serve HTTPS.
+This guide covers obtaining and renewing Let's Encrypt certificates so nginx can serve HTTPS. For a plain-English overview of SSL, nginx, and how everything fits together, see [SSL-AND-NGINX-EXPLAINED.md](SSL-AND-NGINX-EXPLAINED.md).
 
 ## Prerequisites
 
