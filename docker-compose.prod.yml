@@ -25,10 +25,20 @@ services:
       APP_STORAGE_S3_PRESIGN_EXPIRY_MINUTES: ${APP_STORAGE_S3_PRESIGN_EXPIRY_MINUTES:-10}
       JWT_SECRET: ${JWT_SECRET}
       AWS_EC2_METADATA_SERVICE_ENDPOINT: http://host.docker.internal:1338
-    ports:
-      - "8080:8080"
     depends_on:
       - db
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
+    depends_on:
+      - api
 
   metadata-proxy:
     build:
