@@ -2,7 +2,9 @@ package com.maths.teacher.app.ui.home
 
 import android.annotation.SuppressLint
 import android.graphics.Color
+import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.webkit.CookieManager
 import android.webkit.WebChromeClient
 import android.webkit.WebSettings
@@ -32,67 +34,105 @@ fun YouTubeEmbedPlayer(
 ) {
     val context = LocalContext.current
 
-    // ✅ Remember WebView to prevent recreation (fix flicker)
-    val webView = remember {
-        WebView(context).apply {
-
+    // Root with WebView + fullscreen overlay (handles fullscreen button in video)
+    val webViewRef = remember { mutableStateOf<WebView?>(null) }
+    val playerRoot = remember {
+        FrameLayout(context).apply {
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
-
             setBackgroundColor(Color.BLACK)
-            setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
 
-            settings.apply {
-                javaScriptEnabled = true
-                domStorageEnabled = true
-                databaseEnabled = true
-                mediaPlaybackRequiresUserGesture = false
-                loadWithOverviewMode = true
-                useWideViewPort = true
-                allowFileAccess = true
-                allowContentAccess = true
-                mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-
-                // Desktop User-Agent prevents blocking
-                userAgentString =
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
-                            "AppleWebKit/537.36 (KHTML, like Gecko) " +
-                            "Chrome/120.0.0.0 Safari/537.36"
+            val fullscreenContainer = FrameLayout(context).apply {
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
+                )
+                setBackgroundColor(Color.BLACK)
+                visibility = View.GONE
             }
 
-            // ✅ Fix YouTube error 153
-            CookieManager.getInstance().setAcceptCookie(true)
-            CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
+            val webView = WebView(context).apply {
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
+                )
+                setBackgroundColor(Color.BLACK)
+                setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
 
-            webViewClient = WebViewClient()
-            webChromeClient = WebChromeClient()
+                settings.apply {
+                    javaScriptEnabled = true
+                    domStorageEnabled = true
+                    databaseEnabled = true
+                    mediaPlaybackRequiresUserGesture = false
+                    loadWithOverviewMode = true
+                    useWideViewPort = true
+                    allowFileAccess = true
+                    allowContentAccess = true
+                    mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                    userAgentString =
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+                                "AppleWebKit/537.36 (KHTML, like Gecko) " +
+                                "Chrome/120.0.0.0 Safari/537.36"
+                }
+
+                CookieManager.getInstance().setAcceptCookie(true)
+                CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
+
+                webViewClient = WebViewClient()
+                webChromeClient = object : WebChromeClient() {
+                    private var customViewCallback: WebChromeClient.CustomViewCallback? = null
+
+                    override fun onShowCustomView(view: View?, callback: WebChromeClient.CustomViewCallback?) {
+                        if (view != null && callback != null) {
+                            customViewCallback = callback
+                            fullscreenContainer.removeAllViews()
+                            fullscreenContainer.addView(
+                                view,
+                                FrameLayout.LayoutParams(
+                                    FrameLayout.LayoutParams.MATCH_PARENT,
+                                    FrameLayout.LayoutParams.MATCH_PARENT
+                                )
+                            )
+                            fullscreenContainer.visibility = View.VISIBLE
+                        }
+                    }
+
+                    override fun onHideCustomView() {
+                        fullscreenContainer.removeAllViews()
+                        fullscreenContainer.visibility = View.GONE
+                        customViewCallback?.onCustomViewHidden()
+                        customViewCallback = null
+                    }
+                }
+            }
+
+            addView(webView)
+            addView(fullscreenContainer)
+            webViewRef.value = webView
         }
     }
 
-    // ✅ Proper YouTube embed URL (VERY IMPORTANT)
     val embedUrl = remember(videoId) {
-        "https://www.youtube.com/embed/$videoId" +
-                "?playsinline=1" +
-                "&rel=0" +
-                "&modestbranding=1" +
-                "&fs=1" +
-                "&enablejsapi=1" +
-                "&origin=https://www.youtube.com"
+        com.maths.teacher.app.config.AppConstants.buildYouTubeEmbedUrl(
+            videoId = videoId,
+            useNoCookieDomain = true
+        )
     }
 
-    // ✅ Load video
     LaunchedEffect(videoId) {
-        webView.loadUrl(embedUrl)
+        val headers = mapOf("Referer" to "https://www.youtube-nocookie.com/")
+        webViewRef.value?.loadUrl(embedUrl, headers)
     }
 
-    // ✅ Proper cleanup
     DisposableEffect(Unit) {
         onDispose {
-            webView.stopLoading()
-            webView.onPause()
-            webView.destroy()
+            webViewRef.value?.apply {
+                stopLoading()
+                onPause()
+                destroy()
+            }
         }
     }
 
@@ -122,7 +162,7 @@ fun YouTubeEmbedPlayer(
                     .aspectRatio(16f / 9f)
         ) {
             AndroidView(
-                factory = { webView },
+                factory = { playerRoot },
                 modifier = Modifier.fillMaxSize()
             )
         }

@@ -2,7 +2,7 @@ package com.maths.teacher.app.config
 
 object AppConstants {
     // For Android Emulator, 10.0.2.2 maps to localhost of the dev machine.
-    const val BASE_URL = "http://13.205.19.207:8080/"
+    const val BASE_URL = "https://teacherplatform.duckdns.org/"
 
     const val YOUTUBE_APP_URI_PREFIX = "vnd.youtube:"
     const val YOUTUBE_WEB_URL_PREFIX = "https://www.youtube.com/watch?v="
@@ -38,6 +38,7 @@ object AppConstants {
         // modestbranding=1: Hide YouTube logo
         // playsinline=1: Play inline on mobile devices
         // controls=1: Show video controls
-        return "${baseUrl}${cleanVideoId}?enablejsapi=1&rel=0&modestbranding=1&playsinline=1&controls=1"
+        // fs=1: Enable fullscreen button in player
+        return "${baseUrl}${cleanVideoId}?enablejsapi=1&rel=0&modestbranding=1&playsinline=1&controls=1&fs=1"
     }
 }

@@ -21,6 +21,7 @@ import androidx.navigation.NavController
 import com.maths.teacher.app.R
 import com.maths.teacher.app.domain.model.Video
 import com.maths.teacher.app.ui.components.PdfDownloadSection
+import com.maths.teacher.app.ui.home.YouTubeEmbedPlayer
 
 private const val LOREM_IPSUM =
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit..."
@@ -159,15 +160,17 @@ private fun VideoDetailContent(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
 
-        // ✅ DUMMY VIDEO ID (Guaranteed Working)
-        YouTubePlayer(
-            videoId = "dQw4w9WgXcQ",
+        YouTubeEmbedPlayer(
+            videoId = video.videoId,
+            onDismiss = { },
             modifier = if (isLandscape)
                 Modifier.fillMaxSize()
             else
                 Modifier
                     .fillMaxWidth()
-                    .aspectRatio(16f / 9f)
+                    .aspectRatio(16f / 9f),
+            showCloseButton = false,
+            isFullscreen = isLandscape
         )
 
         if (!isLandscape) {
