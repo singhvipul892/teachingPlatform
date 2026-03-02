@@ -45,9 +45,15 @@ import androidx.navigation.compose.rememberNavController
 import com.maths.teacher.app.data.api.ApiClient
 import com.maths.teacher.app.data.prefs.SessionManager
 import com.maths.teacher.app.data.repository.DefaultVideoRepository
+import com.maths.teacher.app.ui.auth.ForgotPasswordScreen
+import com.maths.teacher.app.ui.auth.ForgotPasswordViewModel
+import com.maths.teacher.app.ui.auth.ForgotPasswordViewModelFactory
 import com.maths.teacher.app.ui.auth.LoginScreen
 import com.maths.teacher.app.ui.auth.LoginViewModel
 import com.maths.teacher.app.ui.auth.LoginViewModelFactory
+import com.maths.teacher.app.ui.auth.ResetPasswordScreen
+import com.maths.teacher.app.ui.auth.ResetPasswordViewModel
+import com.maths.teacher.app.ui.auth.ResetPasswordViewModelFactory
 import com.maths.teacher.app.ui.auth.SignupScreen
 import com.maths.teacher.app.ui.auth.SignupViewModel
 import com.maths.teacher.app.ui.auth.SignupViewModelFactory
@@ -120,6 +126,25 @@ class MainActivity : ComponentActivity() {
                         )
                         SignupScreen(
                             viewModel = signupViewModel,
+                            navController = navController
+                        )
+                    }
+                    composable("forgot_password") {
+                        val forgotPasswordViewModel: ForgotPasswordViewModel = viewModel(
+                            factory = ForgotPasswordViewModelFactory(api)
+                        )
+                        ForgotPasswordScreen(
+                            viewModel = forgotPasswordViewModel,
+                            navController = navController
+                        )
+                    }
+                    composable("reset_password/{mobileNumber}") { backStackEntry ->
+                        val mobile = backStackEntry.arguments?.getString("mobileNumber") ?: ""
+                        val resetPasswordViewModel: ResetPasswordViewModel = viewModel(
+                            factory = ResetPasswordViewModelFactory(api, mobile)
+                        )
+                        ResetPasswordScreen(
+                            viewModel = resetPasswordViewModel,
                             navController = navController
                         )
                     }

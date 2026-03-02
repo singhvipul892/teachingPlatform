@@ -25,3 +25,5 @@ app:
       region: ap-south-1
       bucket: teacherplatform.503561455300
       presign-expiry-minutes: 10
+  sms:
+    mock: ${SMS_MOCK:false}
