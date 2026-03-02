@@ -4,6 +4,10 @@ object AppConstants {
     // For Android Emulator, 10.0.2.2 maps to localhost of the dev machine.
     const val BASE_URL = "https://teacherplatform.duckdns.org/"
 
+    const val PRIVACY_POLICY_URL = "https://praroop.github.io/teachingPlatform-copy/privacy-policy.html"
+    const val TERMS_URL = "https://praroop.github.io/teachingPlatform-copy/terms-and-conditions.html"
+    const val CONTACT_URL = "mailto:contact@teacherplatform.duckdns.org"
+
     const val YOUTUBE_APP_URI_PREFIX = "vnd.youtube:"
     const val YOUTUBE_WEB_URL_PREFIX = "https://www.youtube.com/watch?v="
     const val YOUTUBE_EMBED_URL_PREFIX = "https://www.youtube.com/embed/"

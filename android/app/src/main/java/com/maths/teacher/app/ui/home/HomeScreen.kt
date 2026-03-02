@@ -1,5 +1,7 @@
 package com.maths.teacher.app.ui.home
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -36,6 +38,7 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.maths.teacher.app.ui.components.AppFooter
 import com.maths.teacher.app.ui.components.AppHeader
 import com.maths.teacher.app.ui.components.AppNavigationDrawer
+import com.maths.teacher.app.config.AppConstants
 import com.maths.teacher.app.ui.components.FooterLink
 import com.maths.teacher.app.ui.components.NavigationItem
 import com.maths.teacher.app.ui.components.VideoCardCarousel
@@ -66,6 +70,11 @@ fun HomeScreen(
     val userId by viewModel.userId.collectAsStateWithLifecycle(initialValue = null)
     val drawerState = rememberDrawerState(initialValue = androidx.compose.material3.DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+
+    fun openUrl(url: String) {
+        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+    }
 
     val navigationItems = listOf(
         NavigationItem(
@@ -118,15 +127,9 @@ fun HomeScreen(
     )
 
     val footerLinks = listOf(
-        FooterLink(text = "Privacy Policy") {
-            // TODO: Handle privacy policy click
-        },
-        FooterLink(text = "Terms of Service") {
-            // TODO: Handle terms click
-        },
-        FooterLink(text = "Contact Us") {
-            // TODO: Handle contact click
-        }
+        FooterLink(text = "Privacy Policy") { openUrl(AppConstants.PRIVACY_POLICY_URL) },
+        FooterLink(text = "Terms of Service") { openUrl(AppConstants.TERMS_URL) },
+        FooterLink(text = "Contact Us") { openUrl(AppConstants.CONTACT_URL) }
     )
 
     AppNavigationDrawer(
