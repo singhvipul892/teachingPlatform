@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Singh Sir — SSC CGL Maths</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #1a56db;
+      --primary-dark: #1448be;
+      --accent: #f59e0b;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --success: #16a34a;
+      --error: #dc2626;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--primary);
+      color: white;
+      padding: 0 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    header h1 { font-size: 1.1rem; font-weight: 700; }
+    #user-menu { display: flex; align-items: center; gap: 0.75rem; font-size: 0.85rem; }
+    #user-name { opacity: 0.9; }
+    #btn-logout {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      padding: 0.3rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    #btn-logout:hover { background: rgba(255,255,255,0.3); }
+
+    /* ── Screens ── */
+    .screen { display: none; padding: 1.5rem 1rem; max-width: 540px; margin: 0 auto; }
+    .screen.active { display: block; }
+
+    /* ── Auth ── */
+    .auth-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem 1.5rem;
+      margin-top: 2rem;
+    }
+    .auth-card h2 { font-size: 1.4rem; margin-bottom: 1.5rem; text-align: center; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 0.35rem; color: var(--muted); }
+    .form-group input {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus { border-color: var(--primary); }
+    .btn-primary {
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 0.5rem;
+      transition: background 0.2s;
+    }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+    .auth-switch { text-align: center; margin-top: 1rem; font-size: 0.9rem; color: var(--muted); }
+    .auth-switch a { color: var(--primary); cursor: pointer; text-decoration: underline; }
+    .msg { padding: 0.6rem 0.85rem; border-radius: 8px; font-size: 0.88rem; margin-bottom: 1rem; }
+    .msg.error { background: #fef2f2; color: var(--error); border: 1px solid #fecaca; }
+    .msg.success { background: #f0fdf4; color: var(--success); border: 1px solid #bbf7d0; }
+
+    /* ── Course list ── */
+    #screen-courses h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 1rem; }
+    .course-grid { display: grid; gap: 1rem; }
+    .course-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      cursor: pointer;
+      transition: box-shadow 0.2s, border-color 0.2s;
+    }
+    .course-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); border-color: var(--primary); }
+    .course-card h3 { font-size: 1.05rem; margin-bottom: 0.4rem; }
+    .course-card p { font-size: 0.88rem; color: var(--muted); line-height: 1.5; margin-bottom: 0.75rem; }
+    .course-meta { display: flex; align-items: center; justify-content: space-between; }
+    .price { font-size: 1.1rem; font-weight: 700; color: var(--primary); }
+    .badge-owned {
+      background: #dcfce7;
+      color: var(--success);
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+    }
+    .badge-buy {
+      background: var(--accent);
+      color: #78350f;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+    }
+    .loading { text-align: center; padding: 3rem; color: var(--muted); }
+
+    /* ── Course detail ── */
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: var(--primary);
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-bottom: 1.25rem;
+    }
+    .detail-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+    .detail-card h2 { font-size: 1.3rem; margin-bottom: 0.75rem; }
+    .detail-card p { font-size: 0.93rem; color: var(--muted); line-height: 1.65; margin-bottom: 1.25rem; }
+    .detail-price { font-size: 1.6rem; font-weight: 800; color: var(--primary); margin-bottom: 1.25rem; }
+    .btn-buy {
+      width: 100%;
+      padding: 0.85rem;
+      background: var(--accent);
+      color: #78350f;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-buy:hover { background: #d97706; color: white; }
+    .btn-buy:disabled { opacity: 0.6; cursor: not-allowed; }
+    .owned-notice {
+      text-align: center;
+      padding: 1rem;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      color: var(--success);
+      font-weight: 600;
+    }
+
+    /* ── Responsive ── */
+    @media (min-width: 600px) {
+      .course-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>📚 Singh Sir — SSC CGL Maths</h1>
+  <div id="user-menu" style="display:none">
+    <span id="user-name"></span>
+    <button id="btn-logout">Logout</button>
+  </div>
+</header>
+
+<!-- ── Login ── -->
+<div id="screen-login" class="screen active">
+  <div class="auth-card">
+    <h2>Sign In</h2>
+    <div id="login-msg"></div>
+    <div class="form-group">
+      <label>Email or Mobile</label>
+      <input id="login-identifier" type="text" placeholder="you@email.com or 9876543210" autocomplete="username" />
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input id="login-password" type="password" placeholder="••••••••" autocomplete="current-password" />
+    </div>
+    <button class="btn-primary" id="btn-login">Sign In</button>
+    <div class="auth-switch">
+      Don't have an account? <a onclick="showScreen('screen-signup')">Sign Up</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── Signup ── -->
+<div id="screen-signup" class="screen">
+  <div class="auth-card">
+    <h2>Create Account</h2>
+    <div id="signup-msg"></div>
+    <div class="form-group">
+      <label>First Name</label>
+      <input id="signup-first" type="text" placeholder="Rahul" />
+    </div>
+    <div class="form-group">
+      <label>Last Name</label>
+      <input id="signup-last" type="text" placeholder="Sharma" />
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input id="signup-email" type="email" placeholder="you@email.com" autocomplete="email" />
+    </div>
+    <div class="form-group">
+      <label>Mobile Number</label>
+      <input id="signup-mobile" type="tel" placeholder="9876543210" />
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input id="signup-password" type="password" placeholder="••••••••" autocomplete="new-password" />
+    </div>
+    <button class="btn-primary" id="btn-signup">Create Account</button>
+    <div class="auth-switch">
+      Already have an account? <a onclick="showScreen('screen-login')">Sign In</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── Course List ── -->
+<div id="screen-courses" class="screen">
+  <h2>Available Courses</h2>
+  <div id="course-list" class="course-grid">
+    <div class="loading">Loading courses…</div>
+  </div>
+</div>
+
+<!-- ── Course Detail ── -->
+<div id="screen-detail" class="screen">
+  <div class="back-btn" onclick="showCoursesScreen()">← Back to courses</div>
+  <div class="detail-card" id="detail-content"></div>
+</div>
+
+<!-- Razorpay SDK -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<script>
+  // ── Config ──────────────────────────────────────────
+  // Update this to your deployed backend URL
+  const API_BASE = 'https://teacherplatform.duckdns.org';
+
+  // ── State ────────────────────────────────────────────
+  let token = localStorage.getItem('token');
+  let userFirstName = localStorage.getItem('firstName') || '';
+  let purchasedCourseIds = JSON.parse(localStorage.getItem('purchasedIds') || '[]');
+  let allCourses = [];
+  let selectedCourse = null;
+
+  // ── Helpers ──────────────────────────────────────────
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function showMsg(elementId, text, type) {
+    const el = document.getElementById(elementId);
+    el.innerHTML = `<div class="msg ${type}">${text}</div>`;
+  }
+
+  function clearMsg(elementId) {
+    document.getElementById(elementId).innerHTML = '';
+  }
+
+  function rupees(paise) {
+    return '₹' + (paise / 100).toLocaleString('en-IN');
+  }
+
+  async function apiFetch(path, options = {}) {
+    const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    const res = await fetch(API_BASE + path, { ...options, headers });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.message || body.error || 'Request failed');
+    return body;
+  }
+
+  // ── Auth ─────────────────────────────────────────────
+  function saveSession(data) {
+    token = data.token;
+    userFirstName = data.firstName;
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('firstName', data.firstName);
+    document.getElementById('user-name').textContent = data.firstName;
+    document.getElementById('user-menu').style.display = 'flex';
+  }
+
+  function clearSession() {
+    token = null;
+    userFirstName = '';
+    purchasedCourseIds = [];
+    localStorage.clear();
+    document.getElementById('user-menu').style.display = 'none';
+    document.getElementById('user-name').textContent = '';
+  }
+
+  document.getElementById('btn-login').addEventListener('click', async () => {
+    clearMsg('login-msg');
+    const identifier = document.getElementById('login-identifier').value.trim();
+    const password = document.getElementById('login-password').value;
+    if (!identifier || !password) return showMsg('login-msg', 'Please fill in all fields.', 'error');
+    const btn = document.getElementById('btn-login');
+    btn.disabled = true; btn.textContent = 'Signing in…';
+    try {
+      const data = await apiFetch('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ identifier, password })
+      });
+      saveSession(data);
+      await loadUserCourses();
+      showCoursesScreen();
+    } catch (e) {
+      showMsg('login-msg', e.message, 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Sign In';
+    }
+  });
+
+  document.getElementById('btn-signup').addEventListener('click', async () => {
+    clearMsg('signup-msg');
+    const firstName = document.getElementById('signup-first').value.trim();
+    const lastName = document.getElementById('signup-last').value.trim();
+    const email = document.getElementById('signup-email').value.trim();
+    const mobileNumber = document.getElementById('signup-mobile').value.trim();
+    const password = document.getElementById('signup-password').value;
+    if (!firstName || !lastName || !email || !mobileNumber || !password)
+      return showMsg('signup-msg', 'Please fill in all fields.', 'error');
+    const btn = document.getElementById('btn-signup');
+    btn.disabled = true; btn.textContent = 'Creating account…';
+    try {
+      const data = await apiFetch('/api/auth/signup', {
+        method: 'POST',
+        body: JSON.stringify({ firstName, lastName, email, mobileNumber, password })
+      });
+      saveSession(data);
+      await loadUserCourses();
+      showCoursesScreen();
+    } catch (e) {
+      showMsg('signup-msg', e.message, 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Create Account';
+    }
+  });
+
+  document.getElementById('btn-logout').addEventListener('click', () => {
+    clearSession();
+    showScreen('screen-login');
+  });
+
+  // ── Courses ──────────────────────────────────────────
+  async function loadUserCourses() {
+    try {
+      const data = await apiFetch('/api/user/courses');
+      purchasedCourseIds = data.purchasedCourseIds || [];
+      localStorage.setItem('purchasedIds', JSON.stringify(purchasedCourseIds));
+    } catch (e) {
+      purchasedCourseIds = [];
+    }
+  }
+
+  async function showCoursesScreen() {
+    showScreen('screen-courses');
+    const listEl = document.getElementById('course-list');
+    if (allCourses.length === 0) {
+      listEl.innerHTML = '<div class="loading">Loading courses…</div>';
+      try {
+        allCourses = await apiFetch('/api/courses');
+      } catch (e) {
+        listEl.innerHTML = `<div class="loading" style="color:var(--error)">Failed to load courses.</div>`;
+        return;
+      }
+    }
+    renderCourseList(listEl);
+  }
+
+  function renderCourseList(listEl) {
+    if (!allCourses.length) {
+      listEl.innerHTML = '<div class="loading">No courses available yet.</div>';
+      return;
+    }
+    listEl.innerHTML = allCourses.map(course => {
+      const owned = purchasedCourseIds.includes(course.id);
+      return `
+        <div class="course-card" onclick="showDetail(${course.id})">
+          <h3>${course.title}</h3>
+          <p>${course.description}</p>
+          <div class="course-meta">
+            <span class="price">${rupees(course.pricePaise)}</span>
+            ${owned
+              ? '<span class="badge-owned">✓ Purchased</span>'
+              : '<span class="badge-buy">Buy Now</span>'}
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function showDetail(courseId) {
+    selectedCourse = allCourses.find(c => c.id === courseId);
+    if (!selectedCourse) return;
+    const owned = purchasedCourseIds.includes(courseId);
+    const detailEl = document.getElementById('detail-content');
+    detailEl.innerHTML = `
+      <h2>${selectedCourse.title}</h2>
+      <p>${selectedCourse.description}</p>
+      <div class="detail-price">${rupees(selectedCourse.pricePaise)}</div>
+      ${owned
+        ? '<div class="owned-notice">✓ You have access to this course. Open the Singh Sir app to start learning!</div>'
+        : `<button class="btn-buy" id="btn-buy-now" onclick="startPayment(${courseId})">Buy Now — ${rupees(selectedCourse.pricePaise)}</button>`}
+    `;
+    showScreen('screen-detail');
+  }
+
+  // ── Payment ──────────────────────────────────────────
+  async function startPayment(courseId) {
+    if (!token) {
+      showScreen('screen-login');
+      return;
+    }
+    const btn = document.getElementById('btn-buy-now');
+    if (btn) { btn.disabled = true; btn.textContent = 'Processing…'; }
+
+    let orderData;
+    try {
+      orderData = await apiFetch('/api/payment/create-order', {
+        method: 'POST',
+        body: JSON.stringify({ courseId })
+      });
+    } catch (e) {
+      alert('Could not initiate payment: ' + e.message);
+      if (btn) { btn.disabled = false; btn.textContent = `Buy Now — ${rupees(selectedCourse.pricePaise)}`; }
+      return;
+    }
+
+    const options = {
+      key: orderData.keyId,
+      amount: orderData.amountPaise,
+      currency: orderData.currency,
+      name: 'Singh Sir',
+      description: selectedCourse.title,
+      order_id: orderData.razorpayOrderId,
+      handler: async function (response) {
+        try {
+          await apiFetch('/api/payment/verify', {
+            method: 'POST',
+            body: JSON.stringify({
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature
+            })
+          });
+          purchasedCourseIds.push(courseId);
+          localStorage.setItem('purchasedIds', JSON.stringify(purchasedCourseIds));
+          // Refresh detail view
+          showDetail(courseId);
+          alert('Payment successful! Open the Singh Sir app to access your course.');
+        } catch (err) {
+          alert('Payment recorded but verification failed. Contact support with your payment ID: ' + response.razorpay_payment_id);
+        }
+      },
+      prefill: {
+        name: userFirstName
+      },
+      theme: { color: '#1a56db' }
+    };
+
+    const rzp = new Razorpay(options);
+    rzp.on('payment.failed', function () {
+      if (btn) { btn.disabled = false; btn.textContent = `Buy Now — ${rupees(selectedCourse.pricePaise)}`; }
+    });
+    rzp.open();
+    if (btn) { btn.disabled = false; btn.textContent = `Buy Now — ${rupees(selectedCourse.pricePaise)}`; }
+  }
+
+  // ── Init ─────────────────────────────────────────────
+  (async function init() {
+    if (token) {
+      document.getElementById('user-name').textContent = userFirstName;
+      document.getElementById('user-menu').style.display = 'flex';
+      await loadUserCourses();
+      showCoursesScreen();
+    }
+    // Allow Enter key on login/signup inputs
+    ['login-identifier', 'login-password'].forEach(id =>
+      document.getElementById(id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') document.getElementById('btn-login').click();
+      })
+    );
+    ['signup-first', 'signup-last', 'signup-email', 'signup-mobile', 'signup-password'].forEach(id =>
+      document.getElementById(id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') document.getElementById('btn-signup').click();
+      })
+    );
+  })();
+</script>
+</body>
+</html>
