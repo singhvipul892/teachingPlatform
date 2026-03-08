@@ -51,15 +51,21 @@ Currently done manually via Telegram — we are replacing that with this app.
 
 ---
 
+### P1.0 — Architecture Decision
+> No payments inside Android app (Google Play policy).
+> Payment happens on website only. App is for content consumption only.
+
+---
+
 ### P1.1 — Razorpay Payment Integration
 | Task | Status | Notes |
 |---|---|---|
-| Add Razorpay dependency to backend | `[ ] To Do` | |
-| Create `POST /api/orders` — backend creates Razorpay order, returns order_id | `[ ] To Do` | |
-| Create `purchases` table — stores user_id, course_id, payment_id, status | `[ ] To Do` | |
-| Payment webhook — Razorpay confirms payment → mark purchase active in DB | `[ ] To Do` | |
-| Android — Razorpay SDK integrated, payment flow on course screen | `[ ] To Do` | |
-| Android — on payment success, call backend to verify + unlock course | `[ ] To Do` | |
+| Add Razorpay dependency to backend | `[x] Done` | razorpay-java 1.4.7 in backend/build.gradle |
+| Create `POST /api/payment/create-order` — creates Razorpay order per course | `[x] Done` | |
+| Create `courses` table + `purchases` table with course_id | `[x] Done` | docker/init/003_purchases.sql |
+| Create `POST /api/payment/verify` — verify signature, record purchase | `[x] Done` | |
+| Android — Razorpay SDK | `~~REMOVED~~` | Moved to web — Google Play billing policy |
+| Android — payment flow on course screen | `~~REMOVED~~` | Moved to web — Google Play billing policy |
 
 **Keys needed (you provide, never commit to git):**
 ```
@@ -72,14 +78,28 @@ RAZORPAY_KEY_SECRET=your_secret
 ### P1.2 — Access Validation
 | Task | Status | Notes |
 |---|---|---|
-| Backend middleware — check purchases table before returning any content | `[ ] To Do` | |
-| If not purchased → return 403 "Purchase course to access" | `[ ] To Do` | |
-| Android — handle 403, show purchase prompt to user | `[ ] To Do` | |
+| Backend — GET /api/user/courses returns purchased section names | `[x] Done` | |
+| Android — call GET /api/user/courses on startup | `[x] Done` | MainActivity.kt |
+| Android — store purchased section names in SessionManager | `[x] Done` | |
+| Android — show "Purchase at website" dialog if section not owned | `[x] Done` | HomeScreen.kt |
 | Test full flow — unpaid user blocked, paid user gets access | `[ ] To Do` | |
 
 ---
 
-### P1.3 — Admin Panel (Teacher Dashboard)
+### P1.3 — Student Web Page
+> Students pay and access content via browser. Mobile responsive — they will open this on their phone.
+
+| Task | Status | Notes |
+|---|---|---|
+| Course listing page (public, no login required) | `[x] Done` | web/student/index.html |
+| Course detail page + Razorpay checkout button | `[x] Done` | |
+| After payment, backend unlocks account access | `[x] Done` | POST /api/payment/verify |
+| Mobile responsive design | `[x] Done` | |
+| Login / signup on web page (same account as app) | `[x] Done` | |
+
+---
+
+### P1.4 — Admin Panel (Teacher Dashboard)
 > Teacher manages courses without Swagger.
 > Build as a single HTML file + vanilla JS. No framework needed.
 
@@ -94,7 +114,7 @@ RAZORPAY_KEY_SECRET=your_secret
 
 ---
 
-### P1.4 — Go Live Checklist
+### P1.5 — Go Live Checklist
 | Task | Status | Notes |
 |---|---|---|
 | Backend deployed and stable | `[ ] To Do` | |
@@ -178,6 +198,7 @@ Teacher inputs topic + difficulty + question count + sample questions
 | — | Admin panel as plain HTML | No framework overhead, teacher just needs it to work |
 | — | Phase 1 before exam generator | Teacher's daily pain is Telegram sharing, not exam creation |
 | — | No vector DB until Phase 3+ | Not needed until question bank exceeds 5000+ questions |
+| 2026-03-08 | Payments moved to web page — Google Play billing policy | Android in-app purchases for digital goods require Google Play Billing. Razorpay checkout runs in browser at /student. App calls GET /api/user/courses to know what is unlocked. |
 
 ---
 

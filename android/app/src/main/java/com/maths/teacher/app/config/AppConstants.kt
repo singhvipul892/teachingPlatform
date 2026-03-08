@@ -4,6 +4,9 @@ object AppConstants {
     // For Android Emulator, 10.0.2.2 maps to localhost of the dev machine.
     const val BASE_URL = "https://teacherplatform.duckdns.org/"
 
+    /** URL where students can purchase courses */
+    const val STUDENT_WEB_URL = "https://teacherplatform.duckdns.org/student"
+
     const val YOUTUBE_APP_URI_PREFIX = "vnd.youtube:"
     const val YOUTUBE_WEB_URL_PREFIX = "https://www.youtube.com/watch?v="
     const val YOUTUBE_EMBED_URL_PREFIX = "https://www.youtube.com/embed/"

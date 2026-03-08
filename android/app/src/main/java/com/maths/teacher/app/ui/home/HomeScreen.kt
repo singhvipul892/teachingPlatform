@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Mail
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +36,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import com.maths.teacher.app.data.api.TeacherApi
 import com.maths.teacher.app.data.prefs.SessionManager
@@ -70,6 +73,7 @@ fun HomeScreen(
     val userId by sessionManager.userId.collectAsStateWithLifecycle(initialValue = null)
     val drawerState = rememberDrawerState(initialValue = androidx.compose.material3.DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    var purchasePromptSection by rememberSaveable { mutableStateOf<String?>(null) }
 
     val navigationItems = listOf(
         NavigationItem(
@@ -133,6 +137,25 @@ fun HomeScreen(
         }
     )
 
+    // Purchase gate dialog
+    if (purchasePromptSection != null) {
+        AlertDialog(
+            onDismissRequest = { purchasePromptSection = null },
+            title = { Text("Course Locked") },
+            text = {
+                Text(
+                    "Purchase the \"$purchasePromptSection\" course to get access.\n\n" +
+                    "Visit: ${com.maths.teacher.app.config.AppConstants.STUDENT_WEB_URL}"
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { purchasePromptSection = null }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
     AppNavigationDrawer(
         drawerState = drawerState,
         navigationItems = navigationItems,
@@ -182,7 +205,13 @@ fun HomeScreen(
                     else -> {
                         HomeContent(
                             sections = uiState.sections,
-                            onVideoSelected = { id, sectionName -> navController.navigate("video_detail/$id/${java.net.URLEncoder.encode(sectionName, "UTF-8")}") },
+                            onVideoSelected = { id, sectionName ->
+                                if (sessionManager.hasPurchased(sectionName)) {
+                                    navController.navigate("video_detail/$id/${java.net.URLEncoder.encode(sectionName, "UTF-8")}")
+                                } else {
+                                    purchasePromptSection = sectionName
+                                }
+                            },
                             displayName = displayName,
                             modifier = Modifier.fillMaxSize()
                         )

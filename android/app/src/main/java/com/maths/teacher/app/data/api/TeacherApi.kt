@@ -7,6 +7,7 @@ import com.maths.teacher.app.data.model.PdfDownloadResponse
 import com.maths.teacher.app.data.model.ResetPasswordRequest
 import com.maths.teacher.app.data.model.SectionDto
 import com.maths.teacher.app.data.model.SignupRequest
+import com.maths.teacher.app.data.model.UserCoursesResponse
 import com.maths.teacher.app.data.model.VideoDto
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -38,4 +39,7 @@ interface TeacherApi {
         @Path("videoId") videoId: Long,
         @Path("pdfId") pdfId: Long
     ): PdfDownloadResponse
+
+    @GET("api/user/courses")
+    suspend fun getUserCourses(): UserCoursesResponse
 }

@@ -27,3 +27,7 @@ app:
       presign-expiry-minutes: 10
   sms:
     mock: ${SMS_MOCK:false}
+  razorpay:
+    key-id: ${RAZORPAY_KEY_ID}
+    key-secret: ${RAZORPAY_KEY_SECRET}
+    currency: INR
