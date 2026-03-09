@@ -4,7 +4,8 @@
       "Bash(xargs cat)",
       "Bash(\"c:/Users/Vipul Singh/workspace/cursor/android/app/src/main/java/com/maths/teacher/app/config/AppConstants.kt\":*)",
       "Bash(\"c:/Users/Vipul Singh/workspace/cursor/android/app/src/main/java/com/maths/teacher/app/MainActivity.kt\":*)",
-      "Bash(\"c:/Users/Vipul Singh/workspace/cursor/backend/docker/init/003_purchases.sql\":*)"
+      "Bash(\"c:/Users/Vipul Singh/workspace/cursor/backend/docker/init/003_purchases.sql\":*)",
+      "Bash(git add -A)"
     ]
   }
 }

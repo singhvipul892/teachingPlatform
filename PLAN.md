@@ -96,6 +96,7 @@ RAZORPAY_KEY_SECRET=your_secret
 | After payment, backend unlocks account access | `[x] Done` | POST /api/payment/verify |
 | Mobile responsive design | `[x] Done` | |
 | Login / signup on web page (same account as app) | `[x] Done` | |
+| Policies page — Terms, Privacy Policy, Refund Policy | `[x] Done` | web/student/policies.html — linked from footer of index.html |
 
 ---
 
