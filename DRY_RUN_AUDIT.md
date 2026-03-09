@@ -402,3 +402,226 @@ cd backend
 4. Manual integration testing with Razorpay test mode
 5. Test Android app video playback flow
 
+
+---
+
+## CRITICAL: Android App Incompatibility 🔴
+
+### Issue #5: Android App Uses Deleted Backend Endpoints
+
+**Files:**
+- `android/app/src/main/java/com/maths/teacher/app/data/api/TeacherApi.kt`
+- `android/app/src/main/java/com/maths/teacher/app/data/repository/VideoRepository.kt`
+- `android/app/src/main/java/com/maths/teacher/app/ui/home/HomeViewModel.kt`
+
+**Problem:**
+The Android app is hardcoded to call endpoints that **NO LONGER EXIST** in the backend:
+
+```kotlin
+@GET("api/sections")
+suspend fun getSections(): List<SectionDto>
+
+@GET("api/sections/{section}/videos")
+suspend fun getVideosBySection(@Path("section") section: String): List<VideoDto>
+```
+
+**What Happens When User Opens App:**
+```
+1. HomeViewModel.loadHomeSections()
+2. → VideoRepository.getHomeSections()
+3.   → api.getSections()  // ❌ CALLS /api/sections (DELETED)
+4.     BACKEND RETURNS 404 Not Found
+5. App crashes with error: "Failed to load videos. Please try again."
+```
+
+**Root Cause:**
+- Backend migrated from **public section-based API** → **course-based API**
+- Android app was never updated to match
+- Breaking change in API contract
+
+**Impact:**
+- 🔴 **CRITICAL** — Android app cannot load any content
+- App will crash on startup when users try to view videos
+- Affects 100% of Android users
+
+---
+
+### Android App Architecture vs Backend Architecture Mismatch
+
+**Old Architecture (Sections):**
+```
+Backend:
+  GET /api/sections
+    → Returns list of section names (free content, public)
+  GET /api/sections/{section}/videos
+    → Returns videos for that section (free content, public)
+
+Android:
+  HomeScreen
+    ├─ Load all sections
+    └─ For each section, load all videos
+       └─ Display in carousel/list
+```
+
+**New Architecture (Courses):**
+```
+Backend:
+  GET /api/courses (public)
+    → Returns purchasable courses
+  POST /api/payment/create-order (JWT)
+  POST /api/payment/verify (JWT)
+  GET /api/user/courses (JWT)
+    → Returns user's purchased courses
+  GET /api/courses/{courseId}/videos (JWT)
+    → Returns videos for purchased course
+
+Android:
+  HomeScreen
+    ├─ Load user's purchased courses
+    └─ For each course, load its videos
+       └─ Display in carousel/list
+```
+
+**The Disconnect:**
+- Backend: Expects JWT auth + purchased courses
+- Android: Still tries to load public sections (pre-course model)
+
+---
+
+### Fix Required for Android App
+
+#### Step 1: Update TeacherApi
+```kotlin
+// Remove old endpoints:
+@GET("api/sections")
+suspend fun getSections(): List<SectionDto>
+
+@GET("api/sections/{section}/videos")
+suspend fun getVideosBySection(...): List<VideoDto>
+
+// Add new endpoint:
+@GET("api/courses/{courseId}/videos")
+@Headers("Authorization: Bearer {token}")
+suspend fun getCourseVideos(@Path("courseId") courseId: Long): List<VideoDto>
+```
+
+#### Step 2: Refactor VideoRepository
+- Remove `getSections()`, `getVideosBySection()`, `getHomeSections()`
+- Add `getCourseVideos(courseId, token)`
+- Update to use CourseResponse from PaymentController instead of SectionDto
+
+#### Step 3: Update HomeViewModel/HomeScreen
+- Change from "show all sections" → "show user's purchased courses"
+- For each purchased course, fetch its videos
+- Add "Buy Course" button for non-purchased courses
+
+#### Step 4: Update SessionManager
+- Store JWT token for subsequent API calls
+
+---
+
+## Updated Migration Status
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Backend Database | ✅ Ready | Courses table exists, videos.course_id FK ready |
+| Backend Entities | ✅ Ready | Course, Video, Purchase properly mapped |
+| Backend Payment APIs | ✅ Ready | All course-based endpoints working |
+| Backend Video Catalog API | ✅ **FIXED** | Migrated to `/api/courses/{courseId}/videos` |
+| **Android TeacherApi** | 🔴 **BROKEN** | Still calls deleted `/api/sections` endpoints |
+| **Android VideoRepository** | 🔴 **BROKEN** | Calls non-existent methods via API |
+| **Android HomeViewModel** | 🔴 **BROKEN** | Expects sections, not purchased courses |
+| Student Web App | ✅ Ready | Already uses course-based payment APIs |
+| Admin Web Dashboard | ✅ Ready | Can manage courses and videos |
+
+---
+
+## Revised Deployment Readiness
+
+**Current Status:** 🔴 **CANNOT DEPLOY**
+
+**Critical Blockers:**
+1. ✅ Backend: VideoCatalogController fixed
+2. ❌ **Android: All video-related features broken**
+   - Cannot load sections (endpoint deleted)
+   - Cannot load videos (endpoint deleted)
+   - App will crash on open
+
+**Workaround Options:**
+
+**Option A: Restore Old Section Endpoints (Temporary)**
+```java
+// Keep old endpoints alive alongside new course-based ones
+@GetMapping("/api/sections")
+public List<SectionResponse> getSections() { ... }
+
+@GetMapping("/api/sections/{section}/videos")
+public List<VideoResponse> getVideosBySection(@PathVariable String section) { ... }
+```
+**Pros:** Android app continues to work
+**Cons:** Maintains technical debt, two incompatible architectures in production
+
+**Option B: Migrate Android App (Recommended)**
+Estimate: 2-4 hours
+```
+1. Update TeacherApi (30 min)
+2. Refactor VideoRepository (45 min)
+3. Update HomeViewModel/HomeScreen (1 hour)
+4. Test on Android emulator (1 hour)
+5. Build APK, test on real device (30 min)
+```
+
+**Option C: Hybrid (Best for Now)**
+1. **Keep** `/api/sections` and `/api/sections/{section}/videos` as public, free-content endpoints
+2. **Add** course-based endpoints for premium content
+3. Gradually migrate Android app to courses over next sprint
+
+---
+
+## Deployment Decision Matrix
+
+| Scenario | Backend Status | Android Status | Can Deploy? |
+|----------|---|---|---|
+| **Current** | ✅ Course-based | ❌ Section-based | **NO** |
+| **Option A Applied** | ✅ Both | ✅ Section-based | ✅ YES (with debt) |
+| **Option B Applied** | ✅ Course-based | ✅ Course-based | ✅ YES (clean) |
+| **Option C Applied** | ✅ Both | ✅ Both | ✅ YES (interim) |
+
+---
+
+## Recommendation
+
+### For Immediate Deployment (This Week):
+**Use Option A:** Restore the old section endpoints temporarily
+- Android app remains functional
+- Web students can purchase courses
+- Teachers can upload course content
+- Set timeline to migrate Android (next 2 weeks)
+
+### Implementation for Option A:
+Create a temporary bridge in Backend:
+```java
+// Temporary — to be removed when Android app is updated
+@GetMapping("/api/sections")
+public List<SectionResponse> getSections() {
+    List<Course> courses = courseRepository.findByActiveTrue();
+    return courses.stream()
+        .map(c -> new SectionResponse(c.getId() + ": " + c.getTitle()))
+        .toList();
+}
+
+@GetMapping("/api/sections/{section}/videos")
+public List<VideoResponse> getVideosBySection(@PathVariable String section) {
+    // Extract courseId from section string, fetch videos
+    Long courseId = extractCourseId(section);
+    return videoCatalogService.getVideosByCourse(courseId, null)
+        .stream()
+        .map(v -> new VideoResponse(...))
+        .toList();
+}
+```
+
+This allows Android to keep working while backend is modern.
+
+---
+
