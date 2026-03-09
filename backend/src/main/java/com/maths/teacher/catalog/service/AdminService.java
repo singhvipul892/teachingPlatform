@@ -43,9 +43,9 @@ public class AdminService {
      *
      * @param youtubeVideoLink YouTube video URL (any format)
      * @param title Video title
-     * @param section Section/chapter name
+     * @param courseId Course ID to associate video with
      * @param duration Video duration (e.g., "12:45")
-     * @param displayOrder Display order within section
+     * @param displayOrder Display order within course
      * @param notesPdf Notes PDF (optional)
      * @param solvedPracticeSetPdf Solved Practice Set PDF (optional)
      * @param annotatedPracticeSetPdf Annotated Practice Set PDF (optional)
@@ -55,7 +55,7 @@ public class AdminService {
     public VideoResponse createVideoLesson(
             String youtubeVideoLink,
             String title,
-            String section,
+            Long courseId,
             String duration,
             Integer displayOrder,
             MultipartFile notesPdf,
@@ -67,7 +67,7 @@ public class AdminService {
         String thumbnailUrl = youtubeUrlExtractor.generateThumbnailUrl(videoId);
 
         // Create video entity
-        var video = new Video(null, videoId, title, section, thumbnailUrl, duration, displayOrder);
+        var video = new Video(null, videoId, title, courseId, thumbnailUrl, duration, displayOrder);
         var savedVideo = videoRepository.save(video);
 
         // Process PDFs: upload to S3 first, then batch save to DB
