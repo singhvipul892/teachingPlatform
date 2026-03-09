@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — Singh Sir</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #1a56db;
+      --primary-dark: #1448be;
+      --accent: #f59e0b;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --success: #16a34a;
+      --error: #dc2626;
+      --warning: #f97316;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--primary);
+      color: white;
+      padding: 0 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    header h1 { font-size: 1.1rem; font-weight: 700; }
+    #user-menu { display: flex; align-items: center; gap: 0.75rem; font-size: 0.85rem; }
+    #user-name { opacity: 0.9; }
+    #btn-logout {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      padding: 0.3rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+    #btn-logout:hover { background: rgba(255,255,255,0.3); }
+
+    /* ── Main Layout ── */
+    .main-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1.5rem 1rem;
+    }
+
+    /* ── Tabs Navigation ── */
+    .tabs {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+      background: var(--card);
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      border-right: 1px solid var(--border);
+    }
+    .tab-btn:last-child { border-right: none; }
+    .tab-btn.active {
+      background: var(--primary);
+      color: white;
+    }
+    .tab-btn:not(.active):hover { background: #f1f5f9; color: var(--text); }
+
+    /* ── Panels ── */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ── Course List Panel ── */
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    .panel-header h2 { font-size: 1.3rem; font-weight: 700; }
+    .btn-primary {
+      padding: 0.65rem 1rem;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* ── Tables ── */
+    .table-container {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th {
+      background: #f1f5f9;
+      padding: 0.85rem;
+      text-align: left;
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 0.85rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover { background: #f8fafc; }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.6rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-active {
+      background: #dcfce7;
+      color: var(--success);
+    }
+    .badge-inactive {
+      background: #f3f4f6;
+      color: var(--muted);
+    }
+
+    /* ── Action Buttons (in table) ── */
+    .btn-small {
+      padding: 0.4rem 0.6rem;
+      margin-right: 0.3rem;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-small:hover { background: var(--primary-dark); }
+    .btn-danger {
+      background: var(--error);
+    }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-secondary {
+      background: var(--muted);
+    }
+    .btn-secondary:hover { background: #475569; }
+
+    /* ── Message/Alert ── */
+    .msg {
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+    .msg.error {
+      background: #fef2f2;
+      color: var(--error);
+      border: 1px solid #fecaca;
+    }
+    .msg.success {
+      background: #f0fdf4;
+      color: var(--success);
+      border: 1px solid #bbf7d0;
+    }
+    .msg.warning {
+      background: #fffbeb;
+      color: var(--warning);
+      border: 1px solid #fcd34d;
+    }
+
+    /* ── Loading State ── */
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+    }
+    .spinner {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ── Modal Overlay ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 500px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+    .modal.large { max-width: 800px; }
+
+    /* ── Modal Header ── */
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    .modal-header h2 { font-size: 1.25rem; font-weight: 700; }
+    .btn-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--muted);
+    }
+    .btn-close:hover { color: var(--text); }
+
+    /* ── Form ── */
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+      color: var(--muted);
+    }
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      border-color: var(--primary);
+    }
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    /* ── File Input ── */
+    .file-input-wrapper {
+      position: relative;
+    }
+    .file-input-wrapper input[type="file"] {
+      display: none;
+    }
+    .file-input-label {
+      display: block;
+      padding: 0.65rem 0.85rem;
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      background: #f8fafc;
+    }
+    .file-input-label:hover {
+      border-color: var(--primary);
+      background: #f0f4f8;
+    }
+    .file-input-label.has-file {
+      border-color: var(--success);
+      background: #f0fdf4;
+      color: var(--success);
+    }
+
+    /* ── Image Preview ── */
+    .image-preview {
+      margin-top: 0.5rem;
+      text-align: center;
+    }
+    .image-preview img {
+      max-width: 100%;
+      max-height: 150px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    /* ── Checkbox ── */
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .checkbox-group input[type="checkbox"] {
+      width: auto;
+      cursor: pointer;
+    }
+    .checkbox-group label {
+      margin: 0;
+      cursor: pointer;
+    }
+
+    /* ── Modal Actions ── */
+    .modal-actions {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: flex-end;
+      margin-top: 1.5rem;
+    }
+    .modal-actions button {
+      padding: 0.65rem 1.5rem;
+    }
+    .btn-secondary { background: var(--muted); color: white; }
+    .btn-secondary:hover { background: #475569; }
+
+    /* ── Currency Input ── */
+    .price-input-group {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .price-input-group input {
+      flex: 1;
+    }
+    .price-input-group select {
+      width: auto;
+      min-width: 80px;
+    }
+
+    /* ── Students List Modal ── */
+    .students-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .student-item {
+      padding: 0.75rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+    }
+    .student-item:last-child { border-bottom: none; }
+    .student-name { font-weight: 600; }
+    .student-contact { color: var(--muted); font-size: 0.85rem; }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .main-container { padding: 1rem 0.75rem; }
+      .panel-header { flex-direction: column; gap: 1rem; align-items: stretch; }
+      .btn-primary { width: 100%; }
+      .modal { width: 95%; padding: 1.5rem; }
+      .tabs { flex-direction: column; }
+      .tab-btn { border-right: none; border-bottom: 1px solid var(--border); }
+      .tab-btn:last-child { border-bottom: none; }
+      table { font-size: 0.85rem; }
+      th, td { padding: 0.6rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🎓 Singh Sir — Admin Dashboard</h1>
+  <div id="user-menu" style="display:none">
+    <span id="user-name"></span>
+    <button id="btn-logout">Logout</button>
+  </div>
+</header>
+
+<div class="main-container">
+
+  <!-- Tab Navigation -->
+  <div class="tabs" role="tablist">
+    <button class="tab-btn active" onclick="showTab('courses')" role="tab">📚 Courses</button>
+    <button class="tab-btn" onclick="showTab('reports')" role="tab">📊 Reports</button>
+    <button class="tab-btn" onclick="showTab('settings')" role="tab">⚙️ Settings</button>
+  </div>
+
+  <!-- Courses Panel -->
+  <div id="panel-courses" class="panel active">
+    <div id="courses-msg"></div>
+    <div class="panel-header">
+      <h2>Courses</h2>
+      <button class="btn-primary" onclick="openCreateCourseModal()">+ Create Course</button>
+    </div>
+    <div id="courses-list" class="table-container">
+      <div class="loading"><div class="spinner"></div> Loading courses...</div>
+    </div>
+  </div>
+
+  <!-- Reports Panel -->
+  <div id="panel-reports" class="panel">
+    <h2 style="margin-bottom: 1.5rem;">Reports & Analytics</h2>
+    <div id="reports-content">
+      <div class="loading"><div class="spinner"></div> Loading data...</div>
+    </div>
+  </div>
+
+  <!-- Settings Panel -->
+  <div id="panel-settings" class="panel">
+    <h2 style="margin-bottom: 1.5rem;">Settings</h2>
+    <div class="card" style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem;">
+      <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem;">Account Settings</h3>
+      <p style="color: var(--muted); font-size: 0.9rem; line-height: 1.6;">
+        You are logged in as: <strong id="settings-user-name"></strong><br />
+        Role: <strong>Admin</strong><br />
+        <br />
+        For more settings or to change your password, please contact the platform administrator.
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Create/Edit Course Modal ── -->
+<div id="modal-course-form" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-title">Create Course</h2>
+      <button class="btn-close" onclick="closeModal('modal-course-form')">×</button>
+    </div>
+    <div id="modal-form-msg"></div>
+    <form id="form-course" onsubmit="handleFormSubmit(event)">
+      <div class="form-group">
+        <label>Course Title *</label>
+        <input type="text" id="form-title" required placeholder="e.g., Algebra Basics" />
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="form-description" placeholder="Describe what students will learn..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Price *</label>
+        <div class="price-input-group">
+          <input type="number" id="form-price" required min="0" placeholder="e.g., 999" />
+          <select id="form-currency">
+            <option value="INR">INR (₹)</option>
+            <option value="USD">USD ($)</option>
+          </select>
+        </div>
+        <small style="color: var(--muted); font-size: 0.8rem;">Enter price in rupees (e.g., 999 = ₹9.99)</small>
+      </div>
+      <div class="form-group">
+        <label>Thumbnail Image (JPEG/PNG, max 5MB)</label>
+        <div class="file-input-wrapper">
+          <input type="file" id="form-thumbnail" accept="image/jpeg,image/png" />
+          <label class="file-input-label" id="file-label" for="form-thumbnail">
+            📁 Click to upload or drag & drop
+          </label>
+        </div>
+        <div id="preview-container"></div>
+      </div>
+      <div class="form-group checkbox-group">
+        <input type="checkbox" id="form-active" checked />
+        <label for="form-active">Active (visible to students)</label>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" onclick="closeModal('modal-course-form')">Cancel</button>
+        <button type="submit" class="btn-primary" id="form-submit-btn">Create Course</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Delete Confirmation Modal ── -->
+<div id="modal-confirm-delete" class="modal-overlay">
+  <div class="modal" style="max-width: 400px;">
+    <div class="modal-header">
+      <h2>Delete Course?</h2>
+      <button class="btn-close" onclick="closeModal('modal-confirm-delete')">×</button>
+    </div>
+    <p id="confirm-message" style="color: var(--muted); margin-bottom: 1.5rem; line-height: 1.6;"></p>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" onclick="closeModal('modal-confirm-delete')">Cancel</button>
+      <button type="button" class="btn-danger" id="btn-confirm-delete">Delete Course</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Students List Modal ── -->
+<div id="modal-students" class="modal-overlay">
+  <div class="modal large">
+    <div class="modal-header">
+      <h2>Students Enrolled</h2>
+      <button class="btn-close" onclick="closeModal('modal-students')">×</button>
+    </div>
+    <div id="students-msg"></div>
+    <div id="students-content" class="students-list">
+      <div class="loading"><div class="spinner"></div> Loading...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Configuration ──
+  const API_BASE = 'https://teacherplatform.duckdns.org';
+
+  // ── State ──
+  let token = localStorage.getItem('token');
+  let userRole = localStorage.getItem('userRole');
+  let userFirstName = localStorage.getItem('firstName') || '';
+  let allCourses = [];
+  let currentEditingCourseId = null;
+  let currentDeleteCourseId = null;
+  let currentFilePreview = null;
+
+  // ── Init ──
+  (async function init() {
+    // Check authentication
+    if (!token) {
+      window.location.href = 'index.html';
+      return;
+    }
+
+    // Verify admin role
+    if (userRole !== 'ADMIN') {
+      alert('Access Denied: Admin role required');
+      logout();
+      return;
+    }
+
+    // Setup UI
+    document.getElementById('user-name').textContent = userFirstName;
+    document.getElementById('user-menu').style.display = 'flex';
+    document.getElementById('settings-user-name').textContent = userFirstName;
+
+    // Load courses
+    await loadCourses();
+
+    // Setup file upload
+    setupFileUpload();
+  })();
+
+  // ── Helpers ──
+  function showMsg(elementId, text, type) {
+    const el = document.getElementById(elementId);
+    el.innerHTML = `<div class="msg ${type}">${text}</div>`;
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function clearMsg(elementId) {
+    const el = document.getElementById(elementId);
+    if (el) el.innerHTML = '';
+  }
+
+  function showTab(tabName) {
+    // Hide all panels
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+
+    // Show selected
+    document.getElementById(`panel-${tabName}`).classList.add('active');
+    event.currentTarget.classList.add('active');
+
+    // Load specific panel data if needed
+    if (tabName === 'reports') loadReports();
+  }
+
+  async function apiFetch(path, options = {}) {
+    const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    const res = await fetch(API_BASE + path, { ...options, headers });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.message || body.error || 'Request failed');
+    return body;
+  }
+
+  function rupees(paise) {
+    if (!paise && paise !== 0) return '₹0';
+    return '₹' + (paise / 100).toLocaleString('en-IN');
+  }
+
+  function formatDate(dateStr) {
+    return new Date(dateStr).toLocaleDateString('en-IN', {
+      year: 'numeric', month: 'short', day: 'numeric'
+    });
+  }
+
+  // ── Modals ──
+  function openModal(id) {
+    document.getElementById(id).classList.add('active');
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+  }
+
+  // ── Courses CRUD ──
+  async function loadCourses() {
+    try {
+      clearMsg('courses-msg');
+      const data = await apiFetch('/api/admin/courses');
+      allCourses = data;
+      renderCoursesTable();
+    } catch (e) {
+      showMsg('courses-msg', 'Failed to load courses: ' + e.message, 'error');
+    }
+  }
+
+  function renderCoursesTable() {
+    const listEl = document.getElementById('courses-list');
+    if (!allCourses.length) {
+      listEl.innerHTML = '<div class="loading">No courses yet. Create your first course!</div>';
+      return;
+    }
+
+    const html = `
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Price</th>
+            <th>Students</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${allCourses.map(course => `
+            <tr>
+              <td>${course.title}</td>
+              <td>${rupees(course.pricePaise)}</td>
+              <td>${course.studentCount}</td>
+              <td>
+                <span class="badge ${course.active ? 'badge-active' : 'badge-inactive'}">
+                  ${course.active ? 'Active' : 'Inactive'}
+                </span>
+              </td>
+              <td>${formatDate(course.createdAt)}</td>
+              <td>
+                <button class="btn-small" onclick="editCourse(${course.id})">Edit</button>
+                <button class="btn-small" onclick="viewStudents(${course.id}, '${course.title}')">View</button>
+                <button class="btn-small btn-danger" onclick="confirmDelete(${course.id}, '${course.title}')">Delete</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+    listEl.innerHTML = html;
+  }
+
+  async function loadReports() {
+    const reportsEl = document.getElementById('reports-content');
+    try {
+      let totalRevenue = 0;
+      let totalStudents = 0;
+
+      allCourses.forEach(c => {
+        totalRevenue += c.pricePaise * c.studentCount;
+        totalStudents += c.studentCount;
+      });
+
+      const html = `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">
+          <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; text-align: center;">
+            <div style="font-size: 0.9rem; color: var(--muted); margin-bottom: 0.5rem;">Total Courses</div>
+            <div style="font-size: 2rem; font-weight: 700; color: var(--primary);">${allCourses.length}</div>
+          </div>
+          <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; text-align: center;">
+            <div style="font-size: 0.9rem; color: var(--muted); margin-bottom: 0.5rem;">Total Students</div>
+            <div style="font-size: 2rem; font-weight: 700; color: var(--success);">${totalStudents}</div>
+          </div>
+          <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; text-align: center;">
+            <div style="font-size: 0.9rem; color: var(--muted); margin-bottom: 0.5rem;">Total Revenue</div>
+            <div style="font-size: 2rem; font-weight: 700; color: var(--accent);">${rupees(totalRevenue)}</div>
+          </div>
+          <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; text-align: center;">
+            <div style="font-size: 0.9rem; color: var(--muted); margin-bottom: 0.5rem;">Avg Students/Course</div>
+            <div style="font-size: 2rem; font-weight: 700; color: var(--primary);">${allCourses.length ? Math.round(totalStudents / allCourses.length) : 0}</div>
+          </div>
+        </div>
+        <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;">Top Courses</h3>
+        <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
+          ${allCourses.sort((a, b) => b.studentCount - a.studentCount).slice(0, 5).map(c => `
+            <div style="padding: 1rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="font-weight: 600;">${c.title}</div>
+                <div style="font-size: 0.85rem; color: var(--muted);">${c.studentCount} students</div>
+              </div>
+              <div style="font-weight: 600; color: var(--primary);">${rupees(c.pricePaise)}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      reportsEl.innerHTML = html;
+    } catch (e) {
+      reportsEl.innerHTML = `<div class="msg error">Failed to load reports: ${e.message}</div>`;
+    }
+  }
+
+  // ── Create Course ──
+  function openCreateCourseModal() {
+    currentEditingCourseId = null;
+    document.getElementById('modal-title').textContent = 'Create Course';
+    document.getElementById('form-submit-btn').textContent = 'Create Course';
+    document.getElementById('form-course').reset();
+    document.getElementById('preview-container').innerHTML = '';
+    currentFilePreview = null;
+    clearMsg('modal-form-msg');
+    openModal('modal-course-form');
+  }
+
+  // ── Edit Course ──
+  async function editCourse(courseId) {
+    const course = allCourses.find(c => c.id === courseId);
+    if (!course) return;
+
+    currentEditingCourseId = courseId;
+    document.getElementById('modal-title').textContent = 'Edit Course';
+    document.getElementById('form-submit-btn').textContent = 'Save Changes';
+    document.getElementById('form-title').value = course.title;
+    document.getElementById('form-description').value = course.description;
+    document.getElementById('form-price').value = Math.round(course.pricePaise / 100);
+    document.getElementById('form-currency').value = course.currency;
+    document.getElementById('form-active').checked = course.active;
+
+    if (course.thumbnailUrl) {
+      const previewHtml = `<div class="image-preview"><img src="${course.thumbnailUrl}" alt="Current thumbnail" /></div>`;
+      document.getElementById('preview-container').innerHTML = previewHtml;
+    } else {
+      document.getElementById('preview-container').innerHTML = '';
+    }
+
+    clearMsg('modal-form-msg');
+    openModal('modal-course-form');
+  }
+
+  // ── Form Submission ──
+  async function handleFormSubmit(event) {
+    event.preventDefault();
+    clearMsg('modal-form-msg');
+
+    const title = document.getElementById('form-title').value.trim();
+    const description = document.getElementById('form-description').value.trim();
+    const price = parseInt(document.getElementById('form-price').value);
+    const currency = document.getElementById('form-currency').value;
+    const active = document.getElementById('form-active').checked;
+    const thumbnail = document.getElementById('form-thumbnail').files[0];
+
+    if (!title || !price) {
+      showMsg('modal-form-msg', 'Please fill in required fields', 'error');
+      return;
+    }
+
+    const btn = document.getElementById('form-submit-btn');
+    btn.disabled = true;
+
+    try {
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('description', description);
+      formData.append('pricePaise', price * 100);
+      formData.append('currency', currency);
+      formData.append('active', active);
+      if (thumbnail) formData.append('thumbnail', thumbnail);
+
+      const method = currentEditingCourseId ? 'PUT' : 'POST';
+      const path = currentEditingCourseId ? `/api/admin/courses/${currentEditingCourseId}` : '/api/admin/courses';
+
+      const response = await fetch(API_BASE + path, {
+        method,
+        headers: { 'Authorization': 'Bearer ' + token },
+        body: formData
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || 'Failed to save course');
+      }
+
+      await loadCourses();
+      closeModal('modal-course-form');
+      showMsg('courses-msg', currentEditingCourseId ? 'Course updated!' : 'Course created!', 'success');
+    } catch (e) {
+      showMsg('modal-form-msg', e.message, 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ── Delete Course ──
+  function confirmDelete(courseId, title) {
+    currentDeleteCourseId = courseId;
+    document.getElementById('confirm-message').textContent = `Are you sure you want to delete "${title}"? This action will deactivate the course and students will lose access. This cannot be undone.`;
+    openModal('modal-confirm-delete');
+  }
+
+  document.getElementById('btn-confirm-delete').addEventListener('click', async function() {
+    const btn = this;
+    btn.disabled = true;
+
+    try {
+      await apiFetch(`/api/admin/courses/${currentDeleteCourseId}`, { method: 'DELETE' });
+      await loadCourses();
+      closeModal('modal-confirm-delete');
+      showMsg('courses-msg', 'Course deleted!', 'success');
+    } catch (e) {
+      showMsg('modal-confirm-delete', e.message, 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // ── View Students ──
+  async function viewStudents(courseId, courseTitle) {
+    openModal('modal-students');
+    const contentEl = document.getElementById('students-content');
+    clearMsg('students-msg');
+
+    try {
+      const data = await apiFetch(`/api/admin/courses/${courseId}/students`);
+      if (!data.length) {
+        contentEl.innerHTML = '<div class="loading">No students enrolled yet</div>';
+        return;
+      }
+
+      const html = data.map(student => `
+        <div class="student-item">
+          <div>
+            <div class="student-name">${student.firstName} ${student.lastName}</div>
+            <div class="student-contact">${student.email}</div>
+            <div class="student-contact">${student.mobileNumber}</div>
+          </div>
+          <div style="text-align: right; font-size: 0.85rem; color: var(--muted);">
+            ${formatDate(student.purchasedAt)}
+          </div>
+        </div>
+      `).join('');
+
+      contentEl.innerHTML = html;
+    } catch (e) {
+      showMsg('students-msg', 'Failed to load students: ' + e.message, 'error');
+    }
+  }
+
+  // ── File Upload ──
+  function setupFileUpload() {
+    const input = document.getElementById('form-thumbnail');
+    const label = document.getElementById('file-label');
+
+    input.addEventListener('change', function() {
+      if (this.files[0]) {
+        currentFilePreview = this.files[0];
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          document.getElementById('preview-container').innerHTML = `<div class="image-preview"><img src="${e.target.result}" alt="Preview" /></div>`;
+        };
+        reader.readAsDataURL(this.files[0]);
+        label.classList.add('has-file');
+        label.textContent = '✓ ' + this.files[0].name;
+      }
+    });
+  }
+
+  // ── Logout ──
+  document.getElementById('btn-logout').addEventListener('click', logout);
+
+  function logout() {
+    localStorage.clear();
+    window.location.href = 'index.html';
+  }
+</script>
+
+</body>
+</html>

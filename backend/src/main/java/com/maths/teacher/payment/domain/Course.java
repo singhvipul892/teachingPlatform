@@ -43,6 +43,16 @@ public class Course {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    public Course(String title, String description, int pricePaise, String currency, String thumbnailUrl, boolean active) {
+        this.title = title;
+        this.description = description;
+        this.pricePaise = pricePaise;
+        this.currency = currency;
+        this.thumbnailUrl = thumbnailUrl;
+        this.active = active;
+        this.createdAt = Instant.now();
+    }
+
     protected Course() {
         // for JPA
     }
@@ -55,4 +65,12 @@ public class Course {
     public String getThumbnailUrl() { return thumbnailUrl; }
     public boolean isActive() { return active; }
     public Instant getCreatedAt() { return createdAt; }
+
+    // Setters for admin updates
+    public void setTitle(String title) { this.title = title; }
+    public void setDescription(String description) { this.description = description; }
+    public void setPricePaise(int pricePaise) { this.pricePaise = pricePaise; }
+    public void setCurrency(String currency) { this.currency = currency; }
+    public void setThumbnailUrl(String thumbnailUrl) { this.thumbnailUrl = thumbnailUrl; }
+    public void setActive(boolean active) { this.active = active; }
 }

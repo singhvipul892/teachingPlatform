@@ -11,4 +11,8 @@ public interface PurchaseRepository extends JpaRepository<Purchase, Long> {
     boolean existsByUserIdAndCourseId(Long userId, Long courseId);
 
     List<Purchase> findByUserId(Long userId);
+
+    List<Purchase> findByCourseId(Long courseId);
+
+    long countByCourseId(Long courseId);
 }

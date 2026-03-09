@@ -1,11 +1,15 @@
 package com.maths.teacher.payment.domain;
 
+import com.maths.teacher.auth.domain.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
 
@@ -24,7 +28,11 @@ public class Purchase {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_purchases_user_id"))
+    private User user;
+
+    @Column(name = "user_id", nullable = false, insertable = false, updatable = false)
     private Long userId;
 
     @Column(name = "course_id", nullable = false)
@@ -60,6 +68,7 @@ public class Purchase {
     }
 
     public Long getId() { return id; }
+    public User getUser() { return user; }
     public Long getUserId() { return userId; }
     public Long getCourseId() { return courseId; }
     public String getRazorpayOrderId() { return razorpayOrderId; }
