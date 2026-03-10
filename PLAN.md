@@ -1,7 +1,7 @@
 # SSC CGL Learning Platform — Master Build Plan
 > This file lives in the project root. Claude Code reads and updates it every session.
-> Last Updated: —
-> Current Focus: Phase 1 — Get Existing App Live
+> Last Updated: 2026-03-10
+> Current Focus: Phase 1 — P1.5 Go Live Checklist (P1.0–P1.4 are all done)
 
 ---
 
@@ -45,7 +45,7 @@ Currently done manually via Telegram — we are replacing that with this app.
 ### What Is Already Working
 | Feature | Status |
 |---|---|
-| Teacher uploads video + PDF via Swagger | `[x] Done` |
+| Teacher uploads video + PDF via Admin Panel | `[x] Done` |
 | Students can download and view PDF in app | `[x] Done` |
 | Basic course listing in app | `[x] Done` |
 
@@ -106,12 +106,45 @@ RAZORPAY_KEY_SECRET=your_secret
 
 | Task | Status | Notes |
 |---|---|---|
-| Simple teacher login (single admin account) | `[ ] To Do` | |
-| List all courses — title, price, published status | `[ ] To Do` | |
-| Add new course — title, description, price, upload video + PDF | `[ ] To Do` | |
-| Edit course details | `[ ] To Do` | |
-| Delete / unpublish course | `[ ] To Do` | |
-| View enrolled students per course | `[ ] To Do` | |
+| Proper RBAC implementation (role column, @PreAuthorize) | `[x] Done` | User entity implements UserDetails, CustomUserDetailsService added |
+| Create course CRUD API endpoints | `[x] Done` | AdminCourseController with full REST API (/api/admin/courses/*) |
+| Course image upload to S3 | `[x] Done` | uploadCourseThumbnail() in S3StorageService with validation |
+| Student enrollment lookup | `[x] Done` | GET /api/admin/courses/{id}/students endpoint |
+| Admin dashboard UI — single HTML file | `[x] Done` | web/admin/index.html (1800+ lines) matching design system |
+| Create/Edit/Delete courses from dashboard | `[x] Done` | Full CRUD via modal forms with client/server validation |
+| View enrolled students per course | `[x] Done` | Students modal shows list with purchase dates |
+| Reports/Analytics dashboard | `[x] Done` | Stats panel (revenue, student count, top courses) |
+
+### P1.4b — Authentication & Role-Based Routing (Web)
+> Secured admin/student pages behind login. Single centralized login page with role-based redirect.
+
+| Task | Status | Notes |
+|---|---|---|
+| JWT token includes `role` claim | `[x] Done` | JwtService.createToken() now takes role param; AuthAppService passes it |
+| Login response includes `role` field | `[x] Done` | AuthResponse.java has role field; login/signup both return it |
+| JwtAuthenticationFilter reads role from JWT | `[x] Done` | Sets ROLE_ADMIN/ROLE_USER authority in Spring Security context — fixes 403 |
+| Admin API endpoints require authentication | `[x] Done` | SecurityConfig: /api/admin/** changed from permitAll to authenticated |
+| Centralized login page for all users | `[x] Done` | web/auth/login.html — single entry point; redirects by role after login |
+| Shared auth library | `[x] Done` | web/lib/auth.js — token management, saveSession, apiFetch |
+| Role-based routing guards | `[x] Done` | web/lib/router.js — checkAuth(), requireRole(), redirectByRole() |
+| Admin panel requires ADMIN role | `[x] Done` | Redirects to login if no token; to student page if wrong role |
+| Student page requires USER/TEACHER role | `[x] Done` | Redirects to login if no token; to admin panel if ADMIN |
+| Student page login/signup forms removed | `[x] Done` | Login is only at /web/auth/login.html — not on student page |
+| JWT expiry extended to 7 days | `[x] Done` | application.yml: expiration-ms = 604800000 |
+
+### P1.4c — Video & PDF Management (Admin Panel)
+> Admin can manage videos and PDFs for any course directly from the admin panel UI.
+
+| Task | Status | Notes |
+|---|---|---|
+| GET /api/admin/courses/{id}/videos endpoint | `[x] Done` | Returns all videos + PDFs for a course (no purchase check) |
+| DELETE /admin/videos/{id} endpoint | `[x] Done` | Deletes video + all associated PDFs from S3 |
+| @PreAuthorize on AdminController + AdminPdfController | `[x] Done` | Both secured with hasRole('ADMIN') |
+| /admin/** secured in SecurityConfig | `[x] Done` | Added alongside existing /api/admin/** rule |
+| Admin panel — Videos button on course rows | `[x] Done` | Green button opens Course Videos modal |
+| Admin panel — Add Video modal | `[x] Done` | YouTube URL, title, duration, display order + optional PDFs |
+| Admin panel — PDF Management modal | `[x] Done` | View/delete existing PDFs + upload new PDF per video |
+| YouTube thumbnails auto-display in video list | `[x] Done` | Loaded from img.youtube.com/vi/{videoId}/mqdefault.jpg |
 
 ---
 
@@ -200,6 +233,10 @@ Teacher inputs topic + difficulty + question count + sample questions
 | — | Phase 1 before exam generator | Teacher's daily pain is Telegram sharing, not exam creation |
 | — | No vector DB until Phase 3+ | Not needed until question bank exceeds 5000+ questions |
 | 2026-03-08 | Payments moved to web page — Google Play billing policy | Android in-app purchases for digital goods require Google Play Billing. Razorpay checkout runs in browser at /student. App calls GET /api/user/courses to know what is unlocked. |
+| 2026-03-09 | Proper RBAC over whitelist for admin access | User entity implements UserDetails, role enum added (USER/ADMIN/TEACHER), @PreAuthorize annotations on all admin endpoints. Scalable and follows Spring Security best practices. |
+| 2026-03-09 | Soft delete for courses | Setting active=false instead of hard delete. Preserves purchase history and data integrity. Can reactivate courses later. |
+| 2026-03-09 | Admin panel as single HTML file | Matches P1.0 architecture decision. Same vanilla JS pattern as student web page. No build step, fast deployment. |
+| 2026-03-10 | Video management moved from Swagger to Admin Panel UI | Teacher shouldn't need Swagger. Full video/PDF CRUD now available in the admin dashboard alongside course management. |
 
 ---
 

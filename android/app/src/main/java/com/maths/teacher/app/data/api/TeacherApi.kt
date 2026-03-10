@@ -5,7 +5,6 @@ import com.maths.teacher.app.data.model.ForgotPasswordRequest
 import com.maths.teacher.app.data.model.MessageResponse
 import com.maths.teacher.app.data.model.PdfDownloadResponse
 import com.maths.teacher.app.data.model.ResetPasswordRequest
-import com.maths.teacher.app.data.model.SectionDto
 import com.maths.teacher.app.data.model.SignupRequest
 import com.maths.teacher.app.data.model.UserCoursesResponse
 import com.maths.teacher.app.data.model.VideoDto
@@ -28,11 +27,8 @@ interface TeacherApi {
     @POST("api/auth/reset-password")
     suspend fun resetPassword(@Body request: ResetPasswordRequest): MessageResponse
 
-    @GET("api/sections")
-    suspend fun getSections(): List<SectionDto>
-
-    @GET("api/sections/{section}/videos")
-    suspend fun getVideosBySection(@Path(value = "section", encoded = true) section: String): List<VideoDto>
+    @GET("api/courses/{courseId}/videos")
+    suspend fun getCourseVideos(@Path("courseId") courseId: Long): List<VideoDto>
 
     @GET("api/videos/{videoId}/pdfs/{pdfId}/download")
     suspend fun downloadPdf(

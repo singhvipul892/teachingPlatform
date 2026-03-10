@@ -2,7 +2,7 @@
 
 > **Living Document**: This file captures the current system architecture, user journeys, and data flows. Update this whenever significant features are added or changed.
 >
-> Last Updated: **2026-03-09**
+> Last Updated: **2026-03-10** — Video & PDF Management (P1.4c) complete
 
 ---
 
@@ -12,8 +12,9 @@
 2. [Data Model & Relationships](#data-model--relationships)
 3. [User Journeys](#user-journeys)
 4. [API & Payment Flow](#api--payment-flow)
-5. [Access Control](#access-control)
-6. [Key Components](#key-components)
+5. [Admin Panel API](#admin-panel-api)
+6. [Access Control](#access-control)
+7. [Key Components](#key-components)
 
 ---
 
@@ -27,7 +28,7 @@ Singh Sir is a **multi-tier learning platform** serving SSC CGL Math students in
 │                   STUDENT TOUCHPOINTS                        │
 ├──────────────────────┬──────────────────────┬────────────────┤
 │  Android App         │  Student Website     │  Admin Panel    │
-│  (Content Learning)  │  (Payment + Auth)    │  (Mgmt - TODO)  │
+│  (Content Learning)  │  (Payment + Auth)    │  (Course Mgmt)  │
 └──────────────────────┴──────────────────────┴────────────────┘
           │                    │                      │
           └────────────────────┼──────────────────────┘
@@ -58,7 +59,7 @@ Singh Sir is a **multi-tier learning platform** serving SSC CGL Math students in
 | **Database** | PostgreSQL (Docker) |
 | **Android App** | Kotlin + Jetpack Compose |
 | **Student Web** | Vanilla HTML/JS + Razorpay SDK |
-| **Admin Panel** | Vanilla HTML/JS (forthcoming) |
+| **Admin Panel** | Vanilla HTML/JS (`web/admin/index.html`) |
 | **Payments** | Razorpay (India-first: UPI, cards, net banking) |
 | **Storage** | AWS S3 / CloudFront CDN |
 
@@ -69,8 +70,10 @@ Singh Sir is a **multi-tier learning platform** serving SSC CGL Math students in
 ### Core Tables
 
 ```
-users (Authentication)
-├── id, firstName, lastName, email, mobileNumber, passwordHash, createdAt
+users (Authentication + RBAC)
+├── id, firstName, lastName, email, mobileNumber, passwordHash, role, createdAt
+├── role: VARCHAR(20) CHECK IN ('USER','ADMIN','TEACHER') DEFAULT 'USER'
+└── Implements Spring Security UserDetails interface
 
 courses (Products)
 ├── id, title, description, pricePaise, currency, thumbnailUrl, active, createdAt
@@ -222,17 +225,22 @@ User (in Android app) taps video in unpurchased section
               ↓
     User opens browser → teacherplatform.duckdns.org/student/index.html
               ↓
-    Student Web Page loads (public, no auth required initially)
+    Student Web Page: checkAuth() runs on page load
+              ↓
+    No token in localStorage → redirect to /web/auth/login.html
+              ↓
+    User logs in with email/mobile + password
+    POST /api/auth/login → returns { token, role, firstName, ... }
+              ↓
+    saveSession() stores token, role, userId, firstName in localStorage
+              ↓
+    role == 'USER' → redirect to /web/student/index.html
+              ↓
+    Student Web Page: requireRole(['USER','TEACHER']) passes
               ↓
     Shows list of courses: "Algebra (₹999)", "Geometry (₹799)", ...
               ↓
     User taps "Buy Now" on Algebra course
-              ↓
-    Redirects to login if not logged in
-              ↓
-    POST /api/auth/login (same backend, same credentials as app)
-              ↓
-    Backend: token returned + login state saved in localStorage
               ↓
     → Course Detail Screen for Algebra
               ↓
@@ -312,6 +320,120 @@ User is on Home Screen, has purchased "Algebra" course
     or native Android video player
 ```
 
+### Journey 5: Teacher Manages Courses (Admin Panel)
+
+```
+Teacher opens browser → teacherplatform.duckdns.org/web/admin/index.html
+              ↓
+    checkAuth() runs: no token in localStorage?
+    → redirect to /web/auth/login.html
+              ↓
+    Teacher logs in with ADMIN credentials
+    POST /api/auth/login → returns { token, role: 'ADMIN', ... }
+              ↓
+    saveSession() stores token + role in localStorage
+    role == 'ADMIN' → redirect to /web/admin/index.html
+              ↓
+    requireRole(['ADMIN']) passes → Dashboard loads
+              ↓
+    GET /api/admin/courses
+    (JWT with ADMIN role — @PreAuthorize("hasRole('ADMIN')") passes)
+              ↓
+    Backend: returns all courses (active + inactive) with studentCount
+              ↓
+    Courses table renders with: Title, Price, Students, Status, Actions
+
+    ─────── Create Course ───────
+    Teacher clicks "+ Create Course"
+              ↓
+    Modal opens: Title, Description, Price, Thumbnail, Active toggle
+              ↓
+    Teacher fills form + optionally uploads JPEG/PNG image
+              ↓
+    POST /api/admin/courses (multipart/form-data)
+    ├─ title, description, pricePaise, currency, active
+    └─ thumbnail (image file)
+              ↓
+    Backend:
+    ├─ @PreAuthorize verifies ADMIN role
+    ├─ Validates image (JPEG/PNG, max 5MB)
+    ├─ Creates Course row in DB
+    ├─ If thumbnail: uploads to S3 → s3://bucket/courses/{id}/thumbnail.jpg
+    ├─ Stores S3 URL in courses.thumbnail_url
+    └─ Returns AdminCourseResponse
+              ↓
+    Table refreshes — new course visible
+    Course immediately visible on student web page (GET /api/courses)
+
+    ─────── Edit Course ───────
+    Teacher clicks "Edit" on a course row
+              ↓
+    Modal opens pre-filled with current values
+              ↓
+    Teacher changes price / description / status / replaces thumbnail
+              ↓
+    PUT /api/admin/courses/{courseId} (multipart/form-data)
+    ├─ Only changed fields need to be sent
+    └─ Optional new thumbnail (old one deleted from S3 if replaced)
+              ↓
+    Course updated, table refreshes
+
+    ─────── Delete (Soft) Course ───────
+    Teacher clicks "Delete" → Confirmation dialog
+              ↓
+    Teacher confirms
+              ↓
+    DELETE /api/admin/courses/{courseId}
+              ↓
+    Backend: sets active=false (NOT deleted from DB)
+    ├─ Purchase records preserved
+    ├─ Students lose access (course no longer returned in /api/courses)
+    └─ Course can be reactivated later by editing
+              ↓
+    Table refreshes — course shows as Inactive (or removed from listing)
+
+    ─────── View Enrolled Students ───────
+    Teacher clicks "View" on a course
+              ↓
+    GET /api/admin/courses/{courseId}/students
+              ↓
+    Backend: queries purchases JOIN users WHERE course_id = ?
+              ↓
+    Modal shows: Student Name, Email, Mobile, Purchase Date
+
+    ─────── Manage Videos ───────
+    Teacher clicks "Videos" (green button) on a course row
+              ↓
+    GET /api/admin/courses/{courseId}/videos
+              ↓
+    Course Videos modal: #, thumbnail, title, duration, PDF count, [PDFs] [Delete]
+              ↓
+    Teacher clicks "+ Add Video"
+    Fill in: YouTube URL, title, duration, display order
+    + optional: Notes PDF / Solved Practice PDF / Annotated Practice PDF
+              ↓
+    POST /admin/videos (multipart/form-data)
+    ├─ Extracts YouTube videoId from URL
+    ├─ Auto-generates thumbnail URL (img.youtube.com/vi/{id}/mqdefault.jpg)
+    ├─ Saves Video row in DB
+    ├─ For each PDF: uploads to S3 → saves VideoPdf row
+    └─ Returns VideoResponse
+              ↓
+    Video appears in list with YouTube thumbnail auto-loaded
+
+    ─────── Manage PDFs ───────
+    Teacher clicks "PDFs" on a video row
+              ↓
+    PDF modal: lists existing PDFs (type, title) with Delete buttons
+              ↓
+    Teacher uploads new PDF: type dropdown + title + file
+    POST /admin/videos/{videoId}/pdfs
+    → PDF uploaded to S3, row saved → list refreshes
+              ↓
+    Teacher deletes a PDF: DELETE /admin/videos/{videoId}/pdfs/{pdfId}
+    → Removed from S3 + DB
+```
+
 ---
 
 ## API & Payment Flow
@@ -336,8 +458,14 @@ POST /api/auth/login
 Response:
 {
   "token": "eyJhbGc...",
-  "firstName": "Rahul"
+  "userId": 5,
+  "email": "rahul@email.com",
+  "firstName": "Rahul",
+  "lastName": "Sharma",
+  "mobileNumber": "9876543210",
+  "role": "USER"          // "USER" | "ADMIN" | "TEACHER"
 }
+// JWT claims include: sub=userId, email, role (HS256, 7-day expiry)
 ```
 
 ### Payment Endpoints
@@ -442,6 +570,108 @@ Response:
   ...
 ]
 ```
+
+---
+
+## Admin Panel API
+
+All endpoints require **ADMIN role** (enforced via `@PreAuthorize("hasRole('ADMIN')")`).
+Non-admin users receive **403 Forbidden**.
+
+| Endpoint | Method | Purpose |
+|---|---|---|
+**Course Management Endpoints:**
+
+| Endpoint | Method | Purpose |
+|---|---|---|
+| `/api/admin/courses` | GET | List all courses (active + inactive) with student counts |
+| `/api/admin/courses` | POST | Create course with optional thumbnail |
+| `/api/admin/courses/{id}` | PUT | Update course fields or thumbnail |
+| `/api/admin/courses/{id}` | DELETE | Soft delete (sets active=false) |
+| `/api/admin/courses/{id}` | GET | Get single course detail |
+| `/api/admin/courses/{id}/students` | GET | List enrolled students |
+| `/api/admin/courses/{id}/videos` | GET | List all videos + PDFs for a course (no purchase check) |
+
+**Video & PDF Management Endpoints:**
+
+| Endpoint | Method | Purpose |
+|---|---|---|
+| `/admin/videos` | POST | Add video (YouTube URL + optional PDFs) |
+| `/admin/videos/{id}` | DELETE | Delete video + all its PDFs from S3 and DB |
+| `/admin/videos/{videoId}/pdfs` | POST | Add a PDF to a video |
+| `/admin/videos/{videoId}/pdfs/{pdfId}` | PUT | Update PDF metadata or replace file |
+| `/admin/videos/{videoId}/pdfs/{pdfId}` | DELETE | Delete a PDF from S3 and DB |
+
+**Create / Update Course (multipart/form-data):**
+```
+POST /api/admin/courses
+Authorization: Bearer <JWT with ADMIN role>
+Content-Type: multipart/form-data
+
+Fields:
+  title         (required) String
+  description   (optional) String
+  pricePaise    (required) Int — price in paise (₹999 = 99900)
+  currency      (optional) String — default "INR"
+  active        (optional) Boolean — default true
+  thumbnail     (optional) File — JPEG or PNG, max 5MB
+
+Response:
+{
+  "id": 2,
+  "title": "Geometry",
+  "description": "...",
+  "pricePaise": 79900,
+  "currency": "INR",
+  "thumbnailUrl": "https://cdn.../courses/2/thumbnail.jpg",
+  "active": true,
+  "studentCount": 0,
+  "createdAt": "2026-03-09T10:30:00Z"
+}
+```
+
+**Get Enrolled Students:**
+```
+GET /api/admin/courses/1/students
+Authorization: Bearer <JWT with ADMIN role>
+
+Response:
+[
+  {
+    "id": 5,
+    "firstName": "Rahul",
+    "lastName": "Sharma",
+    "email": "rahul@email.com",
+    "mobileNumber": "9876543210",
+    "purchasedAt": "2026-03-05T14:22:00Z"
+  },
+  ...
+]
+```
+
+**RBAC Architecture:**
+```java
+// User entity implements Spring Security UserDetails
+public enum UserRole { USER, ADMIN, TEACHER }
+
+// JWT includes role claim — JwtAuthenticationFilter extracts it:
+String role = jwtService.getRoleFromToken(token);
+List<SimpleGrantedAuthority> authorities =
+    List.of(new SimpleGrantedAuthority("ROLE_" + role));
+// → "ROLE_ADMIN" for admin users, "ROLE_USER" for students
+
+// SecurityConfig: admin endpoints require authentication
+.requestMatchers("/admin/**").authenticated()     // video/PDF controllers
+.requestMatchers("/api/admin/**").authenticated() // course controllers
+
+// Any admin controller method is protected with:
+@PreAuthorize("hasRole('ADMIN')")
+
+// Setting a user as admin (run once in DB):
+UPDATE users SET role = 'ADMIN' WHERE id = <teacher_user_id>;
+```
+
+---
 
 ### Signature Verification (Security)
 
@@ -556,21 +786,82 @@ class VideoCatalogService {
 }
 ```
 
-### 4. Student Web Page (Vanilla JS)
-**Role:** Payment gateway for desktop browsers
-- Reads JWT from localStorage (same as app)
+### 4. AdminService (Backend)
+**Role:** Video lesson and PDF management
+```java
+class AdminService {
+    public VideoResponse createVideoLesson(youtubeUrl, title, courseId, duration, order, pdfs...)
+    // Extracts YouTube videoId, auto-generates thumbnail URL, uploads PDFs to S3
+
+    public List<VideoResponse> getVideosForCourse(Long courseId)
+    // Returns all videos + their PDFs — no purchase check (admin view)
+
+    public void deleteVideo(Long videoId)
+    // Deletes all S3 PDFs for the video, then removes video row from DB
+}
+```
+
+### 5. Web Auth Library (`web/lib/auth.js`)
+**Role:** Shared token and session management for all web pages
+- `getToken()` / `setToken()` / `clearToken()` — localStorage + in-memory cache
+- `saveSession(authResponse)` — persists token, userId, email, firstName, role
+- `clearSession()` — wipes localStorage and in-memory cache
+- `getUserRole()` / `getUserInfo()` — reads session from cache or localStorage
+- `apiFetch(path, options)` — auto-adds `Authorization: Bearer <token>` header; on 401 (non-auth endpoints) clears session and redirects to login
+- `loginUser(username, password)` / `signupUser(...)` — wraps API calls and saves session
+
+### 6. Web Router Library (`web/lib/router.js`)
+**Role:** Role-based navigation guards for all web pages
+- `checkAuth()` — if no token or role, redirects to `/web/auth/login.html`
+- `requireRole(allowedRoles)` — if wrong role, calls `redirectByRole()` and returns false
+- `redirectByRole(role)` — ADMIN → `/web/admin/index.html`, USER/TEACHER → `/web/student/index.html`
+- `logout()` — clears session and redirects to login
+
+### 7. Centralized Login Page (`web/auth/login.html`)
+**Role:** Single entry point for all users (admin + student)
+- Login and signup screens (toggle between them)
+- After login: reads `role` from response, redirects by role
+- Admin users always land on `/web/auth/login.html`, never on student page
+
+### 8. Student Web Page (`web/student/index.html`)
+**Role:** Payment gateway for web browsers
+- Gated by `checkAuth()` + `requireRole(['USER','TEACHER'])` — redirects if not logged in or wrong role
 - Shows course list
 - Initiates Razorpay checkout
 - Verifies payment signature (backend does final check)
 - Redirects to app with "Open app to access" message
 
-### 5. Admin Panel (TODO - P1.4)
-**Role:** Teacher dashboard for course management
-- Create/edit courses
-- Upload videos (with course_id)
-- Attach PDFs to videos
-- View student enrollments
-- Toggle course active/inactive
+### 9. Admin Panel (`web/admin/index.html`)
+**Role:** Teacher dashboard for full course lifecycle management
+- Gated by `checkAuth()` + `requireRole(['ADMIN'])` — redirects if not ADMIN
+- Create/edit/delete (soft) courses with thumbnail image upload
+- View all courses with student enrollment counts
+- View enrolled student list per course
+- Videos button on course rows → manage videos (add/delete) and PDFs per video
+- Reports & analytics (revenue, total students, top courses)
+
+### 10. AdminCourseService (Backend)
+**Role:** Business logic for admin course operations
+```java
+class AdminCourseService {
+    public AdminCourseResponse createCourse(CreateCourseRequest, MultipartFile thumbnail)
+    public AdminCourseResponse updateCourse(Long courseId, UpdateCourseRequest, MultipartFile thumbnail)
+    public void deleteCourse(Long courseId)            // soft delete
+    public List<AdminCourseResponse> getAllCourses()
+    public List<StudentResponse> getEnrolledStudents(Long courseId)
+}
+```
+
+### 11. CustomUserDetailsService (Backend)
+**Role:** Bridge between JWT authentication and Spring Security RBAC
+```java
+class CustomUserDetailsService implements UserDetailsService {
+    // Loads User entity (which implements UserDetails) by email or mobile
+    // Spring Security uses this to populate SecurityContext with user's roles
+    public UserDetails loadUserByUsername(String username)
+    public User loadUserById(Long userId)
+}
+```
 
 ---
 
@@ -599,7 +890,7 @@ JWT_SECRET_KEY=your_jwt_secret
 
 ## Feature Checklist (Current State)
 
-### Completed (P1.0 - P1.3)
+### Completed (P1.0 - P1.4) ✅
 - ✅ User signup/login (Android + Web)
 - ✅ Razorpay payment integration
 - ✅ Access validation (course purchase gating)
@@ -607,12 +898,24 @@ JWT_SECRET_KEY=your_jwt_secret
 - ✅ Student web page (courses + checkout)
 - ✅ Policies page (Terms, Privacy, Refund)
 - ✅ Forgot password + reset via SMS OTP
+- ✅ Proper RBAC (role column, UserDetails, @PreAuthorize)
+- ✅ Admin Panel — Course CRUD + image upload + student enrollment
+- ✅ Reports dashboard (revenue, enrollment stats)
+- ✅ Centralized login page with role-based redirect (P1.4b)
+- ✅ JWT tokens include `role` claim; JwtAuthenticationFilter sets authorities
+- ✅ Admin and student pages gated by auth guards (checkAuth + requireRole)
+- ✅ Shared web auth library (auth.js, router.js) for token and session management
+- ✅ Admin panel — Video management UI (add, delete videos per course) (P1.4c)
+- ✅ Admin panel — PDF management UI (add, delete PDFs per video) (P1.4c)
+- ✅ Video/PDF API endpoints secured with `@PreAuthorize("hasRole('ADMIN')")` (P1.4c)
+- ✅ `GET /api/admin/courses/{id}/videos` — admin video listing without purchase check (P1.4c)
 
-### Pending (P1.4 - P1.5)
-- ⏳ Admin panel (teacher dashboard for course mgmt)
-- ⏳ End-to-end testing (unpaid → paid flow)
-- ⏳ Deployment (backend + Android APK)
-- ⏳ Go-live checks
+### Pending (P1.5 — Go Live)
+- ⏳ Backend deployed and stable
+- ⏳ Android APK tested end-to-end on real device
+- ⏳ Teacher has tested admin panel (create a real course)
+- ⏳ One real student has paid and accessed a course
+- ⏳ Razorpay test mode switched to live mode
 
 ### Future (Phase 2+)
 - 🚀 Exam generator (AI-powered question creation)
@@ -655,7 +958,11 @@ Example: When adding exam feature
 | `backend/src/main/.../payment/` | Payment service |
 | `backend/src/main/.../catalog/` | Video catalog service |
 | `android/.../app/ui/home/HomeScreen.kt` | Purchase gating logic |
-| `web/student/index.html` | Student checkout page |
+| `web/auth/login.html` | Centralized login page (all users) |
+| `web/lib/auth.js` | Shared auth library (token, session, apiFetch) |
+| `web/lib/router.js` | Role-based navigation guards |
+| `web/student/index.html` | Student checkout page (auth-gated) |
+| `web/admin/index.html` | Admin panel (auth + ADMIN role required) |
 
 ### Key Configuration
 

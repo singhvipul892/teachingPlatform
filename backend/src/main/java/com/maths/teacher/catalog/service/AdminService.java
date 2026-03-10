@@ -9,9 +9,12 @@ import com.maths.teacher.catalog.web.dto.PdfResponse;
 import com.maths.teacher.catalog.web.dto.VideoResponse;
 import com.maths.teacher.storage.S3StorageService;
 import java.util.ArrayList;
+import java.util.List;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class AdminService {
@@ -138,5 +141,47 @@ public class AdminService {
 
     private String generatePdfTitle(String videoTitle, String pdfType) {
         return videoTitle + " - " + pdfType;
+    }
+
+    public List<VideoResponse> getVideosForCourse(Long courseId) {
+        List<Video> videos = videoRepository.findByCourseIdOrderByDisplayOrderAsc(courseId);
+        if (videos.isEmpty()) {
+            return List.of();
+        }
+        List<Long> videoIds = videos.stream().map(Video::getId).toList();
+        List<VideoPdf> allPdfs = videoPdfRepository.findByVideo_IdInOrderByDisplayOrderAsc(videoIds);
+
+        return videos.stream().map(video -> {
+            List<PdfResponse> pdfResponses = allPdfs.stream()
+                    .filter(pdf -> pdf.getVideo().getId().equals(video.getId()))
+                    .map(pdf -> new PdfResponse(
+                            pdf.getId(),
+                            pdf.getTitle(),
+                            pdf.getPdfType(),
+                            pdf.getFileUrl(),
+                            pdf.getDisplayOrder()
+                    ))
+                    .toList();
+            return new VideoResponse(
+                    video.getId(),
+                    video.getVideoId(),
+                    video.getTitle(),
+                    video.getThumbnailUrl(),
+                    video.getDuration(),
+                    video.getDisplayOrder(),
+                    pdfResponses
+            );
+        }).toList();
+    }
+
+    @Transactional
+    public void deleteVideo(Long videoId) {
+        Video video = videoRepository.findById(videoId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Video not found"));
+        List<VideoPdf> pdfs = videoPdfRepository.findByVideo_IdInOrderByDisplayOrderAsc(List.of(videoId));
+        for (VideoPdf pdf : pdfs) {
+            storageService.deleteByStorageUrl(pdf.getFileUrl());
+        }
+        videoRepository.deleteById(videoId);
     }
 }

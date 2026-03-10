@@ -34,7 +34,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -68,6 +67,7 @@ import com.maths.teacher.app.ui.videodetail.VideoDetailViewModelFactory
 import com.maths.teacher.app.ui.resources.ResourcesViewModel
 import com.maths.teacher.app.ui.resources.ResourcesViewModelFactory
 import com.maths.teacher.app.ui.theme.AppTheme
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
@@ -90,20 +90,7 @@ class MainActivity : ComponentActivity() {
                     coroutineScope {
                         val dest = async(Dispatchers.Default) {
                             sessionManager.loadFromStore()
-                            if (!sessionManager.currentToken.isNullOrBlank()) {
-                                // Load purchased courses so HomeScreen can gate access
-                                try {
-                                    val coursesResponse = withContext(Dispatchers.IO) {
-                                        api.getUserCourses()
-                                    }
-                                    sessionManager.purchasedSectionNames = coursesResponse.purchasedSectionNames
-                                } catch (e: Exception) {
-                                    // Non-fatal — user will see all sections as unpurchased
-                                }
-                                "home"
-                            } else {
-                                "login"
-                            }
+                            if (!sessionManager.currentToken.isNullOrBlank()) "home" else "login"
                         }
                         delay(3500)
                         startDestination = dest.await()
@@ -169,8 +156,7 @@ class MainActivity : ComponentActivity() {
                         HomeScreen(
                             viewModel = homeViewModel,
                             navController = navController,
-                            sessionManager = sessionManager,
-                            api = api
+                            sessionManager = sessionManager
                         )
                     }
                     composable("resources") {

@@ -27,13 +27,6 @@ class SessionManager(private val context: Context) {
     var currentToken: String? = null
         private set
 
-    /**
-     * In-memory list of section names the user has purchased.
-     * Populated after login or on app start via loadPurchasedCourses().
-     */
-    @Volatile
-    var purchasedSectionNames: List<String> = emptyList()
-
     val token: Flow<String?> = context.dataStore.data.map { prefs ->
         prefs[SessionKeys.TOKEN]?.takeIf { it.isNotBlank() }
     }
@@ -72,17 +65,11 @@ class SessionManager(private val context: Context) {
 
     suspend fun clearSession() {
         currentToken = null
-        purchasedSectionNames = emptyList()
         context.dataStore.edit { it.clear() }
     }
 
     /** Load token from DataStore into memory (call at app start before making API calls). */
     suspend fun loadFromStore() {
         currentToken = context.dataStore.data.first()[SessionKeys.TOKEN]?.takeIf { it.isNotBlank() }
-    }
-
-    /** Returns true if the given section name has been purchased. */
-    fun hasPurchased(sectionName: String): Boolean {
-        return purchasedSectionNames.any { it.equals(sectionName, ignoreCase = true) }
     }
 }

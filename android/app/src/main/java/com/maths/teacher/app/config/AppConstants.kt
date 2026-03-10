@@ -2,7 +2,8 @@ package com.maths.teacher.app.config
 
 object AppConstants {
     // For Android Emulator, 10.0.2.2 maps to localhost of the dev machine.
-    const val BASE_URL = "https://teacherplatform.duckdns.org/"
+    //const val BASE_URL = "https://teacherplatform.duckdns.org/"
+    const val BASE_URL = "http://10.0.2.2:8080/"
 
     /** URL where students can purchase courses */
     const val STUDENT_WEB_URL = "https://teacherplatform.duckdns.org/student"

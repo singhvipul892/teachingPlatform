@@ -48,14 +48,15 @@ public class AuthAppService {
         );
         user = userRepository.save(user);
 
-        String token = jwtService.createToken(user.getId(), user.getEmail());
+        String token = jwtService.createToken(user.getId(), user.getEmail(), user.getRole().name());
         return new AuthResponse(
                 token,
                 user.getId(),
                 user.getEmail(),
                 user.getFirstName(),
                 user.getLastName(),
-                user.getMobileNumber()
+                user.getMobileNumber(),
+                user.getRole().name()
         );
     }
 
@@ -80,14 +81,15 @@ public class AuthAppService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, ErrorMessages.PASSWORD_INVALID);
         }
 
-        String token = jwtService.createToken(user.getId(), user.getEmail());
+        String token = jwtService.createToken(user.getId(), user.getEmail(), user.getRole().name());
         return new AuthResponse(
                 token,
                 user.getId(),
                 user.getEmail(),
                 user.getFirstName(),
                 user.getLastName(),
-                user.getMobileNumber()
+                user.getMobileNumber(),
+                user.getRole().name()
         );
     }
 }

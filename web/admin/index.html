@@ -402,6 +402,17 @@
     .student-name { font-weight: 600; }
     .student-contact { color: var(--muted); font-size: 0.85rem; }
 
+    /* ── Video Thumbnail ── */
+    .video-thumb {
+      width: 80px;
+      height: 45px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+    .btn-success { background: var(--success); }
+    .btn-success:hover { background: #15803d; }
+
     /* ── Responsive ── */
     @media (max-width: 768px) {
       .main-container { padding: 1rem 0.75rem; }
@@ -550,9 +561,128 @@
   </div>
 </div>
 
+<!-- ── Course Videos Modal ── -->
+<div id="modal-videos" class="modal-overlay">
+  <div class="modal large">
+    <div class="modal-header">
+      <h2 id="videos-modal-title">Videos</h2>
+      <button class="btn-close" onclick="closeModal('modal-videos')">×</button>
+    </div>
+    <div id="videos-msg"></div>
+    <div style="display:flex; justify-content:flex-end; margin-bottom:1rem;">
+      <button class="btn-primary" onclick="openAddVideoModal()">+ Add Video</button>
+    </div>
+    <div id="videos-content" class="table-container">
+      <div class="loading"><div class="spinner"></div> Loading...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Add Video Modal ── -->
+<div id="modal-add-video" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Add Video</h2>
+      <button class="btn-close" onclick="closeModal('modal-add-video')">×</button>
+    </div>
+    <div id="add-video-msg"></div>
+    <form id="form-add-video" onsubmit="handleAddVideo(event)">
+      <div class="form-group">
+        <label>YouTube URL *</label>
+        <input type="url" id="video-youtube-url" required placeholder="https://www.youtube.com/watch?v=..." />
+      </div>
+      <div class="form-group">
+        <label>Title *</label>
+        <input type="text" id="video-title" required placeholder="e.g., Lecture 1: Introduction" />
+      </div>
+      <div class="form-group">
+        <label>Duration *</label>
+        <input type="text" id="video-duration" required placeholder="e.g., 12:45" />
+      </div>
+      <div class="form-group">
+        <label>Display Order *</label>
+        <input type="number" id="video-order" required min="1" placeholder="e.g., 1" />
+      </div>
+      <div class="form-group">
+        <label>Notes PDF (optional)</label>
+        <div class="file-input-wrapper">
+          <input type="file" id="video-pdf-notes" accept="application/pdf" />
+          <label class="file-input-label" id="label-pdf-notes" for="video-pdf-notes">📄 Upload Notes PDF</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Solved Practice Set PDF (optional)</label>
+        <div class="file-input-wrapper">
+          <input type="file" id="video-pdf-solved" accept="application/pdf" />
+          <label class="file-input-label" id="label-pdf-solved" for="video-pdf-solved">📄 Upload Solved Practice PDF</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Annotated Practice Set PDF (optional)</label>
+        <div class="file-input-wrapper">
+          <input type="file" id="video-pdf-annotated" accept="application/pdf" />
+          <label class="file-input-label" id="label-pdf-annotated" for="video-pdf-annotated">📄 Upload Annotated Practice PDF</label>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" onclick="closeModal('modal-add-video')">Cancel</button>
+        <button type="submit" class="btn-primary" id="btn-add-video">Add Video</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── PDF Management Modal ── -->
+<div id="modal-pdfs" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="pdfs-modal-title">Manage PDFs</h2>
+      <button class="btn-close" onclick="closeModal('modal-pdfs')">×</button>
+    </div>
+    <div id="pdfs-msg"></div>
+    <div id="pdfs-list" style="margin-bottom:1.5rem;">
+      <div class="loading"><div class="spinner"></div> Loading...</div>
+    </div>
+    <hr style="border:none; border-top:1px solid var(--border); margin-bottom:1.5rem;" />
+    <h3 style="font-size:1rem; font-weight:600; margin-bottom:1rem;">Add PDF</h3>
+    <form id="form-add-pdf" onsubmit="handleAddPdf(event)">
+      <div class="form-group">
+        <label>PDF Type *</label>
+        <select id="pdf-type">
+          <option value="Notes">Notes</option>
+          <option value="Solved Practice Set">Solved Practice Set</option>
+          <option value="Annotated Practice Set">Annotated Practice Set</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Title *</label>
+        <input type="text" id="pdf-title" required placeholder="e.g., Lecture 1 Notes" />
+      </div>
+      <div class="form-group">
+        <label>Display Order *</label>
+        <input type="number" id="pdf-order" required min="1" value="1" />
+      </div>
+      <div class="form-group">
+        <label>PDF File *</label>
+        <div class="file-input-wrapper">
+          <input type="file" id="pdf-file" accept="application/pdf" required />
+          <label class="file-input-label" id="label-pdf-file" for="pdf-file">📄 Upload PDF</label>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="submit" class="btn-primary" id="btn-add-pdf">Upload PDF</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Auth & Router Libraries -->
+<script src="/web/lib/auth.js"></script>
+<script src="/web/lib/router.js"></script>
+
 <script>
   // ── Configuration ──
-  const API_BASE = 'https://teacherplatform.duckdns.org';
+  const API_BASE = 'http://localhost:8080';
 
   // ── State ──
   let token = localStorage.getItem('token');
@@ -562,32 +692,40 @@
   let currentEditingCourseId = null;
   let currentDeleteCourseId = null;
   let currentFilePreview = null;
+  let currentVideosModalCourseId = null;
+  let currentCourseVideos = [];
+  let currentPdfsModalVideoId = null;
+  let currentDeleteVideoId = null;
+  let currentDeletePdfId = null;
 
   // ── Init ──
   (async function init() {
-    // Check authentication
-    if (!token) {
-      window.location.href = 'index.html';
-      return;
-    }
+    // 1. Check authentication - redirects to login if not authenticated
+    const auth = checkAuth();
+    if (!auth.authenticated) return; // Already redirected
 
-    // Verify admin role
-    if (userRole !== 'ADMIN') {
-      alert('Access Denied: Admin role required');
-      logout();
-      return;
-    }
+    // 2. Check admin role - redirects to student page if not admin
+    if (!requireRole(['ADMIN'])) return; // Already redirected
 
-    // Setup UI
+    // 3. Get user info
+    const user = getUserInfo();
+    token = user.userId ? getToken() : null;
+    userRole = user.role;
+    userFirstName = user.firstName;
+
+    // 4. Setup UI
     document.getElementById('user-name').textContent = userFirstName;
     document.getElementById('user-menu').style.display = 'flex';
     document.getElementById('settings-user-name').textContent = userFirstName;
 
-    // Load courses
+    // 5. Load courses
     await loadCourses();
 
-    // Setup file upload
+    // 6. Setup file upload
     setupFileUpload();
+
+    // 7. Setup PDF file inputs
+    setupPdfFileInputs();
   })();
 
   // ── Helpers ──
@@ -620,6 +758,11 @@
     if (token) headers['Authorization'] = 'Bearer ' + token;
 
     const res = await fetch(API_BASE + path, { ...options, headers });
+    if (res.status === 401 && !path.includes('/api/auth/')) {
+      clearSession();
+      window.location.href = '/web/auth/login.html';
+      return null;
+    }
     const body = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(body.message || body.error || 'Request failed');
     return body;
@@ -689,6 +832,7 @@
               </td>
               <td>${formatDate(course.createdAt)}</td>
               <td>
+                <button class="btn-small btn-success" onclick="openVideosModal(${course.id}, '${course.title}')">Videos</button>
                 <button class="btn-small" onclick="editCourse(${course.id})">Edit</button>
                 <button class="btn-small" onclick="viewStudents(${course.id}, '${course.title}')">View</button>
                 <button class="btn-small btn-danger" onclick="confirmDelete(${course.id}, '${course.title}')">Delete</button>
@@ -914,12 +1058,294 @@
     });
   }
 
+  // ── Videos Management ──
+
+  async function openVideosModal(courseId, courseTitle) {
+    currentVideosModalCourseId = courseId;
+    document.getElementById('videos-modal-title').textContent = 'Videos — ' + courseTitle;
+    document.getElementById('videos-msg').innerHTML = '';
+    openModal('modal-videos');
+    await loadVideos();
+  }
+
+  async function loadVideos() {
+    const contentEl = document.getElementById('videos-content');
+    contentEl.innerHTML = '<div class="loading"><div class="spinner"></div> Loading...</div>';
+    try {
+      const data = await apiFetch(`/api/admin/courses/${currentVideosModalCourseId}/videos`);
+      currentCourseVideos = data || [];
+      renderVideosList(currentCourseVideos);
+    } catch (e) {
+      showMsg('videos-msg', 'Failed to load videos: ' + e.message, 'error');
+      contentEl.innerHTML = '';
+    }
+  }
+
+  function renderVideosList(videos) {
+    const contentEl = document.getElementById('videos-content');
+    if (!videos.length) {
+      contentEl.innerHTML = '<div class="loading">No videos yet. Click "+ Add Video" to get started.</div>';
+      return;
+    }
+    const html = `
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Thumbnail</th>
+            <th>Title</th>
+            <th>Duration</th>
+            <th>PDFs</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${videos.map(v => `
+            <tr>
+              <td>${v.displayOrder}</td>
+              <td><img class="video-thumb" src="https://img.youtube.com/vi/${v.videoId}/mqdefault.jpg" alt="thumb" onerror="this.style.display='none'" /></td>
+              <td>${v.title}</td>
+              <td>${v.duration}</td>
+              <td>${v.pdfs ? v.pdfs.length : 0}</td>
+              <td>
+                <button class="btn-small" onclick="openPdfsModal(${v.id})">PDFs</button>
+                <button class="btn-small btn-danger" onclick="confirmDeleteVideo(${v.id})">Delete</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+    contentEl.innerHTML = html;
+  }
+
+  function openAddVideoModal() {
+    document.getElementById('form-add-video').reset();
+    ['label-pdf-notes', 'label-pdf-solved', 'label-pdf-annotated'].forEach(id => {
+      const el = document.getElementById(id);
+      el.classList.remove('has-file');
+      el.textContent = id === 'label-pdf-notes' ? '📄 Upload Notes PDF'
+                     : id === 'label-pdf-solved' ? '📄 Upload Solved Practice PDF'
+                     : '📄 Upload Annotated Practice PDF';
+    });
+    clearMsg('add-video-msg');
+    openModal('modal-add-video');
+  }
+
+  async function handleAddVideo(event) {
+    event.preventDefault();
+    clearMsg('add-video-msg');
+
+    const youtubeUrl = document.getElementById('video-youtube-url').value.trim();
+    const title = document.getElementById('video-title').value.trim();
+    const duration = document.getElementById('video-duration').value.trim();
+    const order = document.getElementById('video-order').value;
+
+    if (!youtubeUrl || !title || !duration || !order) {
+      showMsg('add-video-msg', 'Please fill in all required fields', 'error');
+      return;
+    }
+
+    const btn = document.getElementById('btn-add-video');
+    btn.disabled = true;
+    btn.textContent = 'Adding...';
+
+    try {
+      const formData = new FormData();
+      formData.append('youtubeVideoLink', youtubeUrl);
+      formData.append('title', title);
+      formData.append('courseId', currentVideosModalCourseId);
+      formData.append('duration', duration);
+      formData.append('displayOrder', order);
+
+      const notesPdf = document.getElementById('video-pdf-notes').files[0];
+      const solvedPdf = document.getElementById('video-pdf-solved').files[0];
+      const annotatedPdf = document.getElementById('video-pdf-annotated').files[0];
+      if (notesPdf) formData.append('notesPdf', notesPdf);
+      if (solvedPdf) formData.append('solvedPracticeSetPdf', solvedPdf);
+      if (annotatedPdf) formData.append('annotatedPracticeSetPdf', annotatedPdf);
+
+      const response = await fetch(API_BASE + '/admin/videos', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token },
+        body: formData
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || 'Failed to add video');
+      }
+
+      closeModal('modal-add-video');
+      showMsg('videos-msg', 'Video added successfully!', 'success');
+      await loadVideos();
+    } catch (e) {
+      showMsg('add-video-msg', e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Add Video';
+    }
+  }
+
+  function confirmDeleteVideo(videoId) {
+    const video = currentCourseVideos.find(v => v.id === videoId);
+    const title = video ? video.title : 'this video';
+    currentDeleteVideoId = videoId;
+    if (!confirm(`Delete "${title}"? This will permanently remove the video and all its PDFs.`)) return;
+    doDeleteVideo();
+  }
+
+  async function doDeleteVideo() {
+    try {
+      await fetch(API_BASE + `/admin/videos/${currentDeleteVideoId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      showMsg('videos-msg', 'Video deleted!', 'success');
+      await loadVideos();
+    } catch (e) {
+      showMsg('videos-msg', 'Failed to delete video: ' + e.message, 'error');
+    }
+  }
+
+  // ── PDF Management ──
+
+  function openPdfsModal(videoId) {
+    currentPdfsModalVideoId = videoId;
+    const video = currentCourseVideos.find(v => v.id === videoId);
+    const videoTitle = video ? video.title : '';
+    document.getElementById('pdfs-modal-title').textContent = 'PDFs — ' + videoTitle;
+    document.getElementById('form-add-pdf').reset();
+    const fileLabel = document.getElementById('label-pdf-file');
+    fileLabel.textContent = '📄 Upload PDF';
+    fileLabel.classList.remove('has-file');
+    clearMsg('pdfs-msg');
+    openModal('modal-pdfs');
+    loadPdfs();
+  }
+
+  async function loadPdfs() {
+    const listEl = document.getElementById('pdfs-list');
+    listEl.innerHTML = '<div class="loading"><div class="spinner"></div> Loading...</div>';
+    try {
+      const videos = await apiFetch(`/api/admin/courses/${currentVideosModalCourseId}/videos`);
+      currentCourseVideos = videos || [];
+      const video = currentCourseVideos.find(v => v.id === currentPdfsModalVideoId);
+      renderPdfsList((video && video.pdfs) ? video.pdfs : []);
+    } catch (e) {
+      showMsg('pdfs-msg', 'Failed to load PDFs: ' + e.message, 'error');
+      listEl.innerHTML = '';
+    }
+  }
+
+  function renderPdfsList(pdfs) {
+    const listEl = document.getElementById('pdfs-list');
+    if (!pdfs.length) {
+      listEl.innerHTML = '<p style="color:var(--muted); font-size:0.9rem;">No PDFs yet. Add one below.</p>';
+      return;
+    }
+    const html = pdfs.map(pdf => `
+      <div class="student-item">
+        <div>
+          <div class="student-name">${pdf.pdfType}</div>
+          <div class="student-contact">${pdf.title}</div>
+        </div>
+        <button class="btn-small btn-danger" onclick="confirmDeletePdf(${pdf.id})">Delete</button>
+      </div>
+    `).join('');
+    listEl.innerHTML = `<div class="students-list" style="max-height:200px;">${html}</div>`;
+  }
+
+  function confirmDeletePdf(pdfId) {
+    currentDeletePdfId = pdfId;
+    if (!confirm('Delete this PDF? It will be permanently removed from storage.')) return;
+    doDeletePdf();
+  }
+
+  async function doDeletePdf() {
+    try {
+      await fetch(API_BASE + `/admin/videos/${currentPdfsModalVideoId}/pdfs/${currentDeletePdfId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      showMsg('pdfs-msg', 'PDF deleted!', 'success');
+      await loadPdfs();
+    } catch (e) {
+      showMsg('pdfs-msg', 'Failed to delete PDF: ' + e.message, 'error');
+    }
+  }
+
+  async function handleAddPdf(event) {
+    event.preventDefault();
+    clearMsg('pdfs-msg');
+
+    const pdfType = document.getElementById('pdf-type').value;
+    const title = document.getElementById('pdf-title').value.trim();
+    const order = document.getElementById('pdf-order').value;
+    const file = document.getElementById('pdf-file').files[0];
+
+    if (!title || !order || !file) {
+      showMsg('pdfs-msg', 'Please fill in all fields and select a file', 'error');
+      return;
+    }
+
+    const btn = document.getElementById('btn-add-pdf');
+    btn.disabled = true;
+    btn.textContent = 'Uploading...';
+
+    try {
+      const formData = new FormData();
+      formData.append('pdfType', pdfType);
+      formData.append('title', title);
+      formData.append('displayOrder', order);
+      formData.append('file', file);
+
+      const response = await fetch(API_BASE + `/admin/videos/${currentPdfsModalVideoId}/pdfs`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token },
+        body: formData
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || 'Failed to upload PDF');
+      }
+
+      document.getElementById('form-add-pdf').reset();
+      const fileLabel = document.getElementById('label-pdf-file');
+      fileLabel.textContent = '📄 Upload PDF';
+      fileLabel.classList.remove('has-file');
+      showMsg('pdfs-msg', 'PDF added!', 'success');
+      await loadPdfs();
+    } catch (e) {
+      showMsg('pdfs-msg', e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Upload PDF';
+    }
+  }
+
+  function setupPdfFileInputs() {
+    [['video-pdf-notes', 'label-pdf-notes'], ['video-pdf-solved', 'label-pdf-solved'], ['video-pdf-annotated', 'label-pdf-annotated'], ['pdf-file', 'label-pdf-file']].forEach(([inputId, labelId]) => {
+      const input = document.getElementById(inputId);
+      if (input) {
+        input.addEventListener('change', function() {
+          const label = document.getElementById(labelId);
+          if (this.files[0]) {
+            label.classList.add('has-file');
+            label.textContent = '✓ ' + this.files[0].name;
+          }
+        });
+      }
+    });
+  }
+
   // ── Logout ──
   document.getElementById('btn-logout').addEventListener('click', logout);
 
   function logout() {
-    localStorage.clear();
-    window.location.href = 'index.html';
+    clearSession();
+    window.location.href = '/web/auth/login.html';
   }
 </script>
 

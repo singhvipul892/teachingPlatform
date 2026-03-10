@@ -1,10 +1,12 @@
 package com.maths.teacher.catalog.web.admin;
 
 import com.maths.teacher.catalog.service.AdminCourseService;
+import com.maths.teacher.catalog.service.AdminService;
 import com.maths.teacher.catalog.web.dto.AdminCourseResponse;
 import com.maths.teacher.catalog.web.dto.CreateCourseRequest;
 import com.maths.teacher.catalog.web.dto.StudentResponse;
 import com.maths.teacher.catalog.web.dto.UpdateCourseRequest;
+import com.maths.teacher.catalog.web.dto.VideoResponse;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -31,9 +33,11 @@ import org.springframework.web.multipart.MultipartFile;
 public class AdminCourseController {
 
     private final AdminCourseService adminCourseService;
+    private final AdminService adminService;
 
-    public AdminCourseController(AdminCourseService adminCourseService) {
+    public AdminCourseController(AdminCourseService adminCourseService, AdminService adminService) {
         this.adminCourseService = adminCourseService;
+        this.adminService = adminService;
     }
 
     /**
@@ -132,5 +136,10 @@ public class AdminCourseController {
     @GetMapping("/{courseId}/students")
     public List<StudentResponse> getEnrolledStudents(@PathVariable Long courseId) {
         return adminCourseService.getEnrolledStudents(courseId);
+    }
+
+    @GetMapping("/{courseId}/videos")
+    public List<VideoResponse> getVideosForCourse(@PathVariable Long courseId) {
+        return adminService.getVideosForCourse(courseId);
     }
 }

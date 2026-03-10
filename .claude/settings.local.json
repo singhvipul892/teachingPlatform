@@ -6,7 +6,17 @@
       "Bash(\"c:/Users/Vipul Singh/workspace/cursor/android/app/src/main/java/com/maths/teacher/app/MainActivity.kt\":*)",
       "Bash(\"c:/Users/Vipul Singh/workspace/cursor/backend/docker/init/003_purchases.sql\":*)",
       "Bash(git add -A)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git add docker-compose.prod.yml docker-compose.yml nginx/nginx.conf nginx/nginx.no-ssl.conf)",
+      "Bash(./gradlew clean build -x test)",
+      "Bash(git add backend/src/main/java/com/maths/teacher/catalog/web/VideoCatalogController.java DRY_RUN_AUDIT.md)",
+      "Bash(grep -r \"sections\\\\|courses\" android/app/src/main/java/com/maths/teacher/app/ui/home/*.kt)",
+      "Bash(\"C:\\\\Users\\\\Vipul Singh\\\\workspace\\\\cursor\\\\DRY_RUN_AUDIT.md\":*)",
+      "Bash(git add DRY_RUN_AUDIT.md)",
+      "Bash(git add DEPLOYMENT_STATUS.md)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8080/actuator/health)",
+      "Bash(curl -s -w \"\\\\nHTTP_STATUS:%{http_code}\" http://localhost:8080/api/admin/courses)",
+      "Bash(xargs grep -l \"ROLE_ADMIN\\\\|ROLE_STUDENT\\\\|ROLE_USER\")"
     ]
   }
 }

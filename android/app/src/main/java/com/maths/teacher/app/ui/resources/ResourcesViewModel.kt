@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.maths.teacher.app.data.repository.VideoRepository
+import com.maths.teacher.app.domain.model.CourseWithVideos
 import com.maths.teacher.app.domain.model.Video
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,20 +24,22 @@ class ResourcesViewModel(
     private val repository: VideoRepository
 ) : ViewModel() {
 
+    private var allCourses: List<CourseWithVideos> = emptyList()
+
     private val _uiState = MutableStateFlow(ResourcesUiState(isLoadingSections = true))
     val uiState: StateFlow<ResourcesUiState> = _uiState.asStateFlow()
 
     init {
-        loadSections()
+        loadCourses()
     }
 
-    private fun loadSections() {
+    private fun loadCourses() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoadingSections = true, errorMessage = null)
             try {
-                val sections = repository.getSections()
+                allCourses = repository.getPurchasedCourses()
                 _uiState.value = _uiState.value.copy(
-                    sections = sections,
+                    sections = allCourses.map { it.name },
                     isLoadingSections = false
                 )
             } catch (ex: Exception) {
@@ -50,31 +53,14 @@ class ResourcesViewModel(
 
     fun selectSection(section: String) {
         if (_uiState.value.selectedSection == section) return
+        val course = allCourses.firstOrNull { it.name == section }
+        val videosWithPdfs = course?.videos?.filter { it.pdfs.isNotEmpty() } ?: emptyList()
         _uiState.value = _uiState.value.copy(
             selectedSection = section,
-            videos = emptyList(),
+            videos = videosWithPdfs,
+            isLoadingVideos = false,
             errorMessage = null
         )
-        loadVideosForSection(section)
-    }
-
-    private fun loadVideosForSection(section: String) {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoadingVideos = true, errorMessage = null)
-            try {
-                val allVideos = repository.getVideosBySection(section)
-                val videosWithPdfs = allVideos.filter { it.pdfs.isNotEmpty() }
-                _uiState.value = _uiState.value.copy(
-                    videos = videosWithPdfs,
-                    isLoadingVideos = false
-                )
-            } catch (ex: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoadingVideos = false,
-                    errorMessage = "Failed to load videos."
-                )
-            }
-        }
     }
 
     fun clearError() {
