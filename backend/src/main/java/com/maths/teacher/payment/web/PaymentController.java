@@ -72,4 +72,19 @@ public class PaymentController {
         Long userId = Long.parseLong(authService.requireUserId(authHeader));
         return ResponseEntity.ok(new PurchaseStatusResponse(paymentService.hasActivePurchase(userId)));
     }
+
+    /** JWT — checks if a payment was verified without throwing errors. Used to query payment status after failures. */
+    @PostMapping("/api/payment/verify-status")
+    public ResponseEntity<PaymentStatusResponse> verifyStatus(
+            @RequestHeader("Authorization") String authHeader,
+            @Valid @RequestBody VerifyPaymentRequest request
+    ) {
+        Long userId = Long.parseLong(authService.requireUserId(authHeader));
+        PaymentStatusResponse response = paymentService.checkPaymentStatus(
+                userId,
+                request.getRazorpayOrderId(),
+                request.getRazorpayPaymentId()
+        );
+        return ResponseEntity.ok(response);
+    }
 }

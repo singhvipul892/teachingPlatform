@@ -76,4 +76,6 @@ public class Purchase {
     public int getAmountPaise() { return amountPaise; }
     public String getCurrency() { return currency; }
     public Instant getPurchasedAt() { return purchasedAt; }
+
+    public void setUser(User user) { this.user = user; }
 }

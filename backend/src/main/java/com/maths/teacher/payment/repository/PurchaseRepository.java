@@ -2,6 +2,7 @@ package com.maths.teacher.payment.repository;
 
 import com.maths.teacher.payment.domain.Purchase;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PurchaseRepository extends JpaRepository<Purchase, Long> {
@@ -15,4 +16,6 @@ public interface PurchaseRepository extends JpaRepository<Purchase, Long> {
     List<Purchase> findByCourseId(Long courseId);
 
     long countByCourseId(Long courseId);
+
+    Optional<Purchase> findByRazorpayPaymentId(String razorpayPaymentId);
 }
