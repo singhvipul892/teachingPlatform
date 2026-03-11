@@ -18,7 +18,8 @@
       "Bash(curl -s -w \"\\\\nHTTP_STATUS:%{http_code}\" http://localhost:8080/api/admin/courses)",
       "Bash(xargs grep -l \"ROLE_ADMIN\\\\|ROLE_STUDENT\\\\|ROLE_USER\")",
       "Bash(xargs ls -la)",
-      "Bash(xargs grep -l \"paymentService\\\\|purchaseRepository\")"
+      "Bash(xargs grep -l \"paymentService\\\\|purchaseRepository\")",
+      "Bash(openssl rand -hex 64)"
     ]
   }
 }

@@ -17,7 +17,6 @@ services:
     restart: unless-stopped
 
   api:
-    image: teachingplatform-api
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -52,8 +51,6 @@ services:
       - letsencrypt_certs:/etc/letsencrypt:ro
       - certbot_webroot:/var/www/certbot:ro
       - ./web:/usr/share/nginx/html/web:ro
-    depends_on:
-      - api
     restart: unless-stopped
 
   certbot:
