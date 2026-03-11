@@ -33,6 +33,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID}
       RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       SMS_MOCK: ${SMS_MOCK:-false}
       AWS_EC2_METADATA_SERVICE_ENDPOINT: http://host.docker.internal:1338
     depends_on:
