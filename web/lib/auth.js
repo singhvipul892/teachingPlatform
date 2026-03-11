@@ -94,7 +94,7 @@ function getUserRole() {
 
 async function apiFetch(path, options = {}) {
     const token = getToken();
-    const base = (typeof API_BASE !== 'undefined') ? API_BASE : 'http://localhost:8080';
+    const base = (typeof API_BASE !== 'undefined') ? API_BASE : '';
     const url = path.startsWith('http') ? path : base + path;
     const timeout = options.timeout || 15000; // Default 15 second timeout
 
