@@ -42,7 +42,9 @@ public class SecurityConfig {
                 "http://localhost:8080",
                 "http://localhost",
                 "http://127.0.0.1:8081",
-                "http://127.0.0.1:8080"
+                "http://127.0.0.1:8080",
+                "https://teacherplatform.duckdns.org",
+                "http://teacherplatform.duckdns.org"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
