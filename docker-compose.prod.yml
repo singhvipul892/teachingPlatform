@@ -52,6 +52,7 @@ services:
       - certbot_webroot:/var/www/certbot:ro
       - ./web/student:/usr/share/nginx/html/student:ro
       - ./web/admin:/usr/share/nginx/html/admin:ro
+      - ./web/lib:/usr/share/nginx/html/web/lib:ro
     depends_on:
       - api
     restart: unless-stopped
