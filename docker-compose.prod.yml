@@ -35,6 +35,8 @@ services:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       SMS_MOCK: ${SMS_MOCK:-false}
       AWS_EC2_METADATA_SERVICE_ENDPOINT: http://host.docker.internal:1338
+    ports:
+      - "8080:8080"
     depends_on:
       db:
         condition: service_healthy
