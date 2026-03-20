@@ -11,13 +11,13 @@ android {
         applicationId = "com.maths.teacher.app"
         minSdk = 24
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.0.4"
+        versionCode = 6
+        versionName = "1.0.6"
     }
 
     buildTypes {
         debug {
-            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/\"")
+            buildConfigField("String", "BASE_URL", "\"http://13.205.19.207:8080/\"")
         }
         release {
             isMinifyEnabled = false
