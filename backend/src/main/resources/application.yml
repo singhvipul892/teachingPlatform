@@ -2,6 +2,10 @@
 # Production uses this file directly (all values come from environment variables).
 # Local/dev profiles override these via application-local.yml / application-dev.yml.
 spring:
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 150MB
   datasource:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
