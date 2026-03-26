@@ -13,9 +13,11 @@ import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -93,6 +95,22 @@ public class AdminCourseController {
                 title, description, pricePaise, currency, active
         );
         return adminCourseService.updateCourse(courseId, request, thumbnail);
+    }
+
+    /**
+     * Partially updates a course's non-file fields (title, description, pricePaise, currency, active).
+     * Use PUT when updating the thumbnail image.
+     *
+     * @param courseId course ID
+     * @param request  fields to update (all optional)
+     * @return updated course
+     */
+    @PatchMapping(value = "/{courseId}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public AdminCourseResponse patchCourse(
+            @PathVariable Long courseId,
+            @RequestBody UpdateCourseRequest request
+    ) {
+        return adminCourseService.updateCourse(courseId, request, null);
     }
 
     /**
