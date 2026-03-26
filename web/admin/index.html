@@ -412,6 +412,8 @@
     }
     .btn-success { background: var(--success); }
     .btn-success:hover { background: #15803d; }
+    .btn-warning { background: #f59e0b; color: white; }
+    .btn-warning:hover { background: #d97706; }
 
     /* ── Responsive ── */
     @media (max-width: 768px) {
@@ -632,6 +634,35 @@
   </div>
 </div>
 
+<!-- ── Edit Video Modal ── -->
+<div id="modal-edit-video" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Edit Video</h2>
+      <button class="btn-close" onclick="closeModal('modal-edit-video')">×</button>
+    </div>
+    <div id="edit-video-msg"></div>
+    <form id="form-edit-video" onsubmit="handleEditVideo(event)">
+      <div class="form-group">
+        <label>Title *</label>
+        <input type="text" id="edit-video-title" required placeholder="e.g., Lecture 1: Introduction" />
+      </div>
+      <div class="form-group">
+        <label>Duration *</label>
+        <input type="text" id="edit-video-duration" required placeholder="e.g., 12:45" />
+      </div>
+      <div class="form-group">
+        <label>Display Order *</label>
+        <input type="number" id="edit-video-order" required min="1" placeholder="e.g., 1" />
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" onclick="closeModal('modal-edit-video')">Cancel</button>
+        <button type="submit" class="btn-primary" id="btn-save-video">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- ── PDF Management Modal ── -->
 <div id="modal-pdfs" class="modal-overlay">
   <div class="modal">
@@ -835,7 +866,7 @@
                 <button class="btn-small btn-success" onclick="openVideosModal(${course.id}, '${course.title}')">Videos</button>
                 <button class="btn-small" onclick="editCourse(${course.id})">Edit</button>
                 <button class="btn-small" onclick="viewStudents(${course.id}, '${course.title}')">View</button>
-                <button class="btn-small btn-danger" onclick="confirmDelete(${course.id}, '${course.title}')">Delete</button>
+                <button class="btn-small ${course.active ? 'btn-warning' : 'btn-success'}" onclick="toggleCourseStatus(${course.id}, ${course.active})">${course.active ? 'Deactivate' : 'Activate'}</button>
               </td>
             </tr>
           `).join('')}
@@ -984,6 +1015,23 @@
     }
   }
 
+  // ── Toggle Course Status ──
+  async function toggleCourseStatus(courseId, currentlyActive) {
+    const action = currentlyActive ? 'deactivate' : 'activate';
+    if (!confirm(`Are you sure you want to ${action} this course?`)) return;
+
+    try {
+      await apiFetch(`/api/admin/courses/${courseId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ active: !currentlyActive })
+      });
+      await loadCourses();
+      showMsg('courses-msg', `Course ${action}d successfully!`, 'success');
+    } catch (e) {
+      showMsg('courses-msg', 'Failed to update status: ' + e.message, 'error');
+    }
+  }
+
   // ── Delete Course ──
   function confirmDelete(courseId, title) {
     currentDeleteCourseId = courseId;
@@ -1108,6 +1156,7 @@
               <td>${v.duration}</td>
               <td>${v.pdfs ? v.pdfs.length : 0}</td>
               <td>
+                <button class="btn-small btn-primary" onclick="openEditVideoModal(${v.id})">Edit</button>
                 <button class="btn-small" onclick="openPdfsModal(${v.id})">PDFs</button>
                 <button class="btn-small btn-danger" onclick="confirmDeleteVideo(${v.id})">Delete</button>
               </td>
@@ -1117,6 +1166,48 @@
       </table>
     `;
     contentEl.innerHTML = html;
+  }
+
+  let currentEditVideoId = null;
+
+  function openEditVideoModal(videoId) {
+    const video = currentCourseVideos.find(v => v.id === videoId);
+    if (!video) return;
+    currentEditVideoId = videoId;
+    document.getElementById('edit-video-title').value = video.title;
+    document.getElementById('edit-video-duration').value = video.duration;
+    document.getElementById('edit-video-order').value = video.displayOrder;
+    clearMsg('edit-video-msg');
+    openModal('modal-edit-video');
+  }
+
+  async function handleEditVideo(event) {
+    event.preventDefault();
+    const btn = document.getElementById('btn-save-video');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+    clearMsg('edit-video-msg');
+
+    try {
+      const updated = await apiFetch(`/admin/videos/${currentEditVideoId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          title: document.getElementById('edit-video-title').value.trim(),
+          duration: document.getElementById('edit-video-duration').value.trim(),
+          displayOrder: parseInt(document.getElementById('edit-video-order').value, 10)
+        })
+      });
+      const idx = currentCourseVideos.findIndex(v => v.id === currentEditVideoId);
+      if (idx !== -1) currentCourseVideos[idx] = { ...currentCourseVideos[idx], ...updated };
+      renderVideosList(currentCourseVideos);
+      closeModal('modal-edit-video');
+      showMsg('videos-msg', 'Video updated successfully!', 'success');
+    } catch (e) {
+      showMsg('edit-video-msg', 'Failed to update: ' + e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save Changes';
+    }
   }
 
   function openAddVideoModal() {

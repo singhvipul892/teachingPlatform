@@ -184,4 +184,38 @@ public class AdminService {
         }
         videoRepository.deleteById(videoId);
     }
+
+    @Transactional
+    public VideoResponse updateVideo(Long videoId, String title, String duration, Integer displayOrder) {
+        Video video = videoRepository.findById(videoId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Video not found"));
+
+        if (title != null && !title.isBlank()) video.setTitle(title);
+        if (duration != null && !duration.isBlank()) video.setDuration(duration);
+        if (displayOrder != null) {
+            if (displayOrder < 1) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "displayOrder must be >= 1");
+            video.setDisplayOrder(displayOrder);
+        }
+        Video saved = videoRepository.save(video);
+
+        List<PdfResponse> pdfResponses = saved.getPdfs().stream()
+                .map(pdf -> new PdfResponse(
+                        pdf.getId(),
+                        pdf.getTitle(),
+                        pdf.getPdfType(),
+                        pdf.getFileUrl(),
+                        pdf.getDisplayOrder()
+                ))
+                .toList();
+
+        return new VideoResponse(
+                saved.getId(),
+                saved.getVideoId(),
+                saved.getTitle(),
+                saved.getThumbnailUrl(),
+                saved.getDuration(),
+                saved.getDisplayOrder(),
+                pdfResponses
+        );
+    }
 }

@@ -77,4 +77,8 @@ public class Video {
     public String getDuration() { return duration; }
     public Integer getDisplayOrder() { return displayOrder; }
     public List<VideoPdf> getPdfs() { return pdfs; }
+
+    public void setTitle(String title) { this.title = title; }
+    public void setDuration(String duration) { this.duration = duration; }
+    public void setDisplayOrder(Integer displayOrder) { this.displayOrder = displayOrder; }
 }

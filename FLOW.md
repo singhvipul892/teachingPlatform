@@ -2,7 +2,7 @@
 
 > **Living Document**: This file captures the current system architecture, user journeys, and data flows. Update this whenever significant features are added or changed.
 >
-> Last Updated: **2026-03-10** — Video & PDF Management (P1.4c) complete
+> Last Updated: **2026-03-26** — Video edit API + admin UI (title, duration, display order)
 
 ---
 
@@ -378,19 +378,21 @@ Teacher opens browser → teacherplatform.duckdns.org/web/admin/index.html
               ↓
     Course updated, table refreshes
 
-    ─────── Delete (Soft) Course ───────
-    Teacher clicks "Delete" → Confirmation dialog
+    ─────── Toggle Active/Inactive ───────
+    Teacher clicks Active/Inactive toggle button on course row
               ↓
-    Teacher confirms
+    If Active → toggle to Inactive:
+    DELETE /api/admin/courses/{courseId} (sets active=false)
               ↓
-    DELETE /api/admin/courses/{courseId}
+    If Inactive → toggle to Active:
+    PUT /api/admin/courses/{courseId} with {active=true}
               ↓
-    Backend: sets active=false (NOT deleted from DB)
+    Backend: updates active status (NOT deleted from DB)
     ├─ Purchase records preserved
-    ├─ Students lose access (course no longer returned in /api/courses)
-    └─ Course can be reactivated later by editing
+    ├─ When inactive: students lose access (course no longer returned in /api/courses)
+    └─ Can be toggled back to active anytime
               ↓
-    Table refreshes — course shows as Inactive (or removed from listing)
+    Table refreshes — course shows new status
 
     ─────── View Enrolled Students ───────
     Teacher clicks "View" on a course
@@ -406,8 +408,20 @@ Teacher opens browser → teacherplatform.duckdns.org/web/admin/index.html
               ↓
     GET /api/admin/courses/{courseId}/videos
               ↓
-    Course Videos modal: #, thumbnail, title, duration, PDF count, [PDFs] [Delete]
+    Course Videos modal: #, thumbnail, title, duration, PDF count, [Edit] [PDFs] [Delete]
               ↓
+    Teacher clicks "Edit" on a video row
+    Modal opens pre-filled with title, duration, display order
+              ↓
+    Teacher edits values → clicks "Save Changes"
+              ↓
+    PATCH /admin/videos/{videoId} (application/json)
+    { "title": "...", "duration": "...", "displayOrder": N }
+    All fields optional — only provided fields are updated
+              ↓
+    Video row updates in table immediately (no full reload)
+
+    ─────── Add Video ───────
     Teacher clicks "+ Add Video"
     Fill in: YouTube URL, title, duration, display order
     + optional: Notes PDF / Solved Practice PDF / Annotated Practice PDF
@@ -597,6 +611,7 @@ Non-admin users receive **403 Forbidden**.
 | Endpoint | Method | Purpose |
 |---|---|---|
 | `/admin/videos` | POST | Add video (YouTube URL + optional PDFs) |
+| `/admin/videos/{id}` | PATCH | Update video title, duration, and/or displayOrder |
 | `/admin/videos/{id}` | DELETE | Delete video + all its PDFs from S3 and DB |
 | `/admin/videos/{videoId}/pdfs` | POST | Add a PDF to a video |
 | `/admin/videos/{videoId}/pdfs/{pdfId}` | PUT | Update PDF metadata or replace file |
@@ -798,6 +813,9 @@ class AdminService {
 
     public void deleteVideo(Long videoId)
     // Deletes all S3 PDFs for the video, then removes video row from DB
+
+    public VideoResponse updateVideo(Long videoId, String title, String duration, Integer displayOrder)
+    // Partial update — only non-null fields are applied; validates displayOrder >= 1
 }
 ```
 
@@ -817,6 +835,13 @@ class AdminService {
 - `redirectByRole(role)` — ADMIN → `/web/admin/index.html`, USER/TEACHER → `/web/student/index.html`
 - `logout()` — clears session and redirects to login
 
+### 6.5 Web Configuration
+**API_BASE URL Configuration:**
+- **Local Development:** Set `const API_BASE = 'http://13.205.19.207:8080';` in `web/auth/login.html`, `web/admin/index.html`, `web/student/index.html` to point to hosted API
+- **Production:** Set `const API_BASE = '';` (or omit) in all web files to use relative URLs (app will call same domain)
+- Files `web/auth/login.html`, `web/admin/index.html`, `web/student/index.html` currently have comments marking the local dev setting and what to revert to for production
+- Browser may cache old versions — do a hard refresh (`Ctrl+Shift+R` / `Cmd+Shift+R`) after changes
+
 ### 7. Centralized Login Page (`web/auth/login.html`)
 **Role:** Single entry point for all users (admin + student)
 - Login and signup screens (toggle between them)
@@ -834,10 +859,12 @@ class AdminService {
 ### 9. Admin Panel (`web/admin/index.html`)
 **Role:** Teacher dashboard for full course lifecycle management
 - Gated by `checkAuth()` + `requireRole(['ADMIN'])` — redirects if not ADMIN
-- Create/edit/delete (soft) courses with thumbnail image upload
-- View all courses with student enrollment counts
+- Create/edit courses with thumbnail image upload
+- Toggle course Active/Inactive status (soft delete/reactivate via toggle button)
+- View all courses (active + inactive) with student enrollment counts
 - View enrolled student list per course
-- Videos button on course rows → manage videos (add/delete) and PDFs per video
+- Videos button on course rows → manage videos (add/edit/delete) and PDFs per video
+- Edit button per video → modal to update title, duration, display order inline
 - Reports & analytics (revenue, total students, top courses)
 
 ### 10. AdminCourseService (Backend)
@@ -909,6 +936,11 @@ JWT_SECRET_KEY=your_jwt_secret
 - ✅ Admin panel — PDF management UI (add, delete PDFs per video) (P1.4c)
 - ✅ Video/PDF API endpoints secured with `@PreAuthorize("hasRole('ADMIN')")` (P1.4c)
 - ✅ `GET /api/admin/courses/{id}/videos` — admin video listing without purchase check (P1.4c)
+- ✅ Nginx static files fix — `/web/` served via alias, root redirects to login (P1.4d)
+- ✅ Admin panel — Edit video UI (title, duration, display order) via Edit button + modal (2026-03-26)
+- ✅ `PATCH /admin/videos/{id}` — partial update endpoint; `Video.java` setters added (2026-03-26)
+- ✅ SSL nginx config ready — certbot challenge path, HTTPS redirect, TLS 1.2/1.3 (P1.4d)
+- ✅ `nginx.no-ssl.conf` bootstrap config for first-time SSL cert issuance (P1.4d)
 
 ### Pending (P1.5 — Go Live)
 - ⏳ Backend deployed and stable
