@@ -444,6 +444,7 @@
   <!-- Tab Navigation -->
   <div class="tabs" role="tablist">
     <button class="tab-btn active" onclick="showTab('courses')" role="tab">📚 Courses</button>
+    <button class="tab-btn" onclick="showTab('students')" role="tab">👥 Students</button>
     <button class="tab-btn" onclick="showTab('reports')" role="tab">📊 Reports</button>
     <button class="tab-btn" onclick="showTab('settings')" role="tab">⚙️ Settings</button>
   </div>
@@ -457,6 +458,63 @@
     </div>
     <div id="courses-list" class="table-container">
       <div class="loading"><div class="spinner"></div> Loading courses...</div>
+    </div>
+  </div>
+
+  <!-- Students Panel -->
+  <div id="panel-students" class="panel">
+    <div id="students-panel-msg"></div>
+
+    <!-- Register New Student -->
+    <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:1.5rem; margin-bottom:1.5rem;">
+      <h2 style="font-size:1.1rem; font-weight:700; margin-bottom:1.25rem;">Register New Student</h2>
+      <form id="form-register-student" onsubmit="handleRegisterStudent(event)">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+          <div class="form-group">
+            <label>First Name *</label>
+            <input type="text" id="reg-first-name" required placeholder="First name" />
+          </div>
+          <div class="form-group">
+            <label>Last Name *</label>
+            <input type="text" id="reg-last-name" required placeholder="Last name" />
+          </div>
+          <div class="form-group">
+            <label>Mobile Number *</label>
+            <input type="tel" id="reg-mobile" required placeholder="e.g., 9876543210" />
+          </div>
+          <div class="form-group">
+            <label>Email *</label>
+            <input type="email" id="reg-email" required placeholder="student@example.com" />
+          </div>
+          <div class="form-group">
+            <label>Password *</label>
+            <input type="password" id="reg-password" required placeholder="Set a password" />
+          </div>
+          <div class="form-group">
+            <label>Razorpay Transaction ID <span style="font-weight:400;">(optional)</span></label>
+            <input type="text" id="reg-txn-id" placeholder="e.g., pay_xxxxxxxx" />
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:0.5rem;">
+          <label>Tag to Course <span style="font-weight:400;">(optional — you can do this later)</span></label>
+          <select id="reg-course-id">
+            <option value="">— Select a course (optional) —</option>
+          </select>
+        </div>
+        <div style="display:flex; justify-content:flex-end; margin-top:0.5rem;">
+          <button type="submit" class="btn-primary" id="btn-register-student">Register Student</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Lookup & Tag Existing Student -->
+    <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:1.5rem;">
+      <h2 style="font-size:1.1rem; font-weight:700; margin-bottom:1.25rem;">Tag Existing Student to Course</h2>
+      <div style="display:flex; gap:0.75rem; margin-bottom:1rem;">
+        <input type="text" id="lookup-query" placeholder="Mobile number or email" style="flex:1; padding:0.65rem 0.85rem; border:1px solid var(--border); border-radius:8px; font-size:0.95rem; outline:none;" />
+        <button class="btn-primary" onclick="lookupUser()" id="btn-lookup">Search</button>
+      </div>
+      <div id="lookup-result"></div>
     </div>
   </div>
 
@@ -553,10 +611,27 @@
 <div id="modal-students" class="modal-overlay">
   <div class="modal large">
     <div class="modal-header">
-      <h2>Students Enrolled</h2>
+      <h2 id="students-modal-title">Students Enrolled</h2>
       <button class="btn-close" onclick="closeModal('modal-students')">×</button>
     </div>
     <div id="students-msg"></div>
+
+    <!-- Tag Student Section -->
+    <div id="tag-student-section" style="background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:1rem; margin-bottom:1rem;">
+      <div style="display:flex; gap:0.75rem; align-items:flex-end; flex-wrap:wrap;">
+        <div style="flex:1; min-width:180px;">
+          <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--muted); margin-bottom:0.3rem;">Mobile or Email</label>
+          <input type="text" id="tag-search-query" placeholder="Search student..." style="width:100%; padding:0.55rem 0.75rem; border:1px solid var(--border); border-radius:8px; font-size:0.9rem; outline:none;" />
+        </div>
+        <div style="flex:1; min-width:180px;">
+          <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--muted); margin-bottom:0.3rem;">Transaction ID <span style="font-weight:400;">(optional)</span></label>
+          <input type="text" id="tag-txn-id" placeholder="e.g., pay_xxxxxxxx" style="width:100%; padding:0.55rem 0.75rem; border:1px solid var(--border); border-radius:8px; font-size:0.9rem; outline:none;" />
+        </div>
+        <button class="btn-primary" onclick="searchAndTagStudent()" id="btn-tag-search" style="white-space:nowrap; padding:0.55rem 1rem;">Search &amp; Tag</button>
+      </div>
+      <div id="tag-search-result" style="margin-top:0.75rem;"></div>
+    </div>
+
     <div id="students-content" class="students-list">
       <div class="loading"><div class="spinner"></div> Loading...</div>
     </div>
@@ -728,6 +803,8 @@
   let currentPdfsModalVideoId = null;
   let currentDeleteVideoId = null;
   let currentDeletePdfId = null;
+  let currentStudentsModalCourseId = null;
+  let foundUserForTagging = null;
 
   // ── Init ──
   (async function init() {
@@ -782,6 +859,7 @@
 
     // Load specific panel data if needed
     if (tabName === 'reports') loadReports();
+    if (tabName === 'students') populateCoursesDropdown();
   }
 
   async function apiFetch(path, options = {}) {
@@ -1057,8 +1135,19 @@
 
   // ── View Students ──
   async function viewStudents(courseId, courseTitle) {
+    currentStudentsModalCourseId = courseId;
+    document.getElementById('students-modal-title').textContent = `Students — ${courseTitle}`;
+    document.getElementById('tag-search-query').value = '';
+    document.getElementById('tag-txn-id').value = '';
+    document.getElementById('tag-search-result').innerHTML = '';
+    foundUserForTagging = null;
     openModal('modal-students');
+    await loadStudents(courseId);
+  }
+
+  async function loadStudents(courseId) {
     const contentEl = document.getElementById('students-content');
+    contentEl.innerHTML = '<div class="loading"><div class="spinner"></div> Loading...</div>';
     clearMsg('students-msg');
 
     try {
@@ -1075,8 +1164,9 @@
             <div class="student-contact">${student.email}</div>
             <div class="student-contact">${student.mobileNumber}</div>
           </div>
-          <div style="text-align: right; font-size: 0.85rem; color: var(--muted);">
-            ${formatDate(student.purchasedAt)}
+          <div style="display:flex; align-items:center; gap:1rem;">
+            <div style="text-align: right; font-size: 0.85rem; color: var(--muted);">${formatDate(student.purchasedAt)}</div>
+            <button class="btn-small btn-danger" onclick="untagStudent(${courseId}, ${student.id}, '${student.firstName} ${student.lastName}')">Untag</button>
           </div>
         </div>
       `).join('');
@@ -1084,6 +1174,195 @@
       contentEl.innerHTML = html;
     } catch (e) {
       showMsg('students-msg', 'Failed to load students: ' + e.message, 'error');
+      contentEl.innerHTML = '';
+    }
+  }
+
+  // ── Tag Student (in course modal) ──
+  async function searchAndTagStudent() {
+    const query = document.getElementById('tag-search-query').value.trim();
+    const txnId = document.getElementById('tag-txn-id').value.trim();
+    const resultEl = document.getElementById('tag-search-result');
+    const btn = document.getElementById('btn-tag-search');
+
+    if (!query) { resultEl.innerHTML = '<div class="msg error">Enter a mobile number or email to search</div>'; return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Searching...';
+    resultEl.innerHTML = '';
+    foundUserForTagging = null;
+
+    try {
+      const user = await apiFetch(`/api/admin/users?q=${encodeURIComponent(query)}`);
+      foundUserForTagging = user;
+      resultEl.innerHTML = `
+        <div style="background:white; border:1px solid var(--border); border-radius:8px; padding:0.85rem; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:600;">${user.firstName} ${user.lastName}</div>
+            <div style="font-size:0.82rem; color:var(--muted);">${user.email} · ${user.mobileNumber}</div>
+          </div>
+          <button class="btn-primary btn-small" onclick="confirmTagStudent(${user.id}, '${user.firstName} ${user.lastName}')">Tag to Course</button>
+        </div>`;
+    } catch (e) {
+      resultEl.innerHTML = `<div class="msg error">${e.message}</div>`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Search & Tag';
+    }
+  }
+
+  async function confirmTagStudent(userId, userName) {
+    const txnId = document.getElementById('tag-txn-id').value.trim();
+    const resultEl = document.getElementById('tag-search-result');
+    clearMsg('students-msg');
+
+    try {
+      await apiFetch(`/api/admin/courses/${currentStudentsModalCourseId}/students`, {
+        method: 'POST',
+        body: JSON.stringify({ userId, razorpayTransactionId: txnId || null })
+      });
+      resultEl.innerHTML = '';
+      document.getElementById('tag-search-query').value = '';
+      document.getElementById('tag-txn-id').value = '';
+      foundUserForTagging = null;
+      showMsg('students-msg', `${userName} tagged to course successfully!`, 'success');
+      await loadStudents(currentStudentsModalCourseId);
+      await loadCourses(); // refresh student count
+    } catch (e) {
+      resultEl.innerHTML = `<div class="msg error">${e.message}</div>`;
+    }
+  }
+
+  async function untagStudent(courseId, userId, userName) {
+    if (!confirm(`Remove ${userName} from this course?`)) return;
+    clearMsg('students-msg');
+    try {
+      await apiFetch(`/api/admin/courses/${courseId}/students/${userId}`, { method: 'DELETE' });
+      showMsg('students-msg', `${userName} removed from course.`, 'success');
+      await loadStudents(courseId);
+      await loadCourses(); // refresh student count
+    } catch (e) {
+      showMsg('students-msg', 'Failed to remove student: ' + e.message, 'error');
+    }
+  }
+
+  // ── Register Student (Students tab) ──
+  function populateCoursesDropdown() {
+    const sel = document.getElementById('reg-course-id');
+    const current = sel.value;
+    sel.innerHTML = '<option value="">— Select a course (optional) —</option>';
+    allCourses.filter(c => c.active).forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.title;
+      sel.appendChild(opt);
+    });
+    if (current) sel.value = current;
+  }
+
+  async function handleRegisterStudent(event) {
+    event.preventDefault();
+    clearMsg('students-panel-msg');
+    const btn = document.getElementById('btn-register-student');
+    btn.disabled = true;
+    btn.textContent = 'Registering...';
+
+    try {
+      const user = await apiFetch('/api/admin/users', {
+        method: 'POST',
+        body: JSON.stringify({
+          firstName: document.getElementById('reg-first-name').value.trim(),
+          lastName: document.getElementById('reg-last-name').value.trim(),
+          mobileNumber: document.getElementById('reg-mobile').value.trim(),
+          email: document.getElementById('reg-email').value.trim().toLowerCase(),
+          password: document.getElementById('reg-password').value
+        })
+      });
+
+      const courseId = document.getElementById('reg-course-id').value;
+      const txnId = document.getElementById('reg-txn-id').value.trim();
+
+      if (courseId) {
+        await apiFetch(`/api/admin/courses/${courseId}/students`, {
+          method: 'POST',
+          body: JSON.stringify({ userId: user.id, razorpayTransactionId: txnId || null })
+        });
+        await loadCourses();
+        showMsg('students-panel-msg', `Student "${user.firstName} ${user.lastName}" registered and tagged to course!`, 'success');
+      } else {
+        showMsg('students-panel-msg', `Student "${user.firstName} ${user.lastName}" registered successfully! You can tag them to a course below.`, 'success');
+      }
+
+      document.getElementById('form-register-student').reset();
+    } catch (e) {
+      showMsg('students-panel-msg', e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Register Student';
+    }
+  }
+
+  // ── Lookup & Tag (Students tab) ──
+  async function lookupUser() {
+    const query = document.getElementById('lookup-query').value.trim();
+    const resultEl = document.getElementById('lookup-result');
+    const btn = document.getElementById('btn-lookup');
+
+    if (!query) { resultEl.innerHTML = '<div class="msg error">Enter a mobile number or email</div>'; return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Searching...';
+    resultEl.innerHTML = '';
+
+    try {
+      const user = await apiFetch(`/api/admin/users?q=${encodeURIComponent(query)}`);
+      const courseOptions = allCourses.filter(c => c.active).map(c =>
+        `<option value="${c.id}">${c.title}</option>`
+      ).join('');
+
+      resultEl.innerHTML = `
+        <div style="background:white; border:1px solid var(--border); border-radius:10px; padding:1rem;">
+          <div style="font-weight:600; margin-bottom:0.25rem;">${user.firstName} ${user.lastName}</div>
+          <div style="font-size:0.85rem; color:var(--muted); margin-bottom:1rem;">${user.email} · ${user.mobileNumber}</div>
+          <div style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:flex-end;">
+            <div style="flex:1; min-width:160px;">
+              <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--muted); margin-bottom:0.3rem;">Course</label>
+              <select id="lookup-course-sel" style="width:100%; padding:0.55rem 0.75rem; border:1px solid var(--border); border-radius:8px; font-size:0.9rem; outline:none;">
+                <option value="">— Select course —</option>
+                ${courseOptions}
+              </select>
+            </div>
+            <div style="flex:1; min-width:160px;">
+              <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--muted); margin-bottom:0.3rem;">Transaction ID (optional)</label>
+              <input type="text" id="lookup-txn-id" placeholder="e.g., pay_xxxxxxxx" style="width:100%; padding:0.55rem 0.75rem; border:1px solid var(--border); border-radius:8px; font-size:0.9rem; outline:none;" />
+            </div>
+            <button class="btn-primary" onclick="tagFromLookup(${user.id}, '${user.firstName} ${user.lastName}')">Tag to Course</button>
+          </div>
+          <div id="lookup-tag-msg" style="margin-top:0.75rem;"></div>
+        </div>`;
+    } catch (e) {
+      resultEl.innerHTML = `<div class="msg error">${e.message}</div>`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Search';
+    }
+  }
+
+  async function tagFromLookup(userId, userName) {
+    const courseId = document.getElementById('lookup-course-sel').value;
+    const txnId = document.getElementById('lookup-txn-id').value.trim();
+    const msgEl = document.getElementById('lookup-tag-msg');
+    if (!courseId) { msgEl.innerHTML = '<div class="msg error">Please select a course</div>'; return; }
+
+    try {
+      await apiFetch(`/api/admin/courses/${courseId}/students`, {
+        method: 'POST',
+        body: JSON.stringify({ userId, razorpayTransactionId: txnId || null })
+      });
+      await loadCourses();
+      msgEl.innerHTML = `<div class="msg success">${userName} tagged to course successfully!</div>`;
+    } catch (e) {
+      msgEl.innerHTML = `<div class="msg error">${e.message}</div>`;
     }
   }
 

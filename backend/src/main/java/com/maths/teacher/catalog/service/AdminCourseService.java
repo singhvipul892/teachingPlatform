@@ -1,9 +1,11 @@
 package com.maths.teacher.catalog.service;
 
 import com.maths.teacher.auth.domain.User;
+import com.maths.teacher.auth.repository.UserRepository;
 import com.maths.teacher.catalog.web.dto.AdminCourseResponse;
 import com.maths.teacher.catalog.web.dto.CreateCourseRequest;
 import com.maths.teacher.catalog.web.dto.StudentResponse;
+import com.maths.teacher.catalog.web.dto.TagStudentRequest;
 import com.maths.teacher.catalog.web.dto.UpdateCourseRequest;
 import com.maths.teacher.payment.domain.Course;
 import com.maths.teacher.payment.domain.Purchase;
@@ -30,15 +32,18 @@ public class AdminCourseService {
 
     private final CourseRepository courseRepository;
     private final PurchaseRepository purchaseRepository;
+    private final UserRepository userRepository;
     private final S3StorageService storageService;
 
     public AdminCourseService(
             CourseRepository courseRepository,
             PurchaseRepository purchaseRepository,
+            UserRepository userRepository,
             S3StorageService storageService
     ) {
         this.courseRepository = courseRepository;
         this.purchaseRepository = purchaseRepository;
+        this.userRepository = userRepository;
         this.storageService = storageService;
     }
 
@@ -194,6 +199,54 @@ public class AdminCourseService {
                     );
                 })
                 .toList();
+    }
+
+    /**
+     * Manually tags (enrolls) a student in a course.
+     * Used for direct/offline payments. Works without a Razorpay payment flow.
+     */
+    @Transactional
+    public StudentResponse tagStudent(Long courseId, TagStudentRequest request) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Course not found"));
+
+        Long userId = request.getUserId();
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        if (purchaseRepository.existsByUserIdAndCourseId(userId, courseId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Student is already enrolled in this course");
+        }
+
+        String txnId = (request.getRazorpayTransactionId() != null && !request.getRazorpayTransactionId().isBlank())
+                ? request.getRazorpayTransactionId().trim()
+                : "ADMIN-" + userId + "-" + courseId;
+        String orderId = "ADMIN-ORDER-" + userId + "-" + courseId;
+
+        Purchase purchase = new Purchase(userId, courseId, orderId, txnId, 0, course.getCurrency());
+        purchase.setUser(user);
+        purchase = purchaseRepository.save(purchase);
+
+        logger.info("Admin tagged student {} to course {}", userId, courseId);
+        return new StudentResponse(user.getId(), user.getFirstName(), user.getLastName(),
+                user.getEmail(), user.getMobileNumber(), purchase.getPurchasedAt());
+    }
+
+    /**
+     * Untags (removes) a student from a course.
+     * Works for both admin-tagged and Razorpay-paid enrollments.
+     */
+    @Transactional
+    public void untagStudent(Long courseId, Long userId) {
+        courseRepository.findById(courseId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Course not found"));
+
+        if (!purchaseRepository.existsByUserIdAndCourseId(userId, courseId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Student is not enrolled in this course");
+        }
+
+        purchaseRepository.deleteByUserIdAndCourseId(userId, courseId);
+        logger.info("Admin untagged student {} from course {}", userId, courseId);
     }
 
     /**

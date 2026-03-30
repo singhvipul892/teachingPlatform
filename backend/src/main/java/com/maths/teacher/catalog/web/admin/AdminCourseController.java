@@ -5,6 +5,7 @@ import com.maths.teacher.catalog.service.AdminService;
 import com.maths.teacher.catalog.web.dto.AdminCourseResponse;
 import com.maths.teacher.catalog.web.dto.CreateCourseRequest;
 import com.maths.teacher.catalog.web.dto.StudentResponse;
+import com.maths.teacher.catalog.web.dto.TagStudentRequest;
 import com.maths.teacher.catalog.web.dto.UpdateCourseRequest;
 import com.maths.teacher.catalog.web.dto.VideoResponse;
 import java.util.List;
@@ -154,6 +155,29 @@ public class AdminCourseController {
     @GetMapping("/{courseId}/students")
     public List<StudentResponse> getEnrolledStudents(@PathVariable Long courseId) {
         return adminCourseService.getEnrolledStudents(courseId);
+    }
+
+    /**
+     * Manually tags (enrolls) a student in a course.
+     * Used for direct/offline payments. Optionally accepts a Razorpay transaction ID.
+     */
+    @PostMapping("/{courseId}/students")
+    @ResponseStatus(HttpStatus.CREATED)
+    public StudentResponse tagStudent(
+            @PathVariable Long courseId,
+            @RequestBody TagStudentRequest request
+    ) {
+        return adminCourseService.tagStudent(courseId, request);
+    }
+
+    /**
+     * Untags (removes) a student from a course.
+     * Works for both admin-tagged and Razorpay-paid enrollments.
+     */
+    @DeleteMapping("/{courseId}/students/{userId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void untagStudent(@PathVariable Long courseId, @PathVariable Long userId) {
+        adminCourseService.untagStudent(courseId, userId);
     }
 
     @GetMapping("/{courseId}/videos")

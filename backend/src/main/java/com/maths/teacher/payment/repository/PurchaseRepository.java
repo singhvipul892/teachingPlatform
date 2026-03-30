@@ -18,4 +18,6 @@ public interface PurchaseRepository extends JpaRepository<Purchase, Long> {
     long countByCourseId(Long courseId);
 
     Optional<Purchase> findByRazorpayPaymentId(String razorpayPaymentId);
+
+    void deleteByUserIdAndCourseId(Long userId, Long courseId);
 }
