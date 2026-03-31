@@ -8,8 +8,10 @@ import com.maths.teacher.catalog.web.dto.StudentResponse;
 import com.maths.teacher.catalog.web.dto.TagStudentRequest;
 import com.maths.teacher.catalog.web.dto.UpdateCourseRequest;
 import com.maths.teacher.payment.domain.Course;
+import com.maths.teacher.payment.domain.PaymentOrder;
 import com.maths.teacher.payment.domain.Purchase;
 import com.maths.teacher.payment.repository.CourseRepository;
+import com.maths.teacher.payment.repository.PaymentOrderRepository;
 import com.maths.teacher.payment.repository.PurchaseRepository;
 import com.maths.teacher.storage.S3StorageService;
 import java.util.List;
@@ -32,17 +34,20 @@ public class AdminCourseService {
 
     private final CourseRepository courseRepository;
     private final PurchaseRepository purchaseRepository;
+    private final PaymentOrderRepository paymentOrderRepository;
     private final UserRepository userRepository;
     private final S3StorageService storageService;
 
     public AdminCourseService(
             CourseRepository courseRepository,
             PurchaseRepository purchaseRepository,
+            PaymentOrderRepository paymentOrderRepository,
             UserRepository userRepository,
             S3StorageService storageService
     ) {
         this.courseRepository = courseRepository;
         this.purchaseRepository = purchaseRepository;
+        this.paymentOrderRepository = paymentOrderRepository;
         this.userRepository = userRepository;
         this.storageService = storageService;
     }
@@ -222,6 +227,10 @@ public class AdminCourseService {
                 ? request.getRazorpayTransactionId().trim()
                 : "ADMIN-" + userId + "-" + courseId;
         String orderId = "ADMIN-ORDER-" + userId + "-" + courseId;
+
+        PaymentOrder adminOrder = new PaymentOrder(orderId, userId, courseId, 0, course.getCurrency());
+        adminOrder.markPaid();
+        paymentOrderRepository.save(adminOrder);
 
         Purchase purchase = new Purchase(userId, courseId, orderId, txnId, 0, course.getCurrency());
         purchase.setUser(user);
