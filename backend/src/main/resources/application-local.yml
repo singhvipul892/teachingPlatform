@@ -12,7 +12,7 @@ spring:
 
 app:
   jwt:
-    secret: local-dev-secret-key-minimum-32-characters-long
+    secret: f5c9cfc086cae8dfd9b6fa42e1647e376bc79e58f48e889a09276b5fa8c61c9e9b62aa71a549b9bf95bdf3e30590721b5decd4bf22e2acaf1c2b74f192b01aaa
     expiration-ms: 86400000
   storage:
     s3:

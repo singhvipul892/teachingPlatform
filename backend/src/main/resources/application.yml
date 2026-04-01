@@ -2,6 +2,8 @@
 # Production uses this file directly (all values come from environment variables).
 # Local/dev profiles override these via application-local.yml / application-dev.yml.
 spring:
+  profiles:
+    active: local
   servlet:
     multipart:
       max-file-size: 50MB
@@ -20,10 +22,12 @@ spring:
 
 server:
   port: 8080
+  error:
+    include-message: always
 
 app:
   jwt:
-    secret: ${JWT_SECRET}
+    secret: f5c9cfc086cae8dfd9b6fa42e1647e376bc79e58f48e889a09276b5fa8c61c9e9b62aa71a549b9bf95bdf3e30590721b5decd4bf22e2acaf1c2b74f192b01aaa
     expiration-ms: ${JWT_EXPIRATION_MS:604800000}
   storage:
     s3:
