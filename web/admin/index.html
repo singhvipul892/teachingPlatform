@@ -673,10 +673,6 @@
         <input type="text" id="video-title" required placeholder="e.g., Lecture 1: Introduction" />
       </div>
       <div class="form-group">
-        <label>Duration *</label>
-        <input type="text" id="video-duration" required placeholder="e.g., 12:45" />
-      </div>
-      <div class="form-group">
         <label>Display Order *</label>
         <input type="number" id="video-order" required min="1" placeholder="e.g., 1" />
       </div>
@@ -1508,10 +1504,9 @@
 
     const youtubeUrl = document.getElementById('video-youtube-url').value.trim();
     const title = document.getElementById('video-title').value.trim();
-    const duration = document.getElementById('video-duration').value.trim();
     const order = document.getElementById('video-order').value;
 
-    if (!youtubeUrl || !title || !duration || !order) {
+    if (!youtubeUrl || !title || !order) {
       showMsg('add-video-msg', 'Please fill in all required fields', 'error');
       return;
     }
@@ -1525,7 +1520,6 @@
       formData.append('youtubeVideoLink', youtubeUrl);
       formData.append('title', title);
       formData.append('courseId', currentVideosModalCourseId);
-      formData.append('duration', duration);
       formData.append('displayOrder', order);
 
       const notesPdf = document.getElementById('video-pdf-notes').files[0];

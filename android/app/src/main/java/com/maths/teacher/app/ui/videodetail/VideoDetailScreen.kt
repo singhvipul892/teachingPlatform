@@ -43,8 +43,6 @@ import com.maths.teacher.app.domain.model.Video
 import com.maths.teacher.app.ui.components.PdfDownloadSection
 import com.maths.teacher.app.ui.home.YouTubeEmbedPlayer
 
-private const val LOREM_IPSUM =
-    "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur."
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -194,21 +192,6 @@ private fun VideoDetailContent(
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.fillMaxWidth()
         )
-
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = "Description",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Text(
-            text = LOREM_IPSUM,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.fillMaxWidth()
-        )
-        }
 
         if (video.pdfs.isNotEmpty()) {
             PdfDownloadSection(

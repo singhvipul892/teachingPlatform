@@ -40,7 +40,7 @@ public class AdminController {
             @RequestParam @Schema(description = "YouTube video URL", example = "https://www.youtube.com/watch?v=dQw4w9WgXcQ", requiredMode = Schema.RequiredMode.REQUIRED) String youtubeVideoLink,
             @RequestParam @Schema(description = "Video title", requiredMode = Schema.RequiredMode.REQUIRED) String title,
             @RequestParam @Schema(description = "Course ID to associate video with", requiredMode = Schema.RequiredMode.REQUIRED) Long courseId,
-            @RequestParam @Schema(description = "Duration (e.g. 12:45)", requiredMode = Schema.RequiredMode.REQUIRED) String duration,
+            @RequestParam(required = false) @Schema(description = "Duration (e.g. 12:45)", requiredMode = Schema.RequiredMode.NOT_REQUIRED) String duration,
             @RequestParam @Schema(description = "Display order within course", requiredMode = Schema.RequiredMode.REQUIRED) Integer displayOrder,
             @RequestPart(required = false) @Schema(description = "Notes PDF file", type = "string", format = "binary") MultipartFile notesPdf,
             @RequestPart(required = false) @Schema(description = "Solved practice set PDF", type = "string", format = "binary") MultipartFile solvedPracticeSetPdf,
