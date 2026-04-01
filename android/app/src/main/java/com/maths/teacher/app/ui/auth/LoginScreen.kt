@@ -80,6 +80,13 @@ fun LoginScreen(
             enabled = !state.isLoading
         )
 
+        TextButton(
+            onClick = { navController.navigate("forgot_password") },
+            modifier = Modifier.align(Alignment.End)
+        ) {
+            Text("Forgot Password?", color = MaterialTheme.colorScheme.primary)
+        }
+
         state.errorMessage?.let { msg ->
             Spacer(modifier = Modifier.height(8.dp))
             Text(

@@ -4,14 +4,16 @@ import com.maths.teacher.catalog.domain.Video;
 import com.maths.teacher.catalog.repository.VideoPdfRepository;
 import com.maths.teacher.catalog.repository.VideoRepository;
 import com.maths.teacher.catalog.web.dto.PdfResponse;
-import com.maths.teacher.catalog.web.dto.SectionResponse;
 import com.maths.teacher.catalog.web.dto.VideoResponse;
+import com.maths.teacher.payment.repository.PurchaseRepository;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class VideoCatalogService {
@@ -20,23 +22,24 @@ public class VideoCatalogService {
 
     private final VideoRepository videoRepository;
     private final VideoPdfRepository videoPdfRepository;
+    private final PurchaseRepository purchaseRepository;
 
-    public VideoCatalogService(VideoRepository videoRepository, VideoPdfRepository videoPdfRepository) {
+    public VideoCatalogService(
+            VideoRepository videoRepository,
+            VideoPdfRepository videoPdfRepository,
+            PurchaseRepository purchaseRepository
+    ) {
         this.videoRepository = videoRepository;
         this.videoPdfRepository = videoPdfRepository;
+        this.purchaseRepository = purchaseRepository;
     }
 
-    public List<SectionResponse> getSections() {
-        logger.info("Fetching all sections");
-        return videoRepository.findAllSections()
-                .stream()
-                .map(SectionResponse::new)
-                .toList();
-    }
-
-    public List<VideoResponse> getVideosBySection(String section) {
-        logger.info("Fetching videos for section: {}", section);
-        var videos = videoRepository.findBySectionOrderByDisplayOrderAsc(section);
+    public List<VideoResponse> getVideosByCourse(Long courseId, Long userId) {
+        logger.info("Fetching videos for course {} by user {}", courseId, userId);
+        if (!purchaseRepository.existsByUserIdAndCourseId(userId, courseId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You have not purchased this course.");
+        }
+        var videos = videoRepository.findByCourseIdOrderByDisplayOrderAsc(courseId);
         var pdfsByVideoId = loadPdfsByVideoId(videos);
 
         return videos.stream()

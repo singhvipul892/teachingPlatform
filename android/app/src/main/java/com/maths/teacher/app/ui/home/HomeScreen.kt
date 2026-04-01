@@ -2,7 +2,6 @@ package com.maths.teacher.app.ui.home
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Folder
@@ -31,13 +29,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
-import com.maths.teacher.app.data.api.TeacherApi
-import com.maths.teacher.app.data.prefs.SessionManager
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,6 +42,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.maths.teacher.app.data.prefs.SessionManager
+import com.maths.teacher.app.domain.model.CourseWithVideos
 import com.maths.teacher.app.ui.components.AppFooter
 import com.maths.teacher.app.ui.components.AppHeader
 import com.maths.teacher.app.ui.components.AppNavigationDrawer
@@ -62,12 +59,10 @@ import kotlinx.coroutines.launch
 fun HomeScreen(
     viewModel: HomeViewModel,
     navController: NavController,
-    sessionManager: SessionManager,
-    api: TeacherApi
+    sessionManager: SessionManager
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val displayName by sessionManager.displayName.collectAsStateWithLifecycle(initialValue = null)
-    val userId by sessionManager.userId.collectAsStateWithLifecycle(initialValue = null)
     val drawerState = rememberDrawerState(initialValue = androidx.compose.material3.DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -176,13 +171,15 @@ fun HomeScreen(
                     uiState.errorMessage != null -> {
                         ErrorState(uiState.errorMessage ?: "Something went wrong.")
                     }
-                    uiState.sections.isEmpty() -> {
+                    uiState.courses.isEmpty() -> {
                         EmptyState()
                     }
                     else -> {
                         HomeContent(
-                            sections = uiState.sections,
-                            onVideoSelected = { id, sectionName -> navController.navigate("video_detail/$id/${java.net.URLEncoder.encode(sectionName, "UTF-8")}") },
+                            courses = uiState.courses,
+                            onVideoSelected = { id, courseName ->
+                                navController.navigate("video_detail/$id/${java.net.URLEncoder.encode(courseName, "UTF-8")}")
+                            },
                             displayName = displayName,
                             modifier = Modifier.fillMaxSize()
                         )
@@ -223,7 +220,7 @@ private fun EmptyState() {
         horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
     ) {
         Text(
-            text = "No content available yet.",
+            text = "You haven't purchased any courses yet.",
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodyLarge
         )
@@ -232,7 +229,7 @@ private fun EmptyState() {
 
 @Composable
 private fun HomeContent(
-    sections: List<com.maths.teacher.app.domain.model.SectionWithVideos>,
+    courses: List<CourseWithVideos>,
     onVideoSelected: (Long, String) -> Unit,
     displayName: String?,
     modifier: Modifier = Modifier
@@ -281,11 +278,10 @@ private fun HomeContent(
                 }
             }
         }
-        
-        itemsIndexed(sections) { index, section ->
-            SectionBlock(section, onVideoSelected = { id -> onVideoSelected(id, section.name) })
-            if (index < sections.size - 1) {
-                // Divider with 20% left and right spacing (60% width in center)
+
+        itemsIndexed(courses) { index, course ->
+            SectionBlock(course, onVideoSelected = { id -> onVideoSelected(id, course.name) })
+            if (index < courses.size - 1) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -308,19 +304,19 @@ private fun HomeContent(
 
 @Composable
 private fun SectionBlock(
-    section: com.maths.teacher.app.domain.model.SectionWithVideos,
+    course: CourseWithVideos,
     onVideoSelected: (Long) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = section.name,
+            text = course.name,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(horizontal = 0.dp)
         )
         VideoCardCarousel(
-            videos = section.videos,
+            videos = course.videos,
             onVideoSelected = onVideoSelected
         )
     }

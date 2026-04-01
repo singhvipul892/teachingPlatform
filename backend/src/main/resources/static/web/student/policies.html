@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Policies — Singh Sir</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #1a56db;
+      --primary-dark: #1448be;
+      --accent: #f59e0b;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--primary);
+      color: white;
+      padding: 0 1rem;
+      display: flex;
+      align-items: center;
+      height: 56px;
+      gap: 0.75rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    header .back-link {
+      color: white;
+      text-decoration: none;
+      opacity: 0.85;
+      font-size: 1.3rem;
+      line-height: 1;
+      padding: 0.25rem 0.1rem;
+    }
+    header .back-link:hover { opacity: 1; }
+    header h1 { font-size: 1.05rem; font-weight: 700; }
+
+    /* ── Layout ── */
+    .page-wrap {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 1.5rem 1rem 3rem;
+    }
+
+    /* ── Tab bar ── */
+    .tabs {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+      background: var(--card);
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 0.65rem 0.5rem;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      border-right: 1px solid var(--border);
+      text-align: center;
+    }
+    .tab-btn:last-child { border-right: none; }
+    .tab-btn.active {
+      background: var(--primary);
+      color: white;
+    }
+    .tab-btn:not(.active):hover { background: #f1f5f9; color: var(--text); }
+
+    /* ── Policy panels ── */
+    .policy-panel { display: none; }
+    .policy-panel.active { display: block; }
+
+    .policy-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.75rem 1.5rem;
+    }
+
+    .policy-card .policy-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 0.35rem;
+    }
+    .policy-card .last-updated {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+    }
+
+    /* Section headings */
+    .policy-card h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin: 1.5rem 0 0.5rem;
+      padding-bottom: 0.35rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .policy-card h3:first-of-type { margin-top: 0; }
+
+    /* Body text */
+    .policy-card p {
+      font-size: 0.9rem;
+      color: #334155;
+      line-height: 1.75;
+      margin-top: 0.4rem;
+    }
+
+    /* Bullet lists */
+    .policy-card ul {
+      margin: 0.4rem 0 0 1.25rem;
+      padding: 0;
+    }
+    .policy-card ul li {
+      font-size: 0.9rem;
+      color: #334155;
+      line-height: 1.75;
+    }
+
+    /* Contact highlight */
+    .contact-box {
+      margin-top: 1rem;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 0.9rem 1rem;
+      font-size: 0.88rem;
+      color: var(--primary-dark);
+      line-height: 1.6;
+    }
+
+    /* ── Footer note ── */
+    .footer-note {
+      text-align: center;
+      margin-top: 1.75rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .footer-note a { color: var(--primary); text-decoration: none; }
+    .footer-note a:hover { text-decoration: underline; }
+
+    @media (max-width: 400px) {
+      .policy-card { padding: 1.25rem 1rem; }
+      .tab-btn { font-size: 0.76rem; padding: 0.6rem 0.3rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="back-link" href="index.html" title="Back to courses">&#8592;</a>
+  <h1>📚 Singh Sir — Policies</h1>
+</header>
+
+<div class="page-wrap">
+
+  <!-- Tab bar -->
+  <div class="tabs" role="tablist">
+    <button class="tab-btn active" role="tab">Terms &amp; Conditions</button>
+    <button class="tab-btn" role="tab">Privacy Policy</button>
+    <button class="tab-btn" role="tab">Refund Policy</button>
+  </div>
+
+  <!-- ── Terms & Conditions ── -->
+  <div id="panel-terms" class="policy-panel active">
+    <div class="policy-card">
+      <div class="policy-title">Terms and Conditions</div>
+      <div class="last-updated">Last updated: March 2, 2026</div>
+
+      <p>Welcome to <strong>Singh Sir</strong>. By using our mobile application or website, you agree to these Terms and Conditions. Please read them carefully before proceeding.</p>
+
+      <h3>1. Acceptance of Terms</h3>
+      <p>By creating an account or using the Singh Sir app, you agree to be bound by these Terms. If you do not agree, please do not use the app.</p>
+
+      <h3>2. Description of Service</h3>
+      <p>Singh Sir is a maths teaching platform that provides video lessons and PDF resources for educational purposes. We reserve the right to modify, suspend, or discontinue any part of the service at any time.</p>
+
+      <h3>3. Account Responsibilities</h3>
+      <p>You agree to:</p>
+      <ul>
+        <li>Provide accurate and complete information when signing up</li>
+        <li>Keep your password confidential</li>
+        <li>Notify us immediately of any unauthorised use of your account</li>
+      </ul>
+      <p>You are responsible for all activity that occurs under your account.</p>
+
+      <h3>4. Acceptable Use</h3>
+      <p>You agree not to:</p>
+      <ul>
+        <li>Share your account credentials with others</li>
+        <li>Copy, distribute, or commercially exploit any video or PDF content without written permission</li>
+        <li>Use the app for any unlawful purpose</li>
+        <li>Attempt to gain unauthorised access to our systems or other users' accounts</li>
+      </ul>
+
+      <h3>5. Intellectual Property</h3>
+      <p>All content in the app, including videos and PDFs, is owned by Singh Sir or its licensors. You may view and download content for personal, non-commercial use only. You may not reproduce, modify, or distribute the content without our written permission.</p>
+
+      <h3>6. Disclaimer of Warranties</h3>
+      <p>The app and its content are provided <em>"as is"</em> without warranties of any kind. We do not guarantee that the app will be error-free, uninterrupted, or free of harmful components.</p>
+
+      <h3>7. Limitation of Liability</h3>
+      <p>To the fullest extent permitted by applicable law, Singh Sir shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of the app or its content.</p>
+
+      <h3>8. Termination</h3>
+      <p>We may suspend or terminate your account if you violate these Terms. You may stop using the app at any time. Upon termination, your right to access the app and its content ceases immediately.</p>
+
+      <h3>9. Changes to Terms</h3>
+      <p>We may update these Terms from time to time. The "Last updated" date at the top of this page will reflect any changes. Continued use of the app after changes are posted constitutes your acceptance of the updated Terms.</p>
+
+      <h3>10. Contact Us</h3>
+      <p>For any questions about these Terms, please reach out to us:</p>
+      <div class="contact-box">
+        📧 Reach us through the <strong>Contact Us</strong> section in the Singh Sir app, or email us at the address listed there.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Privacy Policy ── -->
+  <div id="panel-privacy" class="policy-panel">
+    <div class="policy-card">
+      <div class="policy-title">Privacy Policy</div>
+      <div class="last-updated">Last updated: March 2, 2026</div>
+
+      <p>Singh Sir is committed to protecting your privacy. This policy explains what information we collect, how we use it, and your rights regarding your data.</p>
+
+      <h3>1. Information We Collect</h3>
+      <p>When you register or use our service, we collect:</p>
+      <ul>
+        <li><strong>Account information</strong> — name, email address, mobile number, and password (stored encrypted)</li>
+        <li><strong>Payment information</strong> — processed securely through Razorpay; we do not store card or UPI details on our servers</li>
+        <li><strong>Usage data</strong> — courses purchased, app activity, and device information for troubleshooting</li>
+      </ul>
+
+      <h3>2. How We Use Your Information</h3>
+      <ul>
+        <li>To create and manage your account</li>
+        <li>To process payments and grant access to purchased courses</li>
+        <li>To send important service notifications (e.g. payment confirmations, OTPs)</li>
+        <li>To improve the platform and fix issues</li>
+      </ul>
+      <p>We do not sell or rent your personal information to third parties.</p>
+
+      <h3>3. Third-Party Services</h3>
+      <p>We use the following third-party services to operate Singh Sir:</p>
+      <ul>
+        <li><strong>Razorpay</strong> — for secure payment processing (subject to <a href="https://razorpay.com/privacy/" target="_blank" rel="noopener">Razorpay's Privacy Policy</a>)</li>
+        <li><strong>AWS SNS</strong> — to deliver OTP SMS messages for password reset</li>
+      </ul>
+
+      <h3>4. Data Security</h3>
+      <p>We implement industry-standard measures to protect your data, including encrypted passwords and HTTPS-only communication. However, no system is completely secure, and we cannot guarantee absolute security.</p>
+
+      <h3>5. Data Retention</h3>
+      <p>We retain your account data for as long as your account is active. You may request deletion of your account and associated data by contacting us. Purchase records may be retained as required by law.</p>
+
+      <h3>6. Children's Privacy</h3>
+      <p>Our service is not directed at children under 13. If we become aware that a child has provided personal information without parental consent, we will delete it promptly.</p>
+
+      <h3>7. Your Rights</h3>
+      <p>You have the right to access, correct, or request deletion of your personal data. To exercise these rights, contact us through the app.</p>
+
+      <h3>8. Changes to This Policy</h3>
+      <p>We may update this Privacy Policy from time to time. The "Last updated" date will reflect changes. Continued use of the app constitutes acceptance of the updated policy.</p>
+
+      <h3>9. Contact Us</h3>
+      <div class="contact-box">
+        📧 For privacy-related concerns, reach us through the <strong>Contact Us</strong> section in the Singh Sir app.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Refund Policy ── -->
+  <div id="panel-refund" class="policy-panel">
+    <div class="policy-card">
+      <div class="policy-title">Refund Policy</div>
+      <div class="last-updated">Last updated: March 2, 2026</div>
+
+      <p>We want you to be satisfied with your purchase. Please read this policy carefully before buying a course.</p>
+
+      <h3>1. Digital Content</h3>
+      <p>All purchases on Singh Sir are for <strong>digital educational content</strong> (video lessons and PDFs). Access to this content is granted immediately upon successful payment.</p>
+
+      <h3>2. Refund Eligibility</h3>
+      <p>Due to the nature of digital goods, we generally do not offer refunds once access to content has been granted. However, we will consider a refund in the following situations:</p>
+      <ul>
+        <li>You were charged but access to the course was not activated</li>
+        <li>A technical error on our side resulted in a duplicate charge</li>
+        <li>Your payment was debited but the order failed on our platform</li>
+      </ul>
+
+      <h3>3. How to Request a Refund</h3>
+      <p>If you believe you are eligible for a refund, contact us within <strong>7 days</strong> of the transaction with:</p>
+      <ul>
+        <li>Your registered email or mobile number</li>
+        <li>The Razorpay Payment ID (found in your payment confirmation SMS/email)</li>
+        <li>A brief description of the issue</li>
+      </ul>
+
+      <h3>4. Processing Time</h3>
+      <p>Approved refunds are processed within <strong>5–7 business days</strong>. The amount will be credited to your original payment method. Razorpay's processing timelines may apply.</p>
+
+      <h3>5. Non-Refundable Cases</h3>
+      <ul>
+        <li>Courses already accessed or downloaded</li>
+        <li>Requests made after 7 days of purchase</li>
+        <li>Account suspended due to violation of our Terms and Conditions</li>
+      </ul>
+
+      <h3>6. Contact Us</h3>
+      <div class="contact-box">
+        📧 To raise a refund request, contact us through the <strong>Contact Us</strong> section in the Singh Sir app, including your Payment ID and registered mobile number.
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    &copy; 2026 Singh Sir &nbsp;·&nbsp;
+    <a href="index.html">Back to Courses</a>
+  </div>
+</div>
+
+<script>
+  const VALID_TABS = ['terms', 'privacy', 'refund'];
+
+  function switchTab(tab, scroll) {
+    if (!VALID_TABS.includes(tab)) tab = 'terms';
+
+    document.querySelectorAll('.policy-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+
+    document.getElementById('panel-' + tab).classList.add('active');
+
+    // Activate matching tab button
+    const idx = VALID_TABS.indexOf(tab);
+    document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+
+    if (scroll) window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // Tab buttons call switchTab with the event object
+  document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+    btn.addEventListener('click', () => switchTab(VALID_TABS[i], true));
+  });
+
+  // Open to the right tab if ?tab=privacy or ?tab=refund was passed
+  (function () {
+    const params = new URLSearchParams(window.location.search);
+    const requested = params.get('tab');
+    if (requested && VALID_TABS.includes(requested)) {
+      switchTab(requested, false);
+    }
+  })();
+</script>
+</body>
+</html>

@@ -16,8 +16,8 @@ import java.util.List;
 @Table(
         name = "videos",
         indexes = {
-                @Index(name = "idx_videos_section", columnList = "section"),
-                @Index(name = "idx_videos_section_order", columnList = "section,display_order")
+                @Index(name = "idx_videos_course_id", columnList = "course_id"),
+                @Index(name = "idx_videos_course_order", columnList = "course_id,display_order")
         }
 )
 public class Video {
@@ -32,8 +32,8 @@ public class Video {
     @Column(nullable = false, length = 200)
     private String title;
 
-    @Column(nullable = false, length = 80)
-    private String section;
+    @Column(name = "course_id", nullable = false)
+    private Long courseId;
 
     @Column(name = "thumbnail_url", nullable = false, length = 500)
     private String thumbnailUrl;
@@ -55,7 +55,7 @@ public class Video {
             Long id,
             String videoId,
             String title,
-            String section,
+            Long courseId,
             String thumbnailUrl,
             String duration,
             Integer displayOrder
@@ -63,41 +63,22 @@ public class Video {
         this.id = id;
         this.videoId = videoId;
         this.title = title;
-        this.section = section;
+        this.courseId = courseId;
         this.thumbnailUrl = thumbnailUrl;
         this.duration = duration;
         this.displayOrder = displayOrder;
     }
 
-    public Long getId() {
-        return id;
-    }
+    public Long getId() { return id; }
+    public String getVideoId() { return videoId; }
+    public String getTitle() { return title; }
+    public Long getCourseId() { return courseId; }
+    public String getThumbnailUrl() { return thumbnailUrl; }
+    public String getDuration() { return duration; }
+    public Integer getDisplayOrder() { return displayOrder; }
+    public List<VideoPdf> getPdfs() { return pdfs; }
 
-    public String getVideoId() {
-        return videoId;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public String getSection() {
-        return section;
-    }
-
-    public String getThumbnailUrl() {
-        return thumbnailUrl;
-    }
-
-    public String getDuration() {
-        return duration;
-    }
-
-    public Integer getDisplayOrder() {
-        return displayOrder;
-    }
-
-    public List<VideoPdf> getPdfs() {
-        return pdfs;
-    }
+    public void setTitle(String title) { this.title = title; }
+    public void setDuration(String duration) { this.duration = duration; }
+    public void setDisplayOrder(Integer displayOrder) { this.displayOrder = displayOrder; }
 }

@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.maths.teacher.app.data.repository.VideoRepository
-import com.maths.teacher.app.domain.model.SectionWithVideos
+import com.maths.teacher.app.domain.model.CourseWithVideos
 import com.maths.teacher.app.domain.model.Video
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 
 data class HomeUiState(
     val isLoading: Boolean = false,
-    val sections: List<SectionWithVideos> = emptyList(),
+    val courses: List<CourseWithVideos> = emptyList(),
     val errorMessage: String? = null,
     val selectedVideo: Video? = null
 )
@@ -26,29 +26,29 @@ class HomeViewModel(
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
-        loadHomeSections()
+        loadPurchasedCourses()
     }
 
-    private fun loadHomeSections() {
+    fun loadPurchasedCourses() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
             try {
-                val sections = repository.getHomeSections()
+                val courses = repository.getPurchasedCourses()
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    sections = sections
+                    courses = courses
                 )
             } catch (ex: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    errorMessage = "Failed to load videos. Please try again."
+                    errorMessage = "Failed to load courses. Please try again."
                 )
             }
         }
     }
 
     fun selectVideo(videoId: Long) {
-        val video = _uiState.value.sections
+        val video = _uiState.value.courses
             .flatMap { it.videos }
             .firstOrNull { it.id == videoId }
         _uiState.value = _uiState.value.copy(selectedVideo = video)

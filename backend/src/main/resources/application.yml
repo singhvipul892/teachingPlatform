@@ -1,13 +1,18 @@
+# Base configuration — loaded for ALL profiles.
+# Production uses this file directly (all values come from environment variables).
+# Local/dev profiles override these via application-local.yml / application-dev.yml.
 spring:
-  profiles:
-    active: dev
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 150MB
   datasource:
-    url: jdbc:postgresql://localhost:5432/teacher_videos
-    username: teacher
-    password: teacher
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     properties:
       hibernate:
         format_sql: true
@@ -15,13 +20,21 @@ spring:
 
 server:
   port: 8080
+  error:
+    include-message: always
 
 app:
   jwt:
-    secret: ${JWT_SECRET:change-me-in-production-use-long-secret-key-at-least-32-chars}
-    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+    secret: f5c9cfc086cae8dfd9b6fa42e1647e376bc79e58f48e889a09276b5fa8c61c9e9b62aa71a549b9bf95bdf3e30590721b5decd4bf22e2acaf1c2b74f192b01aaa
+    expiration-ms: ${JWT_EXPIRATION_MS:604800000}
   storage:
     s3:
-      region: ap-south-1
-      bucket: teacherplatform.503561455300
-      presign-expiry-minutes: 10
+      region: ${APP_STORAGE_S3_REGION:ap-south-1}
+      bucket: ${APP_STORAGE_S3_BUCKET}
+      presign-expiry-minutes: ${APP_STORAGE_S3_PRESIGN_EXPIRY_MINUTES:10}
+  sms:
+    mock: ${SMS_MOCK:false}
+  razorpay:
+    key-id: ${RAZORPAY_KEY_ID}
+    key-secret: ${RAZORPAY_KEY_SECRET}
+    currency: INR

@@ -34,7 +34,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -45,9 +44,15 @@ import androidx.navigation.compose.rememberNavController
 import com.maths.teacher.app.data.api.ApiClient
 import com.maths.teacher.app.data.prefs.SessionManager
 import com.maths.teacher.app.data.repository.DefaultVideoRepository
+import com.maths.teacher.app.ui.auth.ForgotPasswordScreen
+import com.maths.teacher.app.ui.auth.ForgotPasswordViewModel
+import com.maths.teacher.app.ui.auth.ForgotPasswordViewModelFactory
 import com.maths.teacher.app.ui.auth.LoginScreen
 import com.maths.teacher.app.ui.auth.LoginViewModel
 import com.maths.teacher.app.ui.auth.LoginViewModelFactory
+import com.maths.teacher.app.ui.auth.ResetPasswordScreen
+import com.maths.teacher.app.ui.auth.ResetPasswordViewModel
+import com.maths.teacher.app.ui.auth.ResetPasswordViewModelFactory
 import com.maths.teacher.app.ui.auth.SignupScreen
 import com.maths.teacher.app.ui.auth.SignupViewModel
 import com.maths.teacher.app.ui.auth.SignupViewModelFactory
@@ -62,7 +67,9 @@ import com.maths.teacher.app.ui.videodetail.VideoDetailViewModelFactory
 import com.maths.teacher.app.ui.resources.ResourcesViewModel
 import com.maths.teacher.app.ui.resources.ResourcesViewModelFactory
 import com.maths.teacher.app.ui.theme.AppTheme
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
 
@@ -123,6 +130,25 @@ class MainActivity : ComponentActivity() {
                             navController = navController
                         )
                     }
+                    composable("forgot_password") {
+                        val forgotPasswordViewModel: ForgotPasswordViewModel = viewModel(
+                            factory = ForgotPasswordViewModelFactory(api)
+                        )
+                        ForgotPasswordScreen(
+                            viewModel = forgotPasswordViewModel,
+                            navController = navController
+                        )
+                    }
+                    composable("reset_password/{mobileNumber}") { backStackEntry ->
+                        val mobile = backStackEntry.arguments?.getString("mobileNumber") ?: ""
+                        val resetPasswordViewModel: ResetPasswordViewModel = viewModel(
+                            factory = ResetPasswordViewModelFactory(api, mobile)
+                        )
+                        ResetPasswordScreen(
+                            viewModel = resetPasswordViewModel,
+                            navController = navController
+                        )
+                    }
                     composable("home") {
                         val homeViewModel: HomeViewModel = viewModel(
                             factory = HomeViewModelFactory(repository)
@@ -130,8 +156,7 @@ class MainActivity : ComponentActivity() {
                         HomeScreen(
                             viewModel = homeViewModel,
                             navController = navController,
-                            sessionManager = sessionManager,
-                            api = api
+                            sessionManager = sessionManager
                         )
                     }
                     composable("resources") {

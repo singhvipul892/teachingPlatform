@@ -1,0 +1,24 @@
+# Local profile — hardcoded values for running the backend on your machine.
+# Activate with: SPRING_PROFILES_ACTIVE=local ./gradlew bootRun
+# DB: start with `docker compose up -d` from the repo root.
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/teacher_videos
+    username: teacher
+    password: teacher
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+app:
+  jwt:
+    secret: f5c9cfc086cae8dfd9b6fa42e1647e376bc79e58f48e889a09276b5fa8c61c9e9b62aa71a549b9bf95bdf3e30590721b5decd4bf22e2acaf1c2b74f192b01aaa
+    expiration-ms: 86400000
+  storage:
+    s3:
+      bucket: teacherplatform.503561455300.local
+  sms:
+    mock: true
+  razorpay:
+    key-id: rzp_test_SP86pvPiQnFUbQ
+    key-secret: 0j3002i8Sx1c1AIis9Cfbcpb

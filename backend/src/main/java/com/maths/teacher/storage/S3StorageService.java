@@ -41,6 +41,33 @@ public class S3StorageService {
         return "s3://" + properties.getBucket() + "/" + key;
     }
 
+    public String uploadCourseThumbnail(Long courseId, MultipartFile file) {
+        if (properties.getBucket() == null || properties.getBucket().isBlank()) {
+            throw new IllegalStateException(ErrorMessages.S3_BUCKET_REQUIRED);
+        }
+
+        // Determine file extension from content type
+        String contentType = file.getContentType() != null ? file.getContentType() : "image/jpeg";
+        String extension = contentType.equals("image/png") ? "png" : "jpg";
+
+        // If courseId is provided (update case), use it; otherwise generate unique filename
+        String fileName = courseId != null ? "thumbnail." + extension : UUID.randomUUID() + "." + extension;
+        var key = "courses/" + (courseId != null ? courseId : UUID.randomUUID()) + "/" + fileName;
+
+        try {
+            var putRequest = PutObjectRequest.builder()
+                    .bucket(properties.getBucket())
+                    .key(key)
+                    .contentType(contentType)
+                    .build();
+            s3Client.putObject(putRequest, RequestBody.fromBytes(file.getBytes()));
+        } catch (IOException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to read image file", ex);
+        }
+
+        return "s3://" + properties.getBucket() + "/" + key;
+    }
+
     public void deleteByStorageUrl(String storageUrl) {
         var location = S3LocationResolver.resolve(storageUrl, properties);
         var deleteRequest = DeleteObjectRequest.builder()

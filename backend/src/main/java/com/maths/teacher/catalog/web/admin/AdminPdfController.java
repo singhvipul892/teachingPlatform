@@ -3,6 +3,7 @@ package com.maths.teacher.catalog.web.admin;
 import com.maths.teacher.catalog.service.AdminPdfService;
 import com.maths.teacher.catalog.web.dto.PdfResponse;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/admin/videos/{videoId}/pdfs")
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminPdfController {
 
     private final AdminPdfService adminService;

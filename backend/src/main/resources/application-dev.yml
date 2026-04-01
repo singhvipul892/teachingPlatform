@@ -1,10 +1,24 @@
-# Dev/local profile: uses separate bucket so local runs don't touch prod data.
+# Dev profile — identical to local for now.
+# Activate with: SPRING_PROFILES_ACTIVE=dev ./gradlew bootRun
+# Diverge from local here when a separate dev environment is set up.
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/teacher_videos
+    username: teacher
+    password: teacher
+  jpa:
+    hibernate:
+      ddl-auto: update
+
 app:
   jwt:
-    secret: ${JWT_SECRET:change-me-in-production-use-long-secret-key-at-least-32-chars}
-    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+    secret: f5c9cfc086cae8dfd9b6fa42e1647e376bc79e58f48e889a09276b5fa8c61c9e9b62aa71a549b9bf95bdf3e30590721b5decd4bf22e2acaf1c2b74f192b01aaa
+    expiration-ms: 86400000
   storage:
     s3:
-      region: ap-south-1
-      bucket: teacherplatform.503561455300.local  # Local bucket (prod uses teacherplatform.503561455300)
-      presign-expiry-minutes: 10
+      bucket: teacherplatform.503561455300.local
+  sms:
+    mock: true
+  razorpay:
+    key-id: rzp_test_SP86pvPiQnFUbQ
+    key-secret: 0j3002i8Sx1c1AIis9Cfbcpb

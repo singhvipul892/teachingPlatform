@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.SaveAlt
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -33,6 +34,7 @@ import com.maths.teacher.app.data.api.TeacherApi
 import com.maths.teacher.app.data.prefs.getPdfPath
 import com.maths.teacher.app.data.prefs.savePdfPath
 import com.maths.teacher.app.domain.model.Pdf
+import com.maths.teacher.app.util.exportPdfToDownloads
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -122,14 +124,42 @@ private fun PdfDownloadCard(
                 )
             }
             if (isDownloaded) {
-                TextButton(onClick = { onOpenPdf(videoId, pdf.id) }) {
-                    Icon(
-                        imageVector = Icons.Default.OpenInNew,
-                        contentDescription = "Open",
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.size(8.dp))
-                    Text("Open")
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    TextButton(onClick = { onOpenPdf(videoId, pdf.id) }) {
+                        Icon(
+                            imageVector = Icons.Default.OpenInNew,
+                            contentDescription = "Open",
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text("Open")
+                    }
+                    TextButton(onClick = {
+                        val filePath = getPdfPath(context, userId, videoId, pdf.id)
+                        val file = filePath?.let { File(it) }
+                        if (file == null || !file.exists()) {
+                            Toast.makeText(context, "File not found", Toast.LENGTH_SHORT).show()
+                            return@TextButton
+                        }
+                        scope.launch {
+                            val success = withContext(Dispatchers.IO) {
+                                exportPdfToDownloads(context, file, pdf.title)
+                            }
+                            Toast.makeText(
+                                context,
+                                if (success) "Saved to Downloads" else "Export failed",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.SaveAlt,
+                            contentDescription = "Export",
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text("Export")
+                    }
                 }
             } else {
                 TextButton(

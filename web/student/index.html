@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Singh Sir — SSC CGL Maths</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #1a56db;
+      --primary-dark: #1448be;
+      --accent: #f59e0b;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --success: #16a34a;
+      --error: #dc2626;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--primary);
+      color: white;
+      padding: 0 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    header h1 { font-size: 1.1rem; font-weight: 700; }
+    #user-menu { display: flex; align-items: center; gap: 0.75rem; font-size: 0.85rem; }
+    #user-name { opacity: 0.9; }
+    #btn-logout {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      padding: 0.3rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    #btn-logout:hover { background: rgba(255,255,255,0.3); }
+
+    /* ── Screens ── */
+    .screen { display: none; padding: 1.5rem 1rem; max-width: 540px; margin: 0 auto; }
+    .screen.active { display: block; }
+
+    /* ── Course list ── */
+    #screen-courses h2 { font-size: 1.3rem; font-weight: 700; margin-bottom: 1rem; }
+    .course-grid { display: grid; gap: 1rem; }
+    .course-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      cursor: pointer;
+      transition: box-shadow 0.2s, border-color 0.2s;
+    }
+    .course-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); border-color: var(--primary); }
+    .course-card h3 { font-size: 1.05rem; margin-bottom: 0.4rem; }
+    .course-card p { font-size: 0.88rem; color: var(--muted); line-height: 1.5; margin-bottom: 0.75rem; }
+    .course-meta { display: flex; align-items: center; justify-content: space-between; }
+    .price { font-size: 1.1rem; font-weight: 700; color: var(--primary); }
+    .badge-owned {
+      background: #dcfce7;
+      color: var(--success);
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+    }
+    .badge-buy {
+      background: var(--accent);
+      color: #78350f;
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+    }
+    .loading { text-align: center; padding: 3rem; color: var(--muted); }
+
+    /* ── Course detail ── */
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: var(--primary);
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-bottom: 1.25rem;
+    }
+    .detail-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+    .detail-card h2 { font-size: 1.3rem; margin-bottom: 0.75rem; }
+    .detail-card p { font-size: 0.93rem; color: var(--muted); line-height: 1.65; margin-bottom: 1.25rem; }
+    .detail-price { font-size: 1.6rem; font-weight: 800; color: var(--primary); margin-bottom: 1.25rem; }
+    .btn-buy {
+      width: 100%;
+      padding: 0.85rem;
+      background: var(--accent);
+      color: #78350f;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-buy:hover { background: #d97706; color: white; }
+    .btn-buy:disabled { opacity: 0.6; cursor: not-allowed; }
+    .owned-notice {
+      text-align: center;
+      padding: 1rem;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      color: var(--success);
+      font-weight: 600;
+    }
+
+    /* ── Payment Error Dialog ── */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-content {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 1.5rem;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 20px 25px rgba(0,0,0,0.15);
+    }
+    .modal-content h3 {
+      font-size: 1.2rem;
+      margin-bottom: 0.75rem;
+      color: var(--error);
+    }
+    .modal-content p {
+      font-size: 0.95rem;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
+    .modal-content .support-id {
+      background: #f3f4f6;
+      padding: 0.5rem;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.85rem;
+      margin: 0.5rem 0;
+    }
+    .modal-buttons {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+    .modal-btn {
+      flex: 1;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: background 0.2s;
+    }
+    .modal-btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    .modal-btn-primary:hover { background: var(--primary-dark); }
+    .modal-btn-secondary {
+      background: var(--border);
+      color: var(--text);
+    }
+    .modal-btn-secondary:hover { background: #cbd5e1; }
+
+    /* ── Footer ── */
+    .site-footer {
+      text-align: center;
+      padding: 2rem 1rem 1.5rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .site-footer a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+    .site-footer a:hover { text-decoration: underline; }
+
+    /* ── Responsive ── */
+    @media (min-width: 600px) {
+      .course-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>📚 Singh Sir — SSC CGL Maths</h1>
+  <div id="user-menu" style="display:none">
+    <span id="user-name"></span>
+    <button id="btn-logout">Logout</button>
+  </div>
+</header>
+
+<!-- ── Course List ── -->
+<div id="screen-courses" class="screen">
+  <h2>Available Courses</h2>
+  <div id="course-list" class="course-grid">
+    <div class="loading">Loading courses…</div>
+  </div>
+</div>
+
+<!-- ── Course Detail ── -->
+<div id="screen-detail" class="screen">
+  <div class="back-btn" onclick="showCoursesScreen()">← Back to courses</div>
+  <div class="detail-card" id="detail-content"></div>
+</div>
+
+<!-- ── Payment Error Modal ── -->
+<div id="payment-error-modal" class="modal-overlay">
+  <div class="modal-content">
+    <h3 id="modal-title">Payment Error</h3>
+    <p id="modal-message"></p>
+    <div id="modal-support-id" class="support-id" style="display:none;"></div>
+    <div class="modal-buttons">
+      <button class="modal-btn modal-btn-primary" id="modal-btn-retry" style="display:none;" onclick="retryPaymentVerification()">Retry</button>
+      <button class="modal-btn modal-btn-primary" id="modal-btn-check-status" style="display:none;" onclick="checkPaymentStatus()">Check Status</button>
+      <button class="modal-btn modal-btn-secondary" onclick="closePaymentErrorModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Footer ── -->
+<footer class="site-footer">
+  &copy; 2026 Singh Sir &nbsp;·&nbsp;
+  <a href="policies.html">Terms &amp; Conditions</a> &nbsp;·&nbsp;
+  <a href="policies.html?tab=privacy">Privacy Policy</a> &nbsp;·&nbsp;
+  <a href="policies.html?tab=refund">Refund Policy</a>
+</footer>
+
+<!-- Razorpay SDK -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<!-- Auth & Router Libraries -->
+<script src="/web/lib/auth.js"></script>
+<script src="/web/lib/router.js"></script>
+
+<script>
+  // ── Config ──────────────────────────────────────────
+  // Update this to your deployed backend URL
+  const API_BASE = '';
+
+  // ── State ────────────────────────────────────────────
+  let token = localStorage.getItem('token');
+  let userFirstName = localStorage.getItem('firstName') || '';
+  let purchasedCourseIds = JSON.parse(localStorage.getItem('purchasedIds') || '[]');
+  let allCourses = [];
+  let selectedCourse = null;
+
+  // ── Helpers ──────────────────────────────────────────
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function rupees(paise) {
+    return '₹' + (paise / 100).toLocaleString('en-IN');
+  }
+
+  async function apiFetch(path, options = {}) {
+    const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    const res = await fetch(API_BASE + path, { ...options, headers });
+    if (res.status === 401 && !path.includes('/api/auth/')) {
+      clearSessionLocal();
+      window.location.href = '/web/auth/login.html';
+      return null;
+    }
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.message || body.error || 'Request failed');
+    return body;
+  }
+
+  // ── Auth ─────────────────────────────────────────────
+  function clearSessionLocal() {
+    token = null;
+    userFirstName = '';
+    purchasedCourseIds = [];
+    localStorage.removeItem('token');
+    localStorage.removeItem('firstName');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('email');
+    localStorage.removeItem('role');
+    localStorage.removeItem('purchasedIds');
+    document.getElementById('user-menu').style.display = 'none';
+    document.getElementById('user-name').textContent = '';
+  }
+
+  document.getElementById('btn-logout').addEventListener('click', () => {
+    clearSessionLocal();
+    window.location.href = '/web/auth/login.html';
+  });
+
+  // ── Courses ──────────────────────────────────────────
+  async function loadUserCourses() {
+    try {
+      const data = await apiFetch('/api/user/courses');
+      purchasedCourseIds = (data.purchasedCourses || []).map(c => c.id);
+      localStorage.setItem('purchasedIds', JSON.stringify(purchasedCourseIds));
+    } catch (e) {
+      purchasedCourseIds = [];
+    }
+  }
+
+  async function showCoursesScreen() {
+    showScreen('screen-courses');
+    const listEl = document.getElementById('course-list');
+    if (allCourses.length === 0) {
+      listEl.innerHTML = '<div class="loading">Loading courses…</div>';
+      try {
+        allCourses = await apiFetch('/api/courses');
+      } catch (e) {
+        listEl.innerHTML = `<div class="loading" style="color:var(--error)">Failed to load courses.</div>`;
+        return;
+      }
+    }
+    renderCourseList(listEl);
+  }
+
+  function renderCourseList(listEl) {
+    if (!allCourses.length) {
+      listEl.innerHTML = '<div class="loading">No courses available yet.</div>';
+      return;
+    }
+    listEl.innerHTML = allCourses.map(course => {
+      const owned = purchasedCourseIds.includes(course.id);
+      return `
+        <div class="course-card" onclick="showDetail(${course.id})">
+          <h3>${course.title}</h3>
+          <p>${course.description}</p>
+          <div class="course-meta">
+            <span class="price">${rupees(course.pricePaise)}</span>
+            ${owned
+              ? '<span class="badge-owned">✓ Purchased</span>'
+              : '<span class="badge-buy">Buy Now</span>'}
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function showDetail(courseId) {
+    selectedCourse = allCourses.find(c => c.id === courseId);
+    if (!selectedCourse) return;
+    const owned = purchasedCourseIds.includes(courseId);
+    const detailEl = document.getElementById('detail-content');
+    detailEl.innerHTML = `
+      <h2>${selectedCourse.title}</h2>
+      <p>${selectedCourse.description}</p>
+      <div class="detail-price">${rupees(selectedCourse.pricePaise)}</div>
+      ${owned
+        ? '<div class="owned-notice">✓ You have access to this course. Open the Singh Sir app to start learning!</div>'
+        : `<button class="btn-buy" id="btn-buy-now" onclick="startPayment(${courseId})">Buy Now — ${rupees(selectedCourse.pricePaise)}</button>`}
+    `;
+    showScreen('screen-detail');
+  }
+
+  // ── Payment ──────────────────────────────────────────
+  let pendingPaymentData = null;
+  let verifyRetryCount = 0;
+  const MAX_RETRY_ATTEMPTS = 3;
+
+  async function verifyPaymentWithTimeout(razorpayOrderId, razorpayPaymentId, razorpaySignature, timeout = 15000) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    try {
+      const response = await fetch(API_BASE + '/api/payment/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({
+          razorpayOrderId,
+          razorpayPaymentId,
+          razorpaySignature
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      const body = await response.json().catch(() => ({}));
+      if (response.status === 401) {
+        clearSessionLocal();
+        window.location.href = '/web/auth/login.html';
+        return null;
+      }
+      if (!response.ok) throw new Error(body.message || body.error || 'Verification failed');
+      return body;
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        throw new Error('Payment verification timed out. Please use Check Status to verify.');
+      }
+      throw err;
+    }
+  }
+
+  async function retryPaymentVerification() {
+    if (!pendingPaymentData) {
+      closePaymentErrorModal();
+      return;
+    }
+
+    verifyRetryCount++;
+    if (verifyRetryCount > MAX_RETRY_ATTEMPTS) {
+      showPaymentError(
+        'Max Retries Exceeded',
+        'Payment verification failed after multiple attempts. Please contact support with your payment ID for assistance.',
+        pendingPaymentData.razorpayPaymentId,
+        false,
+        true
+      );
+      return;
+    }
+
+    const waitTime = Math.pow(2, verifyRetryCount - 1) * 1000; // 1s, 2s, 4s
+    showPaymentError(
+      'Retrying…',
+      `Attempting to verify payment (attempt ${verifyRetryCount} of ${MAX_RETRY_ATTEMPTS}). Please wait ${waitTime/1000}s…`,
+      pendingPaymentData.razorpayPaymentId,
+      false,
+      false
+    );
+    document.getElementById('modal-btn-retry').disabled = true;
+
+    await new Promise(r => setTimeout(r, waitTime));
+
+    try {
+      const result = await verifyPaymentWithTimeout(
+        pendingPaymentData.razorpayOrderId,
+        pendingPaymentData.razorpayPaymentId,
+        pendingPaymentData.razorpaySignature
+      );
+      if (result && result.success) {
+        // Payment verified successfully
+        pendingPaymentData = null;
+        verifyRetryCount = 0;
+        purchasedCourseIds.push(selectedCourse.id);
+        localStorage.setItem('purchasedIds', JSON.stringify(purchasedCourseIds));
+        closePaymentErrorModal();
+        showDetail(selectedCourse.id);
+        alert('Payment successful! Open the Singh Sir app to access your course.');
+      }
+    } catch (err) {
+      console.error('Retry verification failed:', err);
+      showPaymentError(
+        'Retry Failed',
+        'Payment verification retry failed. Please use Check Status to verify.',
+        pendingPaymentData.razorpayPaymentId,
+        true,
+        false
+      );
+      document.getElementById('modal-btn-retry').disabled = false;
+    }
+  }
+
+  async function checkPaymentStatus() {
+    if (!pendingPaymentData) {
+      closePaymentErrorModal();
+      return;
+    }
+
+    try {
+      const statusResponse = await apiFetch('/api/payment/verify-status', {
+        method: 'POST',
+        body: JSON.stringify({
+          razorpayOrderId: pendingPaymentData.razorpayOrderId,
+          razorpayPaymentId: pendingPaymentData.razorpayPaymentId
+        })
+      });
+
+      if (statusResponse.verified && statusResponse.courseAccessible) {
+        // Payment was verified! Enrollment successful
+        pendingPaymentData = null;
+        verifyRetryCount = 0;
+        purchasedCourseIds.push(selectedCourse.id);
+        localStorage.setItem('purchasedIds', JSON.stringify(purchasedCourseIds));
+        closePaymentErrorModal();
+        showDetail(selectedCourse.id);
+        alert('Great news! Your payment was verified and your course is now accessible.');
+      } else {
+        // Not yet verified, show current status
+        showPaymentError(
+          'Payment Status',
+          statusResponse.message || 'Payment is still being processed. Please try again in a moment.',
+          pendingPaymentData.razorpayPaymentId,
+          true,
+          true
+        );
+      }
+    } catch (err) {
+      console.error('Status check failed:', err);
+      showPaymentError(
+        'Status Check Failed',
+        'Could not verify payment status. ' + (err.message || 'Please try again later.'),
+        pendingPaymentData.razorpayPaymentId,
+        true,
+        true
+      );
+    }
+  }
+
+  function showPaymentError(title, message, paymentId, showRetry = true, showCheck = true) {
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-message').textContent = message;
+    const supportIdEl = document.getElementById('modal-support-id');
+    if (paymentId) {
+      supportIdEl.textContent = 'Payment ID: ' + paymentId;
+      supportIdEl.style.display = 'block';
+    }
+    const retryBtn = document.getElementById('modal-btn-retry');
+    const checkBtn = document.getElementById('modal-btn-check-status');
+    retryBtn.style.display = showRetry ? 'block' : 'none';
+    checkBtn.style.display = showCheck ? 'block' : 'none';
+    document.getElementById('payment-error-modal').classList.add('active');
+  }
+
+  function closePaymentErrorModal() {
+    document.getElementById('payment-error-modal').classList.remove('active');
+  }
+
+  async function startPayment(courseId) {
+    if (!token) {
+      showScreen('screen-login');
+      return;
+    }
+    const btn = document.getElementById('btn-buy-now');
+    if (btn) { btn.disabled = true; btn.textContent = 'Processing…'; }
+
+    let orderData;
+    try {
+      orderData = await apiFetch('/api/payment/create-order', {
+        method: 'POST',
+        body: JSON.stringify({ courseId })
+      });
+    } catch (e) {
+      alert('Could not initiate payment: ' + e.message);
+      if (btn) { btn.disabled = false; btn.textContent = `Buy Now — ${rupees(selectedCourse.pricePaise)}`; }
+      return;
+    }
+
+    const options = {
+      key: orderData.keyId,
+      amount: orderData.amountPaise,
+      currency: orderData.currency,
+      name: 'Singh Sir',
+      description: selectedCourse.title,
+      order_id: orderData.razorpayOrderId,
+      handler: async function (response) {
+        try {
+          const result = await verifyPaymentWithTimeout(
+            response.razorpay_order_id,
+            response.razorpay_payment_id,
+            response.razorpay_signature
+          );
+          if (result && result.success) {
+            purchasedCourseIds.push(courseId);
+            localStorage.setItem('purchasedIds', JSON.stringify(purchasedCourseIds));
+            showDetail(courseId);
+            alert('Payment successful! Open the Singh Sir app to access your course.');
+          }
+        } catch (err) {
+          console.error('Payment verification error:', err.message);
+          // Store payment data for retry
+          pendingPaymentData = {
+            razorpayOrderId: response.razorpay_order_id,
+            razorpayPaymentId: response.razorpay_payment_id,
+            razorpaySignature: response.razorpay_signature
+          };
+          verifyRetryCount = 0;
+
+          // Show error with recovery options
+          let errorTitle = 'Payment Verification Failed';
+          let errorMessage = err.message || 'Unable to verify your payment. Please try again.';
+
+          if (err.message.includes('timeout')) {
+            errorMessage = 'Payment verification is taking longer than expected. Please use Check Status to verify your payment.';
+          }
+
+          showPaymentError(errorTitle, errorMessage, response.razorpay_payment_id, true, true);
+        }
+      },
+      prefill: {
+        name: userFirstName
+      },
+      theme: { color: '#1a56db' }
+    };
+
+    const rzp = new Razorpay(options);
+    rzp.on('payment.failed', function () {
+      if (btn) { btn.disabled = false; btn.textContent = `Buy Now — ${rupees(selectedCourse.pricePaise)}`; }
+    });
+    rzp.open();
+    if (btn) { btn.disabled = false; btn.textContent = `Buy Now — ${rupees(selectedCourse.pricePaise)}`; }
+  }
+
+  // ── Init ─────────────────────────────────────────────
+  (async function init() {
+    // 1. Check authentication - redirects to login if not authenticated
+    const auth = checkAuth();
+    if (!auth.authenticated) return; // checkAuth() already redirected to /web/auth/login.html
+
+    // 2. Check role - redirect ADMIN users to admin panel
+    if (!requireRole(['USER', 'TEACHER'])) return; // Already redirected
+
+    // 3. Load user data
+    const user = getUserInfo();
+    token = user.userId ? getToken() : null;
+    userFirstName = user.firstName;
+
+    // 4. Setup UI and load courses
+    document.getElementById('user-name').textContent = userFirstName;
+    document.getElementById('user-menu').style.display = 'flex';
+    await loadUserCourses();
+    showCoursesScreen();
+  })();
+</script>
+</body>
+</html>

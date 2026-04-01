@@ -53,6 +53,7 @@ ehthumbs.db
 .env.local
 .env.*.local
 *.pem
+setup.sh
 
 # Java / JAR (build outputs only - gradle wrapper jars are in version control)
 # Build output jars are under build/ which is already ignored

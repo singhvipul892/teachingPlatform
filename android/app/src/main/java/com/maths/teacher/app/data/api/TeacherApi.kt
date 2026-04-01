@@ -1,9 +1,12 @@
 package com.maths.teacher.app.data.api
 
 import com.maths.teacher.app.data.model.AuthResponse
+import com.maths.teacher.app.data.model.ForgotPasswordRequest
+import com.maths.teacher.app.data.model.MessageResponse
 import com.maths.teacher.app.data.model.PdfDownloadResponse
-import com.maths.teacher.app.data.model.SectionDto
+import com.maths.teacher.app.data.model.ResetPasswordRequest
 import com.maths.teacher.app.data.model.SignupRequest
+import com.maths.teacher.app.data.model.UserCoursesResponse
 import com.maths.teacher.app.data.model.VideoDto
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -18,15 +21,21 @@ interface TeacherApi {
     @POST("api/auth/login")
     suspend fun login(@Body request: com.maths.teacher.app.data.model.LoginRequest): AuthResponse
 
-    @GET("api/sections")
-    suspend fun getSections(): List<SectionDto>
+    @POST("api/auth/forgot-password")
+    suspend fun forgotPassword(@Body request: ForgotPasswordRequest): MessageResponse
 
-    @GET("api/sections/{section}/videos")
-    suspend fun getVideosBySection(@Path(value = "section", encoded = true) section: String): List<VideoDto>
+    @POST("api/auth/reset-password")
+    suspend fun resetPassword(@Body request: ResetPasswordRequest): MessageResponse
+
+    @GET("api/courses/{courseId}/videos")
+    suspend fun getCourseVideos(@Path("courseId") courseId: Long): List<VideoDto>
 
     @GET("api/videos/{videoId}/pdfs/{pdfId}/download")
     suspend fun downloadPdf(
         @Path("videoId") videoId: Long,
         @Path("pdfId") pdfId: Long
     ): PdfDownloadResponse
+
+    @GET("api/user/courses")
+    suspend fun getUserCourses(): UserCoursesResponse
 }
