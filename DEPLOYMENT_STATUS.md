@@ -1,15 +1,16 @@
 # Deployment Status
 
-**Date:** 2026-03-09
-**Status:** 🔴 BLOCKED — Android app incompatible with new backend APIs
+**Date:** 2026-03-26
+**Status:** 🟡 BLOCKED — Android app incompatible with new backend APIs (web + nginx ready for deploy)
 
 ---
 
 ## What Works ✅
 - Backend payment system (Razorpay integration)
-- Course management (admin dashboard)
-- Student web app (HTML/JS)
-- Database schema (courses, videos, purchases)
+- Course management (admin dashboard) — create, edit, toggle active/inactive status
+- Admin panel video & PDF management (add/edit/delete videos and PDFs per course)
+- Student web app (HTML/JS) — course listing, payment checkout, video access
+- Database schema (courses, videos, purchases, PDFs)
 
 ## What's Broken ❌
 - **Android app calls deleted API endpoints** — will crash on startup for all users
@@ -69,7 +70,19 @@
 - `backend/.../catalog/web/VideoCatalogController.java` — Removed section endpoints, added `GET /courses/{courseId}/videos`
 - `backend/.../payment/repository/CourseRepository.java` — `findByActiveTrue()`
 - `docker-compose.prod.yml` — healthcheck, restart policies, admin volume, pgadmin behind `--profile tools`
-- `nginx/nginx.conf` + `nginx/nginx.no-ssl.conf` — Added `/admin/` location block
+- `nginx/nginx.conf` — SSL config: HTTP→HTTPS redirect, `/web/` static alias, certbot challenge, API proxy; `client_max_body_size 50m` for multi-PDF uploads
+- `nginx/nginx.no-ssl.conf` — Bootstrap config: HTTP only, same `/web/` static + proxy (use for first SSL cert); `client_max_body_size 50m` for multi-PDF uploads
+- Root `/` → redirects to `/web/auth/login.html`; `/policies.html` → `/web/student/policies.html` (both configs)
+
+---
+
+## Local Development Setup
+
+**API_BASE Configuration:**
+- Web app files (`web/auth/login.html`, `web/admin/index.html`, `web/student/index.html`) have `const API_BASE = 'http://13.205.19.207:8080';` for local development
+- **Before production deployment:** Change to `const API_BASE = '';` (empty string) so web app uses relative URLs and calls the same domain
+- Comments in each file mark what to revert for production
+- **Tip:** Hard refresh browser (`Ctrl+Shift+R`) after changing API_BASE to clear cache
 
 ---
 

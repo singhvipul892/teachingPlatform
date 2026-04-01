@@ -19,7 +19,10 @@
       "Bash(xargs grep -l \"ROLE_ADMIN\\\\|ROLE_STUDENT\\\\|ROLE_USER\")",
       "Bash(xargs ls -la)",
       "Bash(xargs grep -l \"paymentService\\\\|purchaseRepository\")",
-      "Bash(openssl rand -hex 64)"
+      "Bash(openssl rand -hex 64)",
+      "Read(//opt/**)",
+      "Bash(sudo git:*)",
+      "Bash(npm install:*)"
     ]
   }
 }
