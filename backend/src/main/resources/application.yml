@@ -2,8 +2,6 @@
 # Production uses this file directly (all values come from environment variables).
 # Local/dev profiles override these via application-local.yml / application-dev.yml.
 spring:
-  profiles:
-    active: local
   servlet:
     multipart:
       max-file-size: 50MB
