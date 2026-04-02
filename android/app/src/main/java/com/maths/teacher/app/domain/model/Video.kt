@@ -5,7 +5,7 @@ data class Video(
     val videoId: String,
     val title: String,
     val thumbnailUrl: String,
-    val duration: String,
+    val duration: String?,
     val pdfs: List<Pdf> = emptyList()
 )
 

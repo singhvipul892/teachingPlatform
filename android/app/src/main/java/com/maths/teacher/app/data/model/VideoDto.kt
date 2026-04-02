@@ -5,7 +5,7 @@ data class VideoDto(
     val videoId: String,
     val title: String,
     val thumbnailUrl: String,
-    val duration: String,
+    val duration: String?,
     val displayOrder: Int,
     val pdfs: List<PdfDto> = emptyList()
 )

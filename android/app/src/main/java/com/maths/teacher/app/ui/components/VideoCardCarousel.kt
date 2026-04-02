@@ -62,7 +62,7 @@ private fun VideoCard(
     video: Video,
     onVideoSelected: (Long) -> Unit
 ) {
-    AppTooltip(text = "${video.title}\nDuration: ${video.duration}") {
+    AppTooltip(text = "${video.title}${video.duration?.let { "\nDuration: $it" } ?: ""}") {
         val cardWidth = 264.dp // 220.dp * 1.2 (20% increase)
         val cardBorderRadius = 25.dp
         val thumbnailBorderRadius = 20.dp
