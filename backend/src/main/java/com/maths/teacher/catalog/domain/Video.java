@@ -38,7 +38,7 @@ public class Video {
     @Column(name = "thumbnail_url", nullable = false, length = 500)
     private String thumbnailUrl;
 
-    @Column(nullable = false, length = 20)
+    @Column(length = 20)
     private String duration;
 
     @Column(name = "display_order", nullable = false)
