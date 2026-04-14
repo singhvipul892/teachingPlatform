@@ -45,9 +45,32 @@ fun YouTubeEmbedPlayer(
     // TODO: remove hardcoded test video before release
     val cleanVideoId = remember(videoId) { "jNQXAC9IVRw" }
 
-    // Direct embed URL — no iframe wrapper needed
-    val embedUrl = "https://www.youtube.com/embed/$cleanVideoId" +
-            "?autoplay=1&playsinline=1&rel=0&modestbranding=1&enablejsapi=1"
+    // The HTML wraps the embed in an iframe.
+    // loadDataWithBaseURL with "https://www.youtube.com" makes YouTube's player
+    // see the parent document origin as youtube.com → bypasses the 150/152 restriction.
+    val htmlContent = remember(cleanVideoId) {
+        """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
+                iframe { width: 100%; height: 100%; border: none; display: block; }
+            </style>
+        </head>
+        <body>
+            <iframe
+                src="https://www.youtube.com/embed/$cleanVideoId?autoplay=1&playsinline=1&rel=0&modestbranding=1&enablejsapi=1"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen>
+            </iframe>
+        </body>
+        </html>
+        """.trimIndent()
+    }
 
     var webView by remember { mutableStateOf<WebView?>(null) }
 
@@ -57,12 +80,12 @@ fun YouTubeEmbedPlayer(
                 WebView(ctx).also { wv ->
                     webView = wv
 
-                    // Required for video frame rendering
+                    // Required for video frame rendering in WebView
                     wv.setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
 
                     WebView.setWebContentsDebuggingEnabled(true)
 
-                    // Enable cookies — YouTube requires them for playback
+                    // YouTube needs cookies to initialise the player
                     CookieManager.getInstance().apply {
                         setAcceptCookie(true)
                         setAcceptThirdPartyCookies(wv, true)
@@ -80,7 +103,7 @@ fun YouTubeEmbedPlayer(
                         allowContentAccess = true
                         setSupportMultipleWindows(false)
                         javaScriptCanOpenWindowsAutomatically = false
-                        // Present as Chrome mobile so YouTube serves the standard player
+                        // Present as Chrome mobile — hides the WebView identity from YouTube
                         userAgentString =
                             "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
                     }
@@ -112,9 +135,16 @@ fun YouTubeEmbedPlayer(
                         }
                     }
 
-                    Log.d("YouTubePlayer", "Loading: $embedUrl")
-                    // Load embed URL directly — avoids iframe cross-origin restrictions
-                    wv.loadUrl(embedUrl)
+                    Log.d("YouTubePlayer", "Loading video: $cleanVideoId")
+
+                    // Base URL = youtube.com → player sees origin as youtube.com → no 150/152 error
+                    wv.loadDataWithBaseURL(
+                        "https://www.youtube.com",
+                        htmlContent,
+                        "text/html",
+                        "UTF-8",
+                        null
+                    )
                 }
             },
             modifier = Modifier.fillMaxSize()
