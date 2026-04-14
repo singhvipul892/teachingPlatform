@@ -1,5 +1,7 @@
 package com.maths.teacher.app.ui.videodetail
 
+import android.app.Activity
+import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -28,14 +30,19 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.maths.teacher.app.R
@@ -59,29 +66,23 @@ fun VideoDetailScreen(
     val userId by sessionManager.userId.collectAsStateWithLifecycle(initialValue = null)
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val activity = LocalContext.current as? Activity
 
-    // ✅ landscape — hide scaffold, show only fullscreen video
-    // same YouTubeEmbedPlayer instance — only modifier changes
-    if (isLandscape && uiState.video != null && !uiState.isLoading && uiState.errorMessage == null) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black)
-        ) {
-            YouTubeEmbedPlayer(
-                videoId = uiState.video!!.videoId,
-                onDismiss = { },
-                modifier = Modifier.fillMaxSize(),
-                showCloseButton = false,
-                isFullscreen = true
-            )
+    // Hide / restore system UI for true fullscreen in landscape
+    LaunchedEffect(isLandscape) {
+        val window = activity?.window ?: return@LaunchedEffect
+        val controller = WindowCompat.getInsetsController(window, window.decorView)
+        if (isLandscape) {
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+            controller.systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        } else {
+            controller.show(WindowInsetsCompat.Type.systemBars())
         }
-        return
     }
 
     Scaffold(
         topBar = {
-            // ✅ hide topbar in landscape
             if (!isLandscape) {
                 TopAppBar(
                     title = {
@@ -125,13 +126,13 @@ fun VideoDetailScreen(
                 )
             }
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = if (isLandscape) Color.Black else MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Box(
             modifier = modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(MaterialTheme.colorScheme.background)
+                .background(if (isLandscape) Color.Black else MaterialTheme.colorScheme.background)
         ) {
             when {
                 uiState.isLoading -> {
@@ -163,6 +164,13 @@ fun VideoDetailScreen(
                         onOpenPdf = { videoId, pdfId ->
                             navController.navigate("pdf_viewer/$videoId/$pdfId")
                         },
+                        onFullscreenToggle = {
+                            activity?.requestedOrientation =
+                                if (isLandscape)
+                                    ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                                else
+                                    ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                        },
                         api = api,
                         modifier = Modifier.fillMaxSize()
                     )
@@ -178,6 +186,7 @@ private fun VideoDetailContent(
     isLandscape: Boolean,
     userId: Long?,
     onOpenPdf: (videoId: Long, pdfId: Long) -> Unit,
+    onFullscreenToggle: () -> Unit,
     api: TeacherApi,
     modifier: Modifier = Modifier
 ) {
@@ -186,27 +195,21 @@ private fun VideoDetailContent(
     Column(
         modifier = modifier
             .verticalScroll(scrollState)
-            // ✅ no padding in landscape so video fills edge to edge
             .padding(if (isLandscape) PaddingValues(0.dp) else PaddingValues(16.dp)),
         verticalArrangement = if (isLandscape) Arrangement.Top
         else Arrangement.spacedBy(16.dp)
     ) {
-        // ✅ ONE single YouTubeEmbedPlayer — modifier changes based on orientation
-        // this prevents WebView from being destroyed and recreated on rotation
+        // Single YouTubeEmbedPlayer — modifier changes on rotation, player never recreates
         YouTubeEmbedPlayer(
             videoId = video.videoId,
-            onDismiss = { },
             modifier = if (isLandscape)
-            // landscape — fill entire screen
                 Modifier.fillMaxSize()
             else
-            // portrait — 16:9 ratio
                 Modifier.fillMaxWidth().aspectRatio(16f / 9f),
-            showCloseButton = false,
-            isFullscreen = isLandscape
+            isFullscreen = isLandscape,
+            onFullscreenToggle = onFullscreenToggle
         )
 
-        // ✅ hide title and pdfs in landscape — only show video
         if (!isLandscape) {
             Text(
                 text = video.title,
