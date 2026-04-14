@@ -41,7 +41,8 @@ fun YouTubeEmbedPlayer(
     onFullscreenToggle: () -> Unit = {}
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
-    val cleanVideoId = remember(videoId) { videoId.trim() }
+    // TODO: remove this hardcoded test video before release
+    val cleanVideoId = remember(videoId) { "jNQXAC9IVRw" }
 
     // loadDataWithBaseURL with youtube.com as origin bypasses embedding restrictions
     val htmlContent = remember(cleanVideoId) {
