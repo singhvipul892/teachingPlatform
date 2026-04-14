@@ -2,6 +2,7 @@ package com.maths.teacher.app.ui.home
 
 import android.util.Log
 import android.webkit.ConsoleMessage
+import android.webkit.CookieManager
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
@@ -41,40 +42,12 @@ fun YouTubeEmbedPlayer(
     onFullscreenToggle: () -> Unit = {}
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
-    // TODO: remove this hardcoded test video before release
+    // TODO: remove hardcoded test video before release
     val cleanVideoId = remember(videoId) { "jNQXAC9IVRw" }
 
-    // loadDataWithBaseURL with youtube.com as origin bypasses embedding restrictions
-    val htmlContent = remember(cleanVideoId) {
-        """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-            <style>
-                * { margin: 0; padding: 0; box-sizing: border-box; }
-                html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
-                .video-container { position: relative; width: 100%; height: 100%; }
-                iframe {
-                    position: absolute; top: 0; left: 0;
-                    width: 100%; height: 100%; border: none;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="video-container">
-                <iframe
-                    src="https://www.youtube.com/embed/$cleanVideoId?autoplay=1&playsinline=1&rel=0&modestbranding=1&enablejsapi=1&origin=https://www.youtube.com"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowfullscreen
-                    frameborder="0">
-                </iframe>
-            </div>
-        </body>
-        </html>
-        """.trimIndent()
-    }
+    // Direct embed URL — no iframe wrapper needed
+    val embedUrl = "https://www.youtube.com/embed/$cleanVideoId" +
+            "?autoplay=1&playsinline=1&rel=0&modestbranding=1&enablejsapi=1"
 
     var webView by remember { mutableStateOf<WebView?>(null) }
 
@@ -84,14 +57,21 @@ fun YouTubeEmbedPlayer(
                 WebView(ctx).also { wv ->
                     webView = wv
 
-                    // Hardware acceleration at the view level — required for video rendering
+                    // Required for video frame rendering
                     wv.setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
 
                     WebView.setWebContentsDebuggingEnabled(true)
 
+                    // Enable cookies — YouTube requires them for playback
+                    CookieManager.getInstance().apply {
+                        setAcceptCookie(true)
+                        setAcceptThirdPartyCookies(wv, true)
+                    }
+
                     wv.settings.apply {
                         javaScriptEnabled = true
                         domStorageEnabled = true
+                        databaseEnabled = true
                         loadWithOverviewMode = true
                         useWideViewPort = true
                         mediaPlaybackRequiresUserGesture = false
@@ -100,7 +80,7 @@ fun YouTubeEmbedPlayer(
                         allowContentAccess = true
                         setSupportMultipleWindows(false)
                         javaScriptCanOpenWindowsAutomatically = false
-                        // Bypass YouTube's WebView block by presenting as Chrome mobile
+                        // Present as Chrome mobile so YouTube serves the standard player
                         userAgentString =
                             "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
                     }
@@ -119,7 +99,6 @@ fun YouTubeEmbedPlayer(
                             view: WebView?,
                             request: WebResourceRequest?
                         ): Boolean {
-                            // Keep all navigation inside the WebView
                             return false
                         }
                     }
@@ -133,22 +112,15 @@ fun YouTubeEmbedPlayer(
                         }
                     }
 
-                    Log.d("YouTubePlayer", "Loading video: $cleanVideoId")
-
-                    // Base URL spoofs the origin as youtube.com → bypasses embedding restrictions
-                    wv.loadDataWithBaseURL(
-                        "https://www.youtube.com",
-                        htmlContent,
-                        "text/html",
-                        "UTF-8",
-                        null
-                    )
+                    Log.d("YouTubePlayer", "Loading: $embedUrl")
+                    // Load embed URL directly — avoids iframe cross-origin restrictions
+                    wv.loadUrl(embedUrl)
                 }
             },
             modifier = Modifier.fillMaxSize()
         )
 
-        // Fullscreen toggle button — bottom-right corner of the player
+        // Fullscreen toggle button — bottom-right corner
         IconButton(
             onClick = onFullscreenToggle,
             modifier = Modifier
