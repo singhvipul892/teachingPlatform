@@ -1,6 +1,13 @@
 package com.maths.teacher.app.ui.home
 
 import android.util.Log
+import android.webkit.ConsoleMessage
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,9 +30,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
-import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
-import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 
 @Composable
 fun YouTubeEmbedPlayer(
@@ -37,32 +43,111 @@ fun YouTubeEmbedPlayer(
     val lifecycleOwner = LocalLifecycleOwner.current
     val cleanVideoId = remember(videoId) { videoId.trim() }
 
-    // Keep a reference to the player view so lifecycle can be managed
-    var playerView by remember { mutableStateOf<YouTubePlayerView?>(null) }
+    // loadDataWithBaseURL with youtube.com as origin bypasses embedding restrictions
+    val htmlContent = remember(cleanVideoId) {
+        """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
+                .video-container { position: relative; width: 100%; height: 100%; }
+                iframe {
+                    position: absolute; top: 0; left: 0;
+                    width: 100%; height: 100%; border: none;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="video-container">
+                <iframe
+                    src="https://www.youtube.com/embed/$cleanVideoId?autoplay=1&playsinline=1&rel=0&modestbranding=1&enablejsapi=1&origin=https://www.youtube.com"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen
+                    frameborder="0">
+                </iframe>
+            </div>
+        </body>
+        </html>
+        """.trimIndent()
+    }
 
-    Box(
-        modifier = modifier.background(Color.Black)
-    ) {
+    var webView by remember { mutableStateOf<WebView?>(null) }
+
+    Box(modifier = modifier.background(Color.Black)) {
         AndroidView(
             factory = { ctx ->
-                YouTubePlayerView(ctx).also { view ->
-                    playerView = view
-                    // Lifecycle-aware: handles pause/resume/destroy automatically
-                    lifecycleOwner.lifecycle.addObserver(view)
+                WebView(ctx).also { wv ->
+                    webView = wv
 
-                    view.enableAutomaticInitialization = false
-                    view.initialize(object : AbstractYouTubePlayerListener() {
-                        override fun onReady(youTubePlayer: YouTubePlayer) {
-                            Log.d("YouTubePlayer", "Player ready, loading: $cleanVideoId")
-                            youTubePlayer.loadVideo(cleanVideoId, 0f)
+                    // Hardware acceleration at the view level — required for video rendering
+                    wv.setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
+
+                    WebView.setWebContentsDebuggingEnabled(true)
+
+                    wv.settings.apply {
+                        javaScriptEnabled = true
+                        domStorageEnabled = true
+                        loadWithOverviewMode = true
+                        useWideViewPort = true
+                        mediaPlaybackRequiresUserGesture = false
+                        mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                        allowFileAccess = true
+                        allowContentAccess = true
+                        setSupportMultipleWindows(false)
+                        javaScriptCanOpenWindowsAutomatically = false
+                        // Bypass YouTube's WebView block by presenting as Chrome mobile
+                        userAgentString =
+                            "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+                    }
+
+                    wv.webViewClient = object : WebViewClient() {
+                        override fun onReceivedError(
+                            view: WebView?,
+                            request: WebResourceRequest?,
+                            error: WebResourceError?
+                        ) {
+                            super.onReceivedError(view, request, error)
+                            Log.e("YouTubePlayer", "Error: ${error?.description} | ${request?.url}")
                         }
-                    })
+
+                        override fun shouldOverrideUrlLoading(
+                            view: WebView?,
+                            request: WebResourceRequest?
+                        ): Boolean {
+                            // Keep all navigation inside the WebView
+                            return false
+                        }
+                    }
+
+                    wv.webChromeClient = object : WebChromeClient() {
+                        override fun onConsoleMessage(msg: ConsoleMessage?): Boolean {
+                            msg?.let {
+                                Log.d("YouTubePlayer", "JS [${it.messageLevel()}]: ${it.message()}")
+                            }
+                            return true
+                        }
+                    }
+
+                    Log.d("YouTubePlayer", "Loading video: $cleanVideoId")
+
+                    // Base URL spoofs the origin as youtube.com → bypasses embedding restrictions
+                    wv.loadDataWithBaseURL(
+                        "https://www.youtube.com",
+                        htmlContent,
+                        "text/html",
+                        "UTF-8",
+                        null
+                    )
                 }
             },
             modifier = Modifier.fillMaxSize()
         )
 
-        // Fullscreen toggle button — bottom-right corner
+        // Fullscreen toggle button — bottom-right corner of the player
         IconButton(
             onClick = onFullscreenToggle,
             modifier = Modifier
@@ -71,20 +156,36 @@ fun YouTubeEmbedPlayer(
                 .size(40.dp)
         ) {
             Icon(
-                imageVector = if (isFullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
+                imageVector = if (isFullscreen) Icons.Default.FullscreenExit
+                              else Icons.Default.Fullscreen,
                 contentDescription = if (isFullscreen) "Exit fullscreen" else "Enter fullscreen",
                 tint = Color.White
             )
         }
     }
 
-    // Release the player when leaving composition
-    DisposableEffect(Unit) {
-        onDispose {
-            playerView?.let { view ->
-                lifecycleOwner.lifecycle.removeObserver(view)
-                view.release()
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> {
+                    webView?.onPause()
+                    webView?.pauseTimers()
+                }
+                Lifecycle.Event.ON_RESUME -> {
+                    webView?.onResume()
+                    webView?.resumeTimers()
+                }
+                Lifecycle.Event.ON_DESTROY -> {
+                    webView?.destroy()
+                }
+                else -> {}
             }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            webView?.onPause()
+            webView?.pauseTimers()
         }
     }
 }
