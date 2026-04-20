@@ -201,7 +201,8 @@ private fun VideoDetailContent(
     ) {
         // Single YouTubeEmbedPlayer — modifier changes on rotation, player never recreates
         YouTubeEmbedPlayer(
-            videoId = video.videoId,
+            videoId = "jNQXAC9IVRw", // hardcoded for testing
+//            videoId = video.videoId,
             modifier = if (isLandscape)
                 Modifier.fillMaxSize()
             else
