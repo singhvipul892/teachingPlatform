@@ -14,6 +14,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -148,6 +151,10 @@ private fun VideoDetailContent(
             .background(if (isLandscape) Color.Black else MaterialTheme.colorScheme.background)
     ) {
         // 1. VIDEO SECTION: Fixed at the top, standard 16:9 ratio
+        // exitFullscreenPrep injects GUARD_JS and only calls onReady() after JS confirms
+        // it has executed — so the rotation is deferred until the guard is live.
+        var exitFullscreenPrep by remember { mutableStateOf<((onReady: () -> Unit) -> Unit)?>(null) }
+
         Box(
             modifier = if (isLandscape) {
                 Modifier.fillMaxSize()
@@ -162,8 +169,31 @@ private fun VideoDetailContent(
                 videoId = video.videoId,
                 modifier = Modifier.fillMaxSize(),
                 isFullscreen = isLandscape,
-                onFullscreenToggle = onFullscreenToggle
+                onFullscreenToggle = onFullscreenToggle,
+                onExitFullscreenPreparer = { fn -> exitFullscreenPrep = fn }
             )
+            IconButton(
+                onClick = {
+                    val prep = if (isLandscape) exitFullscreenPrep else null
+                    if (prep != null) {
+                        prep { onFullscreenToggle() }  // rotate only after guard JS confirmed
+                    } else {
+                        onFullscreenToggle()
+                    }
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(4.dp)
+            ) {
+                Icon(
+                    painter = painterResource(
+                        id = if (isLandscape) R.drawable.ic_fullscreen_exit
+                             else R.drawable.ic_fullscreen
+                    ),
+                    contentDescription = if (isLandscape) "Exit fullscreen" else "Enter fullscreen",
+                    tint = Color.White
+                )
+            }
         }
 
         // 2. INFORMATION SECTION: Only this part is scrollable

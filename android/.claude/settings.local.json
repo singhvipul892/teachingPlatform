@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /c/Users/PRAROOP/Desktop/VipulFolder/android/app/src/main/java -type f \\\\\\( -name \"*.kt\" -o -name \"*.java\" \\\\\\) -exec grep -l \"WebView\\\\|YouTube\\\\|Player\" {} \\\\;)"
+    ]
+  }
+}

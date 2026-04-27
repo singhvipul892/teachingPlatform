@@ -28,29 +28,26 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import kotlinx.coroutines.delay
 
 @Composable
 fun YouTubeEmbedPlayer(
     videoId: String,
     modifier: Modifier = Modifier,
     isFullscreen: Boolean = false,
-    onFullscreenToggle: () -> Unit = {}
+    onFullscreenToggle: () -> Unit = {},
+    // preparer receives a callback it must call after the guard JS has finished executing
+    onExitFullscreenPreparer: (preparer: (onReady: () -> Unit) -> Unit) -> Unit = {}
 ) {
     val cleanVideoId = remember(videoId) { videoId.trim() }
     var webView by remember { mutableStateOf<WebView?>(null) }
     val activity = LocalContext.current as? Activity
 
-    // Handle physical rotation: landscape → portrait resumes video
-    val wasFullscreen = remember { mutableStateOf(isFullscreen) }
-    LaunchedEffect(isFullscreen) {
-        val prev = wasFullscreen.value
-        wasFullscreen.value = isFullscreen
-        if (prev && !isFullscreen) {
-            repeat(8) { attempt ->
-                delay(200L + attempt * 300L)
-                webView?.evaluateJavascript(RESUME_JS, null)
-            }
+    // Register with parent: inject GUARD_JS, then call onReady() so rotation starts
+    // only after the JS is confirmed to have run in the renderer.
+    LaunchedEffect(webView) {
+        val wv = webView ?: return@LaunchedEffect
+        onExitFullscreenPreparer { onReady ->
+            wv.evaluateJavascript(GUARD_JS) { onReady() }
         }
     }
 
@@ -84,6 +81,16 @@ fun YouTubeEmbedPlayer(
 
                     override fun onPageFinished(view: WebView, url: String) {
                         view.evaluateJavascript(HIDE_UI_JS, null)
+                        // Resume playback after any page reload caused by viewport change
+                        val handler = Handler(Looper.getMainLooper())
+                        var attempt = 0
+                        val retry = object : Runnable {
+                            override fun run() {
+                                view.evaluateJavascript(RESUME_JS, null)
+                                if (++attempt < 8) handler.postDelayed(this, 300)
+                            }
+                        }
+                        handler.postDelayed(retry, 500)
                     }
                 }
 
@@ -159,9 +166,30 @@ fun YouTubeEmbedPlayer(
     }
 }
 
-/** Resumes the HTML5 video only if it is actually paused. */
 private const val RESUME_JS =
-    "(function(){var v=document.querySelector('video');if(v&&v.paused)v.play().catch(function(){});})()"
+    "(function(){var v=document.querySelector('video');if(v)v.play().catch(function(){});})()"
+
+private val GUARD_JS = """
+(function(){
+  var v=document.querySelector('video');
+  if(!v) return;
+  var play=function(){v.play().catch(function(){});};
+  play();
+  var fn=function(){setTimeout(play,120);};
+  v.addEventListener('pause',fn,{once:true});
+  var obs=new MutationObserver(function(){
+    var nv=document.querySelector('video');
+    if(nv&&nv!==v){
+      v.removeEventListener('pause',fn);
+      v=nv;
+      v.addEventListener('pause',fn,{once:true});
+      play();
+    }
+  });
+  obs.observe(document.body,{childList:true,subtree:true});
+  setTimeout(function(){obs.disconnect();v.removeEventListener('pause',fn);},6000);
+})()
+""".trimIndent()
 
 private val HIDE_UI_JS = """
 (function() {
