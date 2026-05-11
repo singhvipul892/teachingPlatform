@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.pm.ActivityInfo
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.CookieManager
@@ -38,7 +39,9 @@ fun YouTubeEmbedPlayer(
     // preparer receives a callback it must call after the guard JS has finished executing
     onExitFullscreenPreparer: (preparer: (onReady: () -> Unit) -> Unit) -> Unit = {}
 ) {
+    @Suppress("UNUSED_VARIABLE")
     val cleanVideoId = remember(videoId) { videoId.trim() }
+    val hardcodedVideoId = "0rcMxUx4drQ"
     var webView by remember { mutableStateOf<WebView?>(null) }
     val activity = LocalContext.current as? Activity
 
@@ -104,6 +107,7 @@ fun YouTubeEmbedPlayer(
                             callback.onCustomViewHidden()
                             return
                         }
+                        Log.d("YTEmbed", "onShowCustomView: entering fullscreen")
                         customView = view
                         customViewCallback = callback
 
@@ -127,6 +131,15 @@ fun YouTubeEmbedPlayer(
 
                     override fun onHideCustomView() {
                         val decor = activity?.window?.decorView as? FrameLayout ?: return
+
+                        // Inject persistent guard BEFORE handing control back to YouTube.
+                        // Codec rebuild takes up to 45–50s after orientation change; guard
+                        // must stay alive past that entire window.
+                        Log.d("YTEmbed", "onHideCustomView: injecting EXIT_FULLSCREEN_GUARD_JS (65s window)")
+                        wv.evaluateJavascript(EXIT_FULLSCREEN_GUARD_JS) { result ->
+                            Log.d("YTEmbed", "EXIT_FULLSCREEN_GUARD_JS injected, result=$result")
+                        }
+
                         decor.removeView(customView)
                         customView = null
                         customViewCallback?.onCustomViewHidden()
@@ -139,21 +152,37 @@ fun YouTubeEmbedPlayer(
                                 .show(WindowInsetsCompat.Type.systemBars())
                         }
 
-                        // Give WebView focus back then retry playing via Handler
-                        // (Handler is more reliable here than coroutines)
+                        // Retry for up to 65 s but stop early once playback is confirmed
+                        // stable for 3 consecutive 500 ms ticks (avoids poking a playing video).
                         wv.requestFocus()
                         var attempt = 0
+                        var stableCount = 0
                         val retry = object : Runnable {
                             override fun run() {
-                                wv.evaluateJavascript(RESUME_JS, null)
-                                if (++attempt < 10) handler.postDelayed(this, 250)
+                                wv.evaluateJavascript(RESUME_JS_LOGGED) { result ->
+                                    Log.d("YTEmbed", "RESUME attempt=$attempt result=$result")
+                                    val playing = result != null &&
+                                        result.contains("\"paused\":false") &&
+                                        (result.contains("\"readyState\":3") || result.contains("\"readyState\":4"))
+                                    if (playing) {
+                                        stableCount++
+                                        if (stableCount >= 3) {
+                                            Log.d("YTEmbed", "RESUME: playback stable, stopping retry at attempt $attempt")
+                                            return@evaluateJavascript
+                                        }
+                                    } else {
+                                        stableCount = 0
+                                    }
+                                    if (++attempt < 130) handler.postDelayed(this, 500)
+                                    else Log.d("YTEmbed", "RESUME_JS retry loop reached 65s limit")
+                                }
                             }
                         }
-                        handler.postDelayed(retry, 200)
+                        handler.postDelayed(retry, 300)
                     }
                 }
 
-                wv.loadUrl("https://m.youtube.com/watch?v=$cleanVideoId")
+                wv.loadUrl("https://m.youtube.com/watch?v=$hardcodedVideoId")
             }
         },
         modifier = modifier
@@ -168,6 +197,55 @@ fun YouTubeEmbedPlayer(
 
 private const val RESUME_JS =
     "(function(){var v=document.querySelector('video');if(v)v.play().catch(function(){});})()"
+
+// Returns a JSON object {found, paused, played} so Android logs can show exact video state.
+private var RESUME_JS_LOGGED = """
+(function(){
+  var v=document.querySelector('video');
+  if(!v) return JSON.stringify({found:false});
+  var wasPaused=v.paused;
+  if(wasPaused) v.play().catch(function(){});
+  return JSON.stringify({found:true,paused:wasPaused,readyState:v.readyState,currentTime:v.currentTime});
+})()
+""".trimIndent()
+
+// Injected at the start of onHideCustomView so it stays alive across the full
+// codec-rebuild window. Observed rebuild times: up to 45–50 s, so we use a
+// 65-second window with a generous margin.
+private val EXIT_FULLSCREEN_GUARD_JS = """
+(function(){
+  var WINDOW_MS=65000;
+  var deadline=Date.now()+WINDOW_MS;
+  var attached=new WeakSet();
+  var obs;
+  function playIfPaused(v,label){
+    if(!v.paused) return;
+    console.log('[YTEmbed] '+label+': video paused, readyState='+v.readyState+', resuming');
+    v.play().catch(function(e){console.log('[YTEmbed] play rejected ('+label+'): '+e);});
+  }
+  function attach(v){
+    if(attached.has(v)) return;
+    attached.add(v);
+    v.addEventListener('pause',function handler(){
+      if(Date.now()>deadline){ v.removeEventListener('pause',handler); return; }
+      console.log('[YTEmbed] pause event, readyState='+v.readyState);
+      setTimeout(function(){ playIfPaused(v,'pause-retry'); },150);
+    });
+  }
+  function init(){
+    var v=document.querySelector('video');
+    if(v){ console.log('[YTEmbed] guard init: video found, paused='+v.paused+' readyState='+v.readyState); playIfPaused(v,'init'); attach(v); }
+    else { console.log('[YTEmbed] guard init: no video element yet'); }
+    obs=new MutationObserver(function(){
+      var nv=document.querySelector('video');
+      if(nv){ attach(nv); playIfPaused(nv,'mutation'); }
+    });
+    obs.observe(document.body,{childList:true,subtree:true});
+    setTimeout(function(){ obs.disconnect(); console.log('[YTEmbed] guard expired after '+WINDOW_MS+'ms'); },WINDOW_MS);
+  }
+  if(document.body) init(); else document.addEventListener('DOMContentLoaded',init);
+})()
+""".trimIndent()
 
 private val GUARD_JS = """
 (function(){
@@ -210,9 +288,39 @@ private val HIDE_UI_JS = """
     ytm-app  { padding-top: 0 !important; }
     .ytp-settings-button,
     .ytp-subtitles-button,
-    .ytp-cc-button { display: none !important; }
+    .ytp-cc-button,
+    .ytp-fullscreen-button,
+    .ytp-size-button,
+    button.ytp-fullscreen-button,
+    .ytp-chrome-bottom .ytp-fullscreen-button { display: none !important; }
   `;
   document.head.appendChild(css);
+
+  function hideFullscreenBtn() {
+    var selectors = [
+      '.ytp-fullscreen-button',
+      '.ytp-size-button',
+      'button[aria-label*="full" i]',
+      'button[aria-label*="fullscreen" i]',
+      'button[title*="full" i]',
+      'button[title*="fullscreen" i]',
+      'button[class*="fullscreen"]',
+      'button[class*="FullScreen"]'
+    ];
+    selectors.forEach(function(sel) {
+      document.querySelectorAll(sel).forEach(function(el) {
+        el.style.setProperty('display', 'none', 'important');
+        el.style.setProperty('visibility', 'hidden', 'important');
+        el.style.setProperty('pointer-events', 'none', 'important');
+      });
+    });
+  }
+
+  hideFullscreenBtn();
+
+  var obs = new MutationObserver(hideFullscreenBtn);
+  obs.observe(document.documentElement, { childList: true, subtree: true });
+
   document.querySelectorAll('[class*="open-app"],[class*="openApp"],[data-redirect-app-store]')
     .forEach(function(el){ el.remove(); });
 })();
