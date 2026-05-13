@@ -7,8 +7,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -33,7 +31,6 @@ import com.maths.teacher.app.R
 import com.maths.teacher.app.data.api.TeacherApi
 import com.maths.teacher.app.data.prefs.SessionManager
 import com.maths.teacher.app.domain.model.Video
-import com.maths.teacher.app.ui.components.PdfDownloadSection
 import com.maths.teacher.app.ui.home.YouTubeEmbedPlayer
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,7 +44,6 @@ fun VideoDetailScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val userId by sessionManager.userId.collectAsStateWithLifecycle(initialValue = null)
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val activity = LocalContext.current as? Activity
@@ -135,10 +131,7 @@ fun VideoDetailScreen(
                 uiState.video != null -> {
                     VideoDetailContent(
                         video = uiState.video!!,
-                        isLandscape = isLandscape,
-                        userId = userId,
-                        onOpenPdf = { videoId, pdfId -> navController.navigate("pdf_viewer/$videoId/$pdfId") },
-                        api = api
+                        isLandscape = isLandscape
                     )
                 }
             }
@@ -152,61 +145,17 @@ fun VideoDetailScreen(
 private fun VideoDetailContent(
     video: Video,
     isLandscape: Boolean,
-    userId: Long?,
-    onOpenPdf: (videoId: Long, pdfId: Long) -> Unit,
-    api: TeacherApi,
     modifier: Modifier = Modifier
 ) {
-    Column(
+    Box(
         modifier = modifier
             .fillMaxSize()
-            .background(if (isLandscape) Color.Black else MaterialTheme.colorScheme.background)
+            .background(Color.Black)
     ) {
-        Box(
-            modifier = if (isLandscape) {
-                Modifier.fillMaxSize()
-            } else {
-                Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(16f / 9f)
-                    .background(Color.Black)
-            }
-        ) {
-            YouTubeEmbedPlayer(
-                videoId = video.videoId,
-                modifier = Modifier.fillMaxSize(),
-                isFullscreen = isLandscape
-            )
-        }
-
-        // 2. INFORMATION SECTION: Only this part is scrollable
-        if (!isLandscape) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f) // This forces the info section to take the remaining space
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text(
-                    text = video.title,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                if (video.pdfs.isNotEmpty()) {
-                    PdfDownloadSection(
-                        pdfs = video.pdfs,
-                        videoId = video.id,
-                        userId = userId,
-                        onOpenPdf = onOpenPdf,
-                        api = api,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-        }
+        YouTubeEmbedPlayer(
+            videoId = video.videoId,
+            modifier = Modifier.fillMaxSize(),
+            isFullscreen = isLandscape
+        )
     }
 }

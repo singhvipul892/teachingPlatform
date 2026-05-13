@@ -39,9 +39,7 @@ fun YouTubeEmbedPlayer(
     // preparer receives a callback it must call after the guard JS has finished executing
     onExitFullscreenPreparer: (preparer: (onReady: () -> Unit) -> Unit) -> Unit = {}
 ) {
-    @Suppress("UNUSED_VARIABLE")
     val cleanVideoId = remember(videoId) { videoId.trim() }
-    val hardcodedVideoId = "0rcMxUx4drQ"
     var webView by remember { mutableStateOf<WebView?>(null) }
     val activity = LocalContext.current as? Activity
 
@@ -51,6 +49,16 @@ fun YouTubeEmbedPlayer(
         val wv = webView ?: return@LaunchedEffect
         onExitFullscreenPreparer { onReady ->
             wv.evaluateJavascript(GUARD_JS) { onReady() }
+        }
+    }
+
+    // Load (or reload) the dynamic video URL whenever the WebView is attached
+    // or the videoId changes. Replaces the previous hardcoded id and ensures
+    // navigation between different videos updates playback.
+    LaunchedEffect(cleanVideoId, webView) {
+        val wv = webView ?: return@LaunchedEffect
+        if (cleanVideoId.isNotBlank()) {
+            wv.loadUrl("https://m.youtube.com/watch?v=$cleanVideoId")
         }
     }
 
@@ -182,7 +190,8 @@ fun YouTubeEmbedPlayer(
                     }
                 }
 
-                wv.loadUrl("https://m.youtube.com/watch?v=$hardcodedVideoId")
+                // Initial URL load is handled by the LaunchedEffect(cleanVideoId, webView)
+                // above, which fires as soon as this WebView is registered.
             }
         },
         modifier = modifier
@@ -280,17 +289,60 @@ private val HIDE_UI_JS = """
     ytm-compact-autoplay-renderer,
     ytm-item-section-renderer,
     ytm-comments-entry-point-header-renderer,
-    ytm-watch-metadata-renderer .bottom-content,
+    ytm-watch-metadata-renderer,
+    ytm-slim-video-metadata-section-renderer,
+    ytm-slim-video-metadata-renderer,
+    ytm-slim-owner-renderer,
+    ytm-channel-bar-renderer,
+    ytm-video-actions-renderer,
+    ytm-like-button-renderer,
+    ytm-menu-renderer,
+    ytm-subscribe-button-renderer,
+    ytm-engagement-panel-section-list-renderer,
+    ytm-video-description-header-renderer,
+    ytm-expandable-video-description-body-renderer,
+    ytm-structured-description-content-renderer,
+    ytm-button-renderer,
+    ytm-shorts-shelf-renderer,
+    ytm-rich-shelf-renderer,
+    ytm-rich-section-renderer,
+    ytm-feed-filter-chip-bar-renderer,
+    ytm-shorts-lockup-view-model,
+    ytm-companion-slot,
+    ytm-watch-next-results,
+    ytm-watch-below-the-player-buttons,
+    ytm-single-column-watch-next-results-renderer > *:not(#player):not(ytm-player-microformat-renderer),
+    .related-chips-slot,
+    .watch-below-the-player,
+    [class*="metadata-info"],
+    [class*="view-count"],
+    [class*="subscribe"],
     [class*="open-app"], [class*="openApp"],
     [href*="youtube://"], [href*="vnd.youtube"],
     [data-redirect-app-store] { display: none !important; }
     ytm-watch { padding-top: 0 !important; margin-top: 0 !important; }
     ytm-app  { padding-top: 0 !important; }
+    body { background: #000 !important; }
     .ytp-settings-button,
     .ytp-subtitles-button,
     .ytp-cc-button,
     .ytp-fullscreen-button,
     .ytp-size-button,
+    .ytp-watch-later-button,
+    .ytp-share-button,
+    .ytp-overflow-button,
+    .ytp-pip-button,
+    .ytp-button.ytp-youtube-button,
+    .ytp-title,
+    .ytp-title-channel,
+    .ytp-title-link,
+    .ytp-ce-element,
+    .ytp-cards-button,
+    .ytp-suggestion-set,
+    .ytp-endscreen-content,
+    .ytp-pause-overlay,
+    .ytp-watermark,
+    .ytp-paid-content-overlay,
     button.ytp-fullscreen-button,
     .ytp-chrome-bottom .ytp-fullscreen-button { display: none !important; }
   `;
