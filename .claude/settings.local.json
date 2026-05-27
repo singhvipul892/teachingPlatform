@@ -22,7 +22,18 @@
       "Bash(openssl rand -hex 64)",
       "Read(//opt/**)",
       "Bash(sudo git:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(git -C \"C:\\\\Users\\\\PRAROOP\\\\Desktop\\\\VipulFolder\" log --all --pretty=format:\"%H %ad %s\" --date=short -- android/app/src/main/res/xml/network_security_config.xml)",
+      "Bash(git -C \"C:\\\\Users\\\\PRAROOP\\\\Desktop\\\\VipulFolder\" diff 527be5b..HEAD -- android/app/build.gradle.kts)",
+      "Bash(git -C \"C:\\\\Users\\\\PRAROOP\\\\Desktop\\\\VipulFolder\" show 03042eee:android/app/src/main/res/xml/network_security_config.xml)",
+      "Bash(git -C \"C:\\\\Users\\\\PRAROOP\\\\Desktop\\\\VipulFolder\" show 03042eee:android/app/build.gradle.kts)",
+      "Bash(git -C \"C:\\\\Users\\\\PRAROOP\\\\Desktop\\\\VipulFolder\" show c9d6d16:android/app/build.gradle.kts)",
+      "Bash(git -C \"C:\\\\Users\\\\PRAROOP\\\\Desktop\\\\VipulFolder\" show 7b73e2e:android/app/src/main/res/xml/network_security_config.xml)",
+      "Bash(git -C \"C:\\\\Users\\\\PRAROOP\\\\Desktop\\\\VipulFolder\" show 9dc200fa:android/app/src/main/res/xml/network_security_config.xml)",
+      "Bash(git -C \"C:\\\\Users\\\\PRAROOP\\\\Desktop\\\\VipulFolder\" status android/app/build.gradle.kts)",
+      "Bash(curl -sS -o /dev/null -w \"HTTP=%{http_code} TIME=%{time_total}s\\\\n\" --connect-timeout 8 --max-time 15 https://teacherplatform.duckdns.org/api/courses)",
+      "Bash(echo \"curl-failed:$?\")",
+      "Bash(curl -sS -kvI --connect-timeout 8 --max-time 15 https://teacherplatform.duckdns.org/)"
     ]
   }
 }
