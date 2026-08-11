@@ -42,6 +42,35 @@ import java.io.File
 import java.io.FileOutputStream
 import java.net.URL
 
+/**
+ * Ensures the PDF is available on disk, downloading it if necessary, and returns the local file.
+ * Safe to call repeatedly: if the file was already downloaded it is reused.
+ */
+suspend fun ensurePdfDownloaded(
+    context: android.content.Context,
+    api: TeacherApi,
+    userId: Long?,
+    videoId: Long,
+    pdf: Pdf
+): File = withContext(Dispatchers.IO) {
+    val existing = getPdfPath(context, userId, videoId, pdf.id)
+    if (existing != null && File(existing).exists()) return@withContext File(existing)
+
+    val resp = api.downloadPdf(videoId, pdf.id)
+    val url = URL(resp.url)
+    val conn = url.openConnection()
+    conn.connect()
+    conn.getInputStream().use { ins ->
+        val dir = context.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS)
+            ?: context.filesDir
+        val safeName = pdf.title.replace(Regex("[\\\\/:*?\"<>|]"), "_").trim()
+        val f = File(dir, "$safeName.pdf")
+        FileOutputStream(f).use { out -> ins.copyTo(out) }
+        savePdfPath(context, userId, videoId, pdf.id, f.absolutePath)
+        f
+    }
+}
+
 @Composable
 fun PdfDownloadSection(
     pdfs: List<Pdf>,

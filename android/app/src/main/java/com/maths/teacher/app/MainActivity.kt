@@ -42,6 +42,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.maths.teacher.app.data.api.ApiClient
+import com.maths.teacher.app.data.api.AuthEventBus
 import com.maths.teacher.app.data.prefs.SessionManager
 import com.maths.teacher.app.data.repository.DefaultVideoRepository
 import com.maths.teacher.app.ui.auth.ForgotPasswordScreen
@@ -107,6 +108,21 @@ class MainActivity : ComponentActivity() {
                         SplashContent()
                     } else {
                         val navController = rememberNavController()
+
+                        // Log out and return to login whenever the network layer reports
+                        // an expired/invalid token (HTTP 401 on an authenticated request).
+                        LaunchedEffect(navController) {
+                            AuthEventBus.events.collect {
+                                sessionManager.clearSession()
+                                if (navController.currentDestination?.route != "login") {
+                                    navController.navigate("login") {
+                                        popUpTo(navController.graph.id) { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                }
+                            }
+                        }
+
                         NavHost(
                             navController = navController,
                             startDestination = startDestination,
@@ -156,7 +172,8 @@ class MainActivity : ComponentActivity() {
                         HomeScreen(
                             viewModel = homeViewModel,
                             navController = navController,
-                            sessionManager = sessionManager
+                            sessionManager = sessionManager,
+                            api = api
                         )
                     }
                     composable("resources") {
