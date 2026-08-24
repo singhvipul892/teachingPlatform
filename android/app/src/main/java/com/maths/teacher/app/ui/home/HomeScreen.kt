@@ -42,6 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.maths.teacher.app.data.api.TeacherApi
 import com.maths.teacher.app.data.prefs.SessionManager
 import com.maths.teacher.app.domain.model.CourseWithVideos
 import com.maths.teacher.app.ui.components.AppFooter
@@ -59,10 +60,12 @@ import kotlinx.coroutines.launch
 fun HomeScreen(
     viewModel: HomeViewModel,
     navController: NavController,
-    sessionManager: SessionManager
+    sessionManager: SessionManager,
+    api: TeacherApi
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val displayName by sessionManager.displayName.collectAsStateWithLifecycle(initialValue = null)
+    val userId by sessionManager.userId.collectAsStateWithLifecycle(initialValue = null)
     val drawerState = rememberDrawerState(initialValue = androidx.compose.material3.DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -181,6 +184,14 @@ fun HomeScreen(
                                 navController.navigate("video_detail/$id/${java.net.URLEncoder.encode(courseName, "UTF-8")}")
                             },
                             displayName = displayName,
+                            api = api,
+                            userId = userId,
+                            onOpenPdf = { v, p ->
+                                navController.navigate("pdf_viewer/$v/$p")
+                            },
+                            onShowPdfList = { v ->
+                                navController.navigate("pdf_list/$v")
+                            },
                             modifier = Modifier.fillMaxSize()
                         )
                     }
@@ -232,6 +243,10 @@ private fun HomeContent(
     courses: List<CourseWithVideos>,
     onVideoSelected: (Long, String) -> Unit,
     displayName: String?,
+    api: TeacherApi,
+    userId: Long?,
+    onOpenPdf: (videoId: Long, pdfId: Long) -> Unit,
+    onShowPdfList: (videoId: Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -280,7 +295,14 @@ private fun HomeContent(
         }
 
         itemsIndexed(courses) { index, course ->
-            SectionBlock(course, onVideoSelected = { id -> onVideoSelected(id, course.name) })
+            SectionBlock(
+                course = course,
+                onVideoSelected = { id -> onVideoSelected(id, course.name) },
+                api = api,
+                userId = userId,
+                onOpenPdf = onOpenPdf,
+                onShowPdfList = onShowPdfList
+            )
             if (index < courses.size - 1) {
                 Row(
                     modifier = Modifier
@@ -305,7 +327,11 @@ private fun HomeContent(
 @Composable
 private fun SectionBlock(
     course: CourseWithVideos,
-    onVideoSelected: (Long) -> Unit
+    onVideoSelected: (Long) -> Unit,
+    api: TeacherApi,
+    userId: Long?,
+    onOpenPdf: (videoId: Long, pdfId: Long) -> Unit,
+    onShowPdfList: (videoId: Long) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -317,7 +343,11 @@ private fun SectionBlock(
         )
         VideoCardCarousel(
             videos = course.videos,
-            onVideoSelected = onVideoSelected
+            onVideoSelected = onVideoSelected,
+            api = api,
+            userId = userId,
+            onOpenPdf = onOpenPdf,
+            onShowPdfList = onShowPdfList
         )
     }
 }

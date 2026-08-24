@@ -10,9 +10,9 @@ android {
     defaultConfig {
         applicationId = "com.maths.teacher.app"
         minSdk = 24
-        targetSdk = 35
-        versionCode = 11
-        versionName = "2.0.7"
+        targetSdk = 36
+        versionCode = 13
+        versionName = "2.0.9"
     }
 
     buildTypes {

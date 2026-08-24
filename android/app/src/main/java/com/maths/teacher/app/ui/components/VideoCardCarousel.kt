@@ -17,6 +17,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -53,6 +55,7 @@ fun VideoCardCarousel(
     api: TeacherApi,
     userId: Long?,
     onOpenPdf: (videoId: Long, pdfId: Long) -> Unit,
+    onShowPdfList: (videoId: Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyRow(
@@ -66,7 +69,8 @@ fun VideoCardCarousel(
                 onVideoSelected = onVideoSelected,
                 api = api,
                 userId = userId,
-                onOpenPdf = onOpenPdf
+                onOpenPdf = onOpenPdf,
+                onShowPdfList = onShowPdfList
             )
         }
     }
@@ -78,7 +82,8 @@ private fun VideoCard(
     onVideoSelected: (Long) -> Unit,
     api: TeacherApi,
     userId: Long?,
-    onOpenPdf: (videoId: Long, pdfId: Long) -> Unit
+    onOpenPdf: (videoId: Long, pdfId: Long) -> Unit,
+    onShowPdfList: (videoId: Long) -> Unit
 ) {
     AppTooltip(text = "${video.title}${video.duration?.let { "\nDuration: $it" } ?: ""}") {
         val cardWidth = 264.dp // 220.dp * 1.2 (20% increase)
@@ -162,43 +167,73 @@ private fun VideoCard(
                     )
 
                     if (pdf != null) {
-                        if (isDownloading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(22.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.PictureAsPdf,
-                                contentDescription = "Download and open PDF",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .clickable(enabled = !isDownloading) {
-                                        isDownloading = true
-                                        scope.launch {
-                                            try {
-                                                ensurePdfDownloaded(
-                                                    context = context,
-                                                    api = api,
-                                                    userId = userId,
-                                                    videoId = video.id,
-                                                    pdf = pdf
-                                                )
-                                                onOpenPdf(video.id, pdf.id)
-                                            } catch (e: Exception) {
-                                                Toast.makeText(
-                                                    context,
-                                                    "Failed to open PDF: ${e.message}",
-                                                    Toast.LENGTH_LONG
-                                                ).show()
-                                            } finally {
-                                                isDownloading = false
-                                            }
+                        val pdfCount = video.pdfs.size
+                        when {
+                            // Multiple PDFs: show a count badge; tapping opens the PDF list screen.
+                            pdfCount > 1 -> {
+                                BadgedBox(
+                                    badge = {
+                                        Badge(
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            contentColor = MaterialTheme.colorScheme.onPrimary
+                                        ) {
+                                            Text(
+                                                text = "$pdfCount",
+                                                style = MaterialTheme.typography.labelSmall
+                                            )
                                         }
                                     }
-                            )
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PictureAsPdf,
+                                        contentDescription = "View $pdfCount PDFs",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier
+                                            .size(24.dp)
+                                            .clickable { onShowPdfList(video.id) }
+                                    )
+                                }
+                            }
+                            // Single PDF: download and open it directly.
+                            isDownloading -> {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(22.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            else -> {
+                                Icon(
+                                    imageVector = Icons.Default.PictureAsPdf,
+                                    contentDescription = "Download and open PDF",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clickable(enabled = !isDownloading) {
+                                            isDownloading = true
+                                            scope.launch {
+                                                try {
+                                                    ensurePdfDownloaded(
+                                                        context = context,
+                                                        api = api,
+                                                        userId = userId,
+                                                        videoId = video.id,
+                                                        pdf = pdf
+                                                    )
+                                                    onOpenPdf(video.id, pdf.id)
+                                                } catch (e: Exception) {
+                                                    Toast.makeText(
+                                                        context,
+                                                        "Failed to open PDF: ${e.message}",
+                                                        Toast.LENGTH_LONG
+                                                    ).show()
+                                                } finally {
+                                                    isDownloading = false
+                                                }
+                                            }
+                                        }
+                                )
+                            }
                         }
                     }
                 }

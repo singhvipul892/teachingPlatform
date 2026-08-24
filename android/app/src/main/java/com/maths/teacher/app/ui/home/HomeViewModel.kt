@@ -3,6 +3,7 @@ package com.maths.teacher.app.ui.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.maths.teacher.app.data.api.AuthEventBus
 import com.maths.teacher.app.data.repository.VideoRepository
 import com.maths.teacher.app.domain.model.CourseWithVideos
 import com.maths.teacher.app.domain.model.Video
@@ -39,10 +40,14 @@ class HomeViewModel(
                     courses = courses
                 )
             } catch (ex: Exception) {
+                // Any failure to load courses is treated as an invalid session:
+                // signal the app to clear all cached data and force the user back
+                // to the login screen (handled by the AuthEventBus collector).
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     errorMessage = "Failed to load courses. Please try again."
                 )
+                AuthEventBus.notifyUnauthorized()
             }
         }
     }

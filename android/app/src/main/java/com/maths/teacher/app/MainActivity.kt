@@ -60,6 +60,7 @@ import com.maths.teacher.app.ui.auth.SignupViewModelFactory
 import com.maths.teacher.app.ui.home.HomeScreen
 import com.maths.teacher.app.ui.home.HomeViewModel
 import com.maths.teacher.app.ui.home.HomeViewModelFactory
+import com.maths.teacher.app.ui.pdflist.PdfListScreen
 import com.maths.teacher.app.ui.pdfviewer.PdfViewerScreen
 import com.maths.teacher.app.ui.resources.ResourcesScreen
 import com.maths.teacher.app.ui.videodetail.VideoDetailScreen
@@ -68,6 +69,7 @@ import com.maths.teacher.app.ui.videodetail.VideoDetailViewModelFactory
 import com.maths.teacher.app.ui.resources.ResourcesViewModel
 import com.maths.teacher.app.ui.resources.ResourcesViewModelFactory
 import com.maths.teacher.app.ui.theme.AppTheme
+import com.maths.teacher.app.util.clearAllCachedData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -109,11 +111,16 @@ class MainActivity : ComponentActivity() {
                     } else {
                         val navController = rememberNavController()
 
-                        // Log out and return to login whenever the network layer reports
-                        // an expired/invalid token (HTTP 401 on an authenticated request).
+                        // Force logout and return to login whenever the app reports an
+                        // invalid session: an expired/invalid token (HTTP 401) from the
+                        // network layer, or a failure to load the user's courses. In every
+                        // case we clear the session and wipe all locally cached data first.
                         LaunchedEffect(navController) {
                             AuthEventBus.events.collect {
                                 sessionManager.clearSession()
+                                withContext(Dispatchers.IO) {
+                                    clearAllCachedData(applicationContext)
+                                }
                                 if (navController.currentDestination?.route != "login") {
                                     navController.navigate("login") {
                                         popUpTo(navController.graph.id) { inclusive = true }
@@ -210,6 +217,18 @@ class MainActivity : ComponentActivity() {
                         )
                         VideoDetailScreen(
                             viewModel = detailViewModel,
+                            navController = navController,
+                            sessionManager = sessionManager,
+                            api = api
+                        )
+                    }
+                    composable("pdf_list/{videoId}") { backStackEntry ->
+                        val videoId = backStackEntry.arguments?.getString("videoId")?.toLongOrNull() ?: 0L
+                        val pdfListViewModel: VideoDetailViewModel = viewModel(
+                            factory = VideoDetailViewModelFactory(repository, videoId)
+                        )
+                        PdfListScreen(
+                            viewModel = pdfListViewModel,
                             navController = navController,
                             sessionManager = sessionManager,
                             api = api
