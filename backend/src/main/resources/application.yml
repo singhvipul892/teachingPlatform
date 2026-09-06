@@ -26,7 +26,7 @@ server:
 app:
   jwt:
     secret: f5c9cfc086cae8dfd9b6fa42e1647e376bc79e58f48e889a09276b5fa8c61c9e9b62aa71a549b9bf95bdf3e30590721b5decd4bf22e2acaf1c2b74f192b01aaa
-    expiration-ms: ${JWT_EXPIRATION_MS:604800000}
+    expiration-ms: ${JWT_EXPIRATION_MS:2592000000}
   storage:
     s3:
       region: ${APP_STORAGE_S3_REGION:ap-south-1}

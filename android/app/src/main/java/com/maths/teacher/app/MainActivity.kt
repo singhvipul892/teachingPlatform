@@ -41,6 +41,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.maths.teacher.app.data.api.ApiClient
 import com.maths.teacher.app.data.api.AuthEventBus
 import com.maths.teacher.app.data.prefs.SessionManager
@@ -111,21 +112,19 @@ class MainActivity : ComponentActivity() {
                     } else {
                         val navController = rememberNavController()
 
-                        // Force logout and return to login whenever the app reports an
-                        // invalid session: an expired/invalid token (HTTP 401) from the
-                        // network layer, or a failure to load the user's courses. In every
-                        // case we clear the session and wipe all locally cached data first.
+                        // Force logout and return to login whenever the network layer reports
+                        // an expired/invalid token (HTTP 401). We clear the session and wipe
+                        // all locally cached data first, then show a "session expired" message
+                        // on the login screen so the user understands why they were logged out.
                         LaunchedEffect(navController) {
                             AuthEventBus.events.collect {
                                 sessionManager.clearSession()
                                 withContext(Dispatchers.IO) {
                                     clearAllCachedData(applicationContext)
                                 }
-                                if (navController.currentDestination?.route != "login") {
-                                    navController.navigate("login") {
-                                        popUpTo(navController.graph.id) { inclusive = true }
-                                        launchSingleTop = true
-                                    }
+                                navController.navigate("login?sessionExpired=true") {
+                                    popUpTo(navController.graph.id) { inclusive = true }
+                                    launchSingleTop = true
                                 }
                             }
                         }
@@ -135,13 +134,18 @@ class MainActivity : ComponentActivity() {
                             startDestination = startDestination,
                             modifier = Modifier.fillMaxSize()
                         ) {
-                        composable("login") {
+                        composable(
+                        route = "login?sessionExpired={sessionExpired}",
+                        arguments = listOf(navArgument("sessionExpired") { defaultValue = "false" })
+                    ) { backStackEntry ->
+                        val sessionExpired = backStackEntry.arguments?.getString("sessionExpired").toBoolean()
                         val loginViewModel: LoginViewModel = viewModel(
                             factory = LoginViewModelFactory(api, sessionManager)
                         )
                         LoginScreen(
                             viewModel = loginViewModel,
-                            navController = navController
+                            navController = navController,
+                            initialSessionExpired = sessionExpired
                         )
                     }
                     composable("signup") {

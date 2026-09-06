@@ -89,6 +89,10 @@ class LoginViewModel(
     fun clearError() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
     }
+
+    fun showSessionExpiredMessage() {
+        _uiState.value = _uiState.value.copy(errorMessage = "Your session has expired. Please log in again.")
+    }
 }
 
 class LoginViewModelFactory(
