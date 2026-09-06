@@ -14,14 +14,21 @@ object ApiClient {
     fun createApi(sessionManager: SessionManager): TeacherApi {
         val authInterceptor = Interceptor { chain ->
             val token = sessionManager.currentToken
-            val request = if (!token.isNullOrBlank()) {
+            val hasToken = !token.isNullOrBlank()
+            val request = if (hasToken) {
                 chain.request().newBuilder()
                     .addHeader("Authorization", "Bearer $token")
                     .build()
             } else {
                 chain.request()
             }
-            chain.proceed(request)
+            val response = chain.proceed(request)
+            // An authenticated request that comes back 401 means the token has expired
+            // or is no longer valid. Signal the UI to log out and return to login.
+            if (response.code == 401 && hasToken) {
+                AuthEventBus.notifyUnauthorized()
+            }
+            response
         }
         val logging = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY

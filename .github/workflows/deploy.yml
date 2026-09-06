@@ -1,0 +1,50 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to deploy"
+        required: false
+        default: main
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve branch
+        id: vars
+        run: echo "branch=${{ github.event.inputs.branch || 'main' }}" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_SSH_PORT || 22 }}
+          script: |
+            set -euo pipefail
+            cd /opt/teacherplatform
+            git fetch origin ${{ steps.vars.outputs.branch }}
+            git reset --hard origin/${{ steps.vars.outputs.branch }}
+            bash scripts/deploy.sh ${{ steps.vars.outputs.branch }}
+
+      - name: Smoke test
+        run: |
+          for i in $(seq 1 10); do
+            if curl -fsS -o /dev/null https://teacherplatform.duckdns.org/web/auth/login.html; then
+              echo "Site is up."
+              exit 0
+            fi
+            echo "Not up yet, retrying in 5s... ($i/10)"
+            sleep 5
+          done
+          echo "Site did not come back up after deploy."
+          exit 1

@@ -45,7 +45,7 @@ class ResourcesViewModel(
             } catch (ex: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoadingSections = false,
-                    errorMessage = "Failed to load sections."
+                    errorMessage = "Couldn't load sections. Check your connection and try again."
                 )
             }
         }

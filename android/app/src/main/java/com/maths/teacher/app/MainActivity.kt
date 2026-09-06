@@ -41,7 +41,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.maths.teacher.app.data.api.ApiClient
+import com.maths.teacher.app.data.api.AuthEventBus
 import com.maths.teacher.app.data.prefs.SessionManager
 import com.maths.teacher.app.data.repository.DefaultVideoRepository
 import com.maths.teacher.app.ui.auth.ForgotPasswordScreen
@@ -59,6 +61,7 @@ import com.maths.teacher.app.ui.auth.SignupViewModelFactory
 import com.maths.teacher.app.ui.home.HomeScreen
 import com.maths.teacher.app.ui.home.HomeViewModel
 import com.maths.teacher.app.ui.home.HomeViewModelFactory
+import com.maths.teacher.app.ui.pdflist.PdfListScreen
 import com.maths.teacher.app.ui.pdfviewer.PdfViewerScreen
 import com.maths.teacher.app.ui.resources.ResourcesScreen
 import com.maths.teacher.app.ui.videodetail.VideoDetailScreen
@@ -67,6 +70,7 @@ import com.maths.teacher.app.ui.videodetail.VideoDetailViewModelFactory
 import com.maths.teacher.app.ui.resources.ResourcesViewModel
 import com.maths.teacher.app.ui.resources.ResourcesViewModelFactory
 import com.maths.teacher.app.ui.theme.AppTheme
+import com.maths.teacher.app.util.clearAllCachedData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -107,18 +111,41 @@ class MainActivity : ComponentActivity() {
                         SplashContent()
                     } else {
                         val navController = rememberNavController()
+
+                        // Force logout and return to login whenever the network layer reports
+                        // an expired/invalid token (HTTP 401). We clear the session and wipe
+                        // all locally cached data first, then show a "session expired" message
+                        // on the login screen so the user understands why they were logged out.
+                        LaunchedEffect(navController) {
+                            AuthEventBus.events.collect {
+                                sessionManager.clearSession()
+                                withContext(Dispatchers.IO) {
+                                    clearAllCachedData(applicationContext)
+                                }
+                                navController.navigate("login?sessionExpired=true") {
+                                    popUpTo(navController.graph.id) { inclusive = true }
+                                    launchSingleTop = true
+                                }
+                            }
+                        }
+
                         NavHost(
                             navController = navController,
                             startDestination = startDestination,
                             modifier = Modifier.fillMaxSize()
                         ) {
-                        composable("login") {
+                        composable(
+                        route = "login?sessionExpired={sessionExpired}",
+                        arguments = listOf(navArgument("sessionExpired") { defaultValue = "false" })
+                    ) { backStackEntry ->
+                        val sessionExpired = backStackEntry.arguments?.getString("sessionExpired").toBoolean()
                         val loginViewModel: LoginViewModel = viewModel(
                             factory = LoginViewModelFactory(api, sessionManager)
                         )
                         LoginScreen(
                             viewModel = loginViewModel,
-                            navController = navController
+                            navController = navController,
+                            initialSessionExpired = sessionExpired
                         )
                     }
                     composable("signup") {
@@ -156,7 +183,8 @@ class MainActivity : ComponentActivity() {
                         HomeScreen(
                             viewModel = homeViewModel,
                             navController = navController,
-                            sessionManager = sessionManager
+                            sessionManager = sessionManager,
+                            api = api
                         )
                     }
                     composable("resources") {
@@ -193,6 +221,18 @@ class MainActivity : ComponentActivity() {
                         )
                         VideoDetailScreen(
                             viewModel = detailViewModel,
+                            navController = navController,
+                            sessionManager = sessionManager,
+                            api = api
+                        )
+                    }
+                    composable("pdf_list/{videoId}") { backStackEntry ->
+                        val videoId = backStackEntry.arguments?.getString("videoId")?.toLongOrNull() ?: 0L
+                        val pdfListViewModel: VideoDetailViewModel = viewModel(
+                            factory = VideoDetailViewModelFactory(repository, videoId)
+                        )
+                        PdfListScreen(
+                            viewModel = pdfListViewModel,
                             navController = navController,
                             sessionManager = sessionManager,
                             api = api

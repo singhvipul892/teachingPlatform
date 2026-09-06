@@ -5,11 +5,11 @@ import com.maths.teacher.app.BuildConfig
 object AppConstants {
     // Injected by Gradle at compile time:
     //   debug build   → http://10.0.2.2:8080/   (emulator localhost)
-    //   release build → https://teacherplatform.duckdns.org/
+
     const val BASE_URL = BuildConfig.BASE_URL
 
     /** URL where students can purchase courses */
-    const val STUDENT_WEB_URL = "https://teacherplatform.duckdns.org/student"
+
 
     const val YOUTUBE_APP_URI_PREFIX = "vnd.youtube:"
     const val YOUTUBE_WEB_URL_PREFIX = "https://www.youtube.com/watch?v="

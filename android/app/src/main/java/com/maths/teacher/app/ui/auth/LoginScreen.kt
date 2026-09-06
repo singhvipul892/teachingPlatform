@@ -19,6 +19,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,10 +34,17 @@ import com.maths.teacher.app.R
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel,
-    navController: NavController
+    navController: NavController,
+    initialSessionExpired: Boolean = false
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
+
+    LaunchedEffect(initialSessionExpired) {
+        if (initialSessionExpired) {
+            viewModel.showSessionExpiredMessage()
+        }
+    }
 
     Column(
         modifier = Modifier

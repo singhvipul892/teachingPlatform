@@ -10,9 +10,9 @@ android {
     defaultConfig {
         applicationId = "com.maths.teacher.app"
         minSdk = 24
-        targetSdk = 35
-        versionCode = 6
-        versionName = "1.0.6"
+        targetSdk = 36
+        versionCode = 13
+        versionName = "2.0.9"
     }
 
     buildTypes {
@@ -21,7 +21,7 @@ android {
         }
         release {
             isMinifyEnabled = false
-            buildConfigField("String", "BASE_URL", "\"https://teacherplatform.duckdns.org/\"")
+            buildConfigField("String", "BASE_URL", "\"http://13.205.19.207:8080/\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -74,4 +74,7 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation("androidx.datastore:datastore-preferences:1.0.0")
+    implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:12.1.0")
+    implementation("androidx.media3:media3-exoplayer:1.4.1")
+    implementation("androidx.media3:media3-ui:1.4.1")
 }

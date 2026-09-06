@@ -8,6 +8,8 @@ services:
     volumes:
       - teacher_db:/var/lib/postgresql/data
       - ./docker/init:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-teacher} -d ${POSTGRES_DB:-teacher_videos}"]
       interval: 10s

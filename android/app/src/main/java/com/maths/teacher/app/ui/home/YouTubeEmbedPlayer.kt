@@ -1,236 +1,379 @@
 package com.maths.teacher.app.ui.home
 
+import android.app.Activity
+import android.content.pm.ActivityInfo
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
-import android.webkit.ConsoleMessage
+import android.view.View
+import android.view.ViewGroup
+import android.webkit.CookieManager
 import android.webkit.WebChromeClient
-import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
+import android.widget.FrameLayout
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import com.maths.teacher.app.config.AppConstants
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 
 @Composable
 fun YouTubeEmbedPlayer(
     videoId: String,
-    onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
-    showCloseButton: Boolean = true,
-    heightDp: Int? = null,
-    isFullscreen: Boolean = false
+    isFullscreen: Boolean = false,
+    onFullscreenToggle: () -> Unit = {},
+    // preparer receives a callback it must call after the guard JS has finished executing
+    onExitFullscreenPreparer: (preparer: (onReady: () -> Unit) -> Unit) -> Unit = {}
 ) {
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val embedUrl = remember(videoId) {
-        try {
-            val url = AppConstants.buildYouTubeEmbedUrl(videoId)
-            Log.d("YouTubeEmbedPlayer", "Video ID: '$videoId' (length: ${videoId.length})")
-            Log.d("YouTubeEmbedPlayer", "Generated Embed URL: $url")
-            
-            // Validate video ID format (YouTube IDs are typically 11 characters)
-            if (videoId.trim().length != 11) {
-                Log.w("YouTubeEmbedPlayer", "Warning: Video ID length is ${videoId.length}, expected 11 characters")
-            }
-            
-            url
-        } catch (e: Exception) {
-            Log.e("YouTubeEmbedPlayer", "Error building embed URL: ${e.message}", e)
-            // Fallback to basic URL
-            "${AppConstants.YOUTUBE_EMBED_URL_PREFIX}${videoId}"
+    val cleanVideoId = remember(videoId) { videoId.trim() }
+    var webView by remember { mutableStateOf<WebView?>(null) }
+    val activity = LocalContext.current as? Activity
+
+    // Register with parent: inject GUARD_JS, then call onReady() so rotation starts
+    // only after the JS is confirmed to have run in the renderer.
+    LaunchedEffect(webView) {
+        val wv = webView ?: return@LaunchedEffect
+        onExitFullscreenPreparer { onReady ->
+            wv.evaluateJavascript(GUARD_JS) { onReady() }
         }
     }
 
-    val htmlContent = remember(embedUrl) {
-        """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <style>
-                body {
-                    margin: 0;
-                    padding: 0;
-                    background-color: #000;
-                }
-                iframe {
-                    width: 100%;
-                    height: 100%;
-                    border: 0;
-                }
-            </style>
-        </head>
-        <body>
-            <iframe 
-                width="100%" 
-                height="100%" 
-                src="$embedUrl" 
-                title="YouTube video player" 
-                frameborder="0" 
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                referrerpolicy="strict-origin-when-cross-origin" 
-                allowfullscreen>
-            </iframe>
-        </body>
-        </html>
-        """.trimIndent()
+    // Load (or reload) the dynamic video URL whenever the WebView is attached
+    // or the videoId changes. Replaces the previous hardcoded id and ensures
+    // navigation between different videos updates playback.
+    LaunchedEffect(cleanVideoId, webView) {
+        val wv = webView ?: return@LaunchedEffect
+        if (cleanVideoId.isNotBlank()) {
+            wv.loadUrl("https://m.youtube.com/watch?v=$cleanVideoId")
+        }
     }
 
-    Column(modifier = modifier) {
-        // Close button row (only show if enabled)
-        if (showCloseButton) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                IconButton(onClick = onDismiss) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Close",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-        }
-
-        // WebView: fixed height when heightDp set, fullscreen when isFullscreen, otherwise 16:9 aspect ratio
-        var webView by remember { mutableStateOf<WebView?>(null) }
-
-        Box(
-            modifier = Modifier
-                .then(
-                    if (isFullscreen) Modifier.fillMaxSize()
-                    else if (heightDp != null) Modifier.fillMaxWidth().height(heightDp.dp)
-                    else Modifier.fillMaxWidth().aspectRatio(16f / 9f)
+    AndroidView(
+        factory = { ctx ->
+            WebView(ctx).also { wv ->
+                webView = wv
+                wv.setLayerType(View.LAYER_TYPE_HARDWARE, null)
+                wv.setBackgroundColor(android.graphics.Color.BLACK)
+                wv.layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
                 )
-        ) {
-            AndroidView(
-                factory = { ctx ->
-                    WebView(ctx).apply {
-                        webView = this
-                        
-                        // Enable WebView debugging (only works in debug builds)
-                        WebView.setWebContentsDebuggingEnabled(true)
-                        
-                        // Set Chrome desktop user agent to avoid YouTube blocking WebView
-                        // YouTube often blocks WebView user agents, so we use a desktop Chrome UA
-                        settings.userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                        
-                        settings.apply {
-                            javaScriptEnabled = true
-                            domStorageEnabled = true
-                            loadWithOverviewMode = true
-                            useWideViewPort = true
-                            mediaPlaybackRequiresUserGesture = false
-                            mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                            allowFileAccess = true
-                            allowContentAccess = true
-                        }
-                        
-                        // Custom WebViewClient to log errors
-                        webViewClient = object : WebViewClient() {
-                            override fun onReceivedError(
-                                view: WebView?,
-                                request: WebResourceRequest?,
-                                error: WebResourceError?
-                            ) {
-                                super.onReceivedError(view, request, error)
-                                Log.e("YouTubeEmbedPlayer", "WebView Error: ${error?.description}")
-                                Log.e("YouTubeEmbedPlayer", "Error Code: ${error?.errorCode}")
-                                Log.e("YouTubeEmbedPlayer", "Failed URL: ${request?.url}")
-                            }
-                            
-                            override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
-                                super.onPageStarted(view, url, favicon)
-                                Log.d("YouTubeEmbedPlayer", "Page started loading: $url")
-                            }
-                            
-                            override fun onPageFinished(view: WebView?, url: String?) {
-                                super.onPageFinished(view, url)
-                                Log.d("YouTubeEmbedPlayer", "Page finished loading: $url")
-                            }
-                        }
-                        
-                        // Custom WebChromeClient to capture console logs
-                        webChromeClient = object : WebChromeClient() {
-                            override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
-                                consoleMessage?.let {
-                                    val message = "Console [${it.messageLevel()}]: ${it.message()} -- From line ${it.lineNumber()} of ${it.sourceId()}"
-                                    when (it.messageLevel()) {
-                                        ConsoleMessage.MessageLevel.LOG -> Log.d("YouTubeEmbedPlayer", message)
-                                        ConsoleMessage.MessageLevel.WARNING -> Log.w("YouTubeEmbedPlayer", message)
-                                        ConsoleMessage.MessageLevel.ERROR -> Log.e("YouTubeEmbedPlayer", message)
-                                        ConsoleMessage.MessageLevel.DEBUG -> Log.d("YouTubeEmbedPlayer", message)
-                                        ConsoleMessage.MessageLevel.TIP -> Log.i("YouTubeEmbedPlayer", message)
-                                        else -> Log.d("YouTubeEmbedPlayer", message)
-                                    }
-                                }
-                                return true
-                            }
-                        }
-                        
-                        Log.d("YouTubeEmbedPlayer", "Loading HTML content with embed URL: $embedUrl")
-                        // Use the nocookie domain as base URL for better compatibility
-                        val baseUrl = if (embedUrl.contains("youtube-nocookie.com")) {
-                            "https://www.youtube-nocookie.com"
-                        } else {
-                            "https://www.youtube.com"
-                        }
-                        loadDataWithBaseURL(baseUrl, htmlContent, "text/html", "UTF-8", null)
-                    }
-                },
-                modifier = if (isFullscreen) Modifier.fillMaxSize() else Modifier.fillMaxWidth()
-            )
-        }
 
-        // Handle WebView lifecycle - pause/resume based on lifecycle events
-        DisposableEffect(lifecycleOwner) {
-            val observer = LifecycleEventObserver { _, event ->
-                when (event) {
-                    Lifecycle.Event.ON_PAUSE -> {
-                        webView?.onPause()
-                        webView?.pauseTimers()
-                    }
-                    Lifecycle.Event.ON_RESUME -> {
-                        webView?.onResume()
-                        webView?.resumeTimers()
-                    }
-                    Lifecycle.Event.ON_DESTROY -> {
-                        webView?.destroy()
-                    }
-                    else -> {}
+                CookieManager.getInstance().apply {
+                    setAcceptCookie(true)
+                    setAcceptThirdPartyCookies(wv, true)
                 }
+
+                wv.settings.apply {
+                    javaScriptEnabled = true
+                    domStorageEnabled = true
+                    mediaPlaybackRequiresUserGesture = false
+                    userAgentString = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.6167.143 Mobile Safari/537.36"
+                }
+
+                wv.webViewClient = object : WebViewClient() {
+                    override fun shouldOverrideUrlLoading(
+                        view: WebView, request: WebResourceRequest
+                    ) = false
+
+                    override fun onPageFinished(view: WebView, url: String) {
+                        view.evaluateJavascript(HIDE_UI_JS, null)
+                        // Resume playback after any page reload caused by viewport change
+                        val handler = Handler(Looper.getMainLooper())
+                        var attempt = 0
+                        val retry = object : Runnable {
+                            override fun run() {
+                                view.evaluateJavascript(RESUME_JS, null)
+                                if (++attempt < 8) handler.postDelayed(this, 300)
+                            }
+                        }
+                        handler.postDelayed(retry, 500)
+                    }
+                }
+
+                wv.webChromeClient = object : WebChromeClient() {
+                    private var customView: View? = null
+                    private var customViewCallback: CustomViewCallback? = null
+                    private val handler = Handler(Looper.getMainLooper())
+
+                    override fun onShowCustomView(view: View, callback: CustomViewCallback) {
+                        if (customView != null) {
+                            callback.onCustomViewHidden()
+                            return
+                        }
+                        Log.d("YTEmbed", "onShowCustomView: entering fullscreen")
+                        customView = view
+                        customViewCallback = callback
+
+                        val decor = activity?.window?.decorView as? FrameLayout ?: return
+                        decor.addView(
+                            view,
+                            FrameLayout.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.MATCH_PARENT
+                            )
+                        )
+                        activity.requestedOrientation =
+                            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                        activity.window?.let { win ->
+                            val ctrl = WindowCompat.getInsetsController(win, win.decorView)
+                            ctrl.hide(WindowInsetsCompat.Type.systemBars())
+                            ctrl.systemBarsBehavior =
+                                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                        }
+                    }
+
+                    override fun onHideCustomView() {
+                        val decor = activity?.window?.decorView as? FrameLayout ?: return
+
+                        // Inject persistent guard BEFORE handing control back to YouTube.
+                        // Codec rebuild takes up to 45–50s after orientation change; guard
+                        // must stay alive past that entire window.
+                        Log.d("YTEmbed", "onHideCustomView: injecting EXIT_FULLSCREEN_GUARD_JS (65s window)")
+                        wv.evaluateJavascript(EXIT_FULLSCREEN_GUARD_JS) { result ->
+                            Log.d("YTEmbed", "EXIT_FULLSCREEN_GUARD_JS injected, result=$result")
+                        }
+
+                        decor.removeView(customView)
+                        customView = null
+                        customViewCallback?.onCustomViewHidden()
+                        customViewCallback = null
+
+                        activity?.requestedOrientation =
+                            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                        activity?.window?.let { win ->
+                            WindowCompat.getInsetsController(win, win.decorView)
+                                .show(WindowInsetsCompat.Type.systemBars())
+                        }
+
+                        // Retry for up to 65 s but stop early once playback is confirmed
+                        // stable for 3 consecutive 500 ms ticks (avoids poking a playing video).
+                        wv.requestFocus()
+                        var attempt = 0
+                        var stableCount = 0
+                        val retry = object : Runnable {
+                            override fun run() {
+                                wv.evaluateJavascript(RESUME_JS_LOGGED) { result ->
+                                    Log.d("YTEmbed", "RESUME attempt=$attempt result=$result")
+                                    val playing = result != null &&
+                                        result.contains("\"paused\":false") &&
+                                        (result.contains("\"readyState\":3") || result.contains("\"readyState\":4"))
+                                    if (playing) {
+                                        stableCount++
+                                        if (stableCount >= 3) {
+                                            Log.d("YTEmbed", "RESUME: playback stable, stopping retry at attempt $attempt")
+                                            return@evaluateJavascript
+                                        }
+                                    } else {
+                                        stableCount = 0
+                                    }
+                                    if (++attempt < 130) handler.postDelayed(this, 500)
+                                    else Log.d("YTEmbed", "RESUME_JS retry loop reached 65s limit")
+                                }
+                            }
+                        }
+                        handler.postDelayed(retry, 300)
+                    }
+                }
+
+                // Initial URL load is handled by the LaunchedEffect(cleanVideoId, webView)
+                // above, which fires as soon as this WebView is registered.
             }
-            lifecycleOwner.lifecycle.addObserver(observer)
-            onDispose {
-                lifecycleOwner.lifecycle.removeObserver(observer)
-                webView?.onPause()
-                webView?.pauseTimers()
-            }
-        }
+        },
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    )
+
+    DisposableEffect(Unit) {
+        onDispose { webView?.destroy() }
     }
 }
+
+private const val RESUME_JS =
+    "(function(){var v=document.querySelector('video');if(v)v.play().catch(function(){});})()"
+
+// Returns a JSON object {found, paused, played} so Android logs can show exact video state.
+private var RESUME_JS_LOGGED = """
+(function(){
+  var v=document.querySelector('video');
+  if(!v) return JSON.stringify({found:false});
+  var wasPaused=v.paused;
+  if(wasPaused) v.play().catch(function(){});
+  return JSON.stringify({found:true,paused:wasPaused,readyState:v.readyState,currentTime:v.currentTime});
+})()
+""".trimIndent()
+
+// Injected at the start of onHideCustomView so it stays alive across the full
+// codec-rebuild window. Observed rebuild times: up to 45–50 s, so we use a
+// 65-second window with a generous margin.
+private val EXIT_FULLSCREEN_GUARD_JS = """
+(function(){
+  var WINDOW_MS=65000;
+  var deadline=Date.now()+WINDOW_MS;
+  var attached=new WeakSet();
+  var obs;
+  function playIfPaused(v,label){
+    if(!v.paused) return;
+    console.log('[YTEmbed] '+label+': video paused, readyState='+v.readyState+', resuming');
+    v.play().catch(function(e){console.log('[YTEmbed] play rejected ('+label+'): '+e);});
+  }
+  function attach(v){
+    if(attached.has(v)) return;
+    attached.add(v);
+    v.addEventListener('pause',function handler(){
+      if(Date.now()>deadline){ v.removeEventListener('pause',handler); return; }
+      console.log('[YTEmbed] pause event, readyState='+v.readyState);
+      setTimeout(function(){ playIfPaused(v,'pause-retry'); },150);
+    });
+  }
+  function init(){
+    var v=document.querySelector('video');
+    if(v){ console.log('[YTEmbed] guard init: video found, paused='+v.paused+' readyState='+v.readyState); playIfPaused(v,'init'); attach(v); }
+    else { console.log('[YTEmbed] guard init: no video element yet'); }
+    obs=new MutationObserver(function(){
+      var nv=document.querySelector('video');
+      if(nv){ attach(nv); playIfPaused(nv,'mutation'); }
+    });
+    obs.observe(document.body,{childList:true,subtree:true});
+    setTimeout(function(){ obs.disconnect(); console.log('[YTEmbed] guard expired after '+WINDOW_MS+'ms'); },WINDOW_MS);
+  }
+  if(document.body) init(); else document.addEventListener('DOMContentLoaded',init);
+})()
+""".trimIndent()
+
+private val GUARD_JS = """
+(function(){
+  var v=document.querySelector('video');
+  if(!v) return;
+  var play=function(){v.play().catch(function(){});};
+  play();
+  var fn=function(){setTimeout(play,120);};
+  v.addEventListener('pause',fn,{once:true});
+  var obs=new MutationObserver(function(){
+    var nv=document.querySelector('video');
+    if(nv&&nv!==v){
+      v.removeEventListener('pause',fn);
+      v=nv;
+      v.addEventListener('pause',fn,{once:true});
+      play();
+    }
+  });
+  obs.observe(document.body,{childList:true,subtree:true});
+  setTimeout(function(){obs.disconnect();v.removeEventListener('pause',fn);},6000);
+})()
+""".trimIndent()
+
+private val HIDE_UI_JS = """
+(function() {
+  var css = document.createElement('style');
+  css.textContent = `
+    ytm-mobile-topbar-renderer,
+    ytm-pivot-bar-renderer,
+    ytm-app-promo-banner-renderer,
+    ytm-watch-metadata-app-promo-renderer,
+    ytm-compact-autoplay-renderer,
+    ytm-item-section-renderer,
+    ytm-comments-entry-point-header-renderer,
+    ytm-watch-metadata-renderer,
+    ytm-slim-video-metadata-section-renderer,
+    ytm-slim-video-metadata-renderer,
+    ytm-slim-owner-renderer,
+    ytm-channel-bar-renderer,
+    ytm-video-actions-renderer,
+    ytm-like-button-renderer,
+    ytm-menu-renderer,
+    ytm-subscribe-button-renderer,
+    ytm-engagement-panel-section-list-renderer,
+    ytm-video-description-header-renderer,
+    ytm-expandable-video-description-body-renderer,
+    ytm-structured-description-content-renderer,
+    ytm-button-renderer,
+    ytm-shorts-shelf-renderer,
+    ytm-rich-shelf-renderer,
+    ytm-rich-section-renderer,
+    ytm-feed-filter-chip-bar-renderer,
+    ytm-shorts-lockup-view-model,
+    ytm-companion-slot,
+    ytm-watch-next-results,
+    ytm-watch-below-the-player-buttons,
+    ytm-single-column-watch-next-results-renderer > *:not(#player):not(ytm-player-microformat-renderer),
+    .related-chips-slot,
+    .watch-below-the-player,
+    [class*="metadata-info"],
+    [class*="view-count"],
+    [class*="subscribe"],
+    [class*="open-app"], [class*="openApp"],
+    [href*="youtube://"], [href*="vnd.youtube"],
+    [data-redirect-app-store] { display: none !important; }
+    ytm-watch { padding-top: 0 !important; margin-top: 0 !important; }
+    ytm-app  { padding-top: 0 !important; }
+    body { background: #000 !important; }
+    .ytp-settings-button,
+    .ytp-subtitles-button,
+    .ytp-cc-button,
+    .ytp-fullscreen-button,
+    .ytp-size-button,
+    .ytp-watch-later-button,
+    .ytp-share-button,
+    .ytp-overflow-button,
+    .ytp-pip-button,
+    .ytp-button.ytp-youtube-button,
+    .ytp-title,
+    .ytp-title-channel,
+    .ytp-title-link,
+    .ytp-ce-element,
+    .ytp-cards-button,
+    .ytp-suggestion-set,
+    .ytp-endscreen-content,
+    .ytp-pause-overlay,
+    .ytp-watermark,
+    .ytp-paid-content-overlay,
+    button.ytp-fullscreen-button,
+    .ytp-chrome-bottom .ytp-fullscreen-button { display: none !important; }
+  `;
+  document.head.appendChild(css);
+
+  function hideFullscreenBtn() {
+    var selectors = [
+      '.ytp-fullscreen-button',
+      '.ytp-size-button',
+      'button[aria-label*="full" i]',
+      'button[aria-label*="fullscreen" i]',
+      'button[title*="full" i]',
+      'button[title*="fullscreen" i]',
+      'button[class*="fullscreen"]',
+      'button[class*="FullScreen"]'
+    ];
+    selectors.forEach(function(sel) {
+      document.querySelectorAll(sel).forEach(function(el) {
+        el.style.setProperty('display', 'none', 'important');
+        el.style.setProperty('visibility', 'hidden', 'important');
+        el.style.setProperty('pointer-events', 'none', 'important');
+      });
+    });
+  }
+
+  hideFullscreenBtn();
+
+  var obs = new MutationObserver(hideFullscreenBtn);
+  obs.observe(document.documentElement, { childList: true, subtree: true });
+
+  document.querySelectorAll('[class*="open-app"],[class*="openApp"],[data-redirect-app-store]')
+    .forEach(function(el){ el.remove(); });
+})();
+""".trimIndent()

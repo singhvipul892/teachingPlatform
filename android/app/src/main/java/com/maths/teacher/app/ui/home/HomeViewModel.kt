@@ -39,9 +39,13 @@ class HomeViewModel(
                     courses = courses
                 )
             } catch (ex: Exception) {
+                // A real 401 is already handled centrally by the ApiClient interceptor
+                // (triggers AuthEventBus -> logout + navigation). Any other failure here
+                // (network, timeout, 403/404/500, parse error) is retryable and unrelated
+                // to the session -- do not force a logout for it.
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    errorMessage = "Failed to load courses. Please try again."
+                    errorMessage = "Couldn't load courses. Check your connection and try again."
                 )
             }
         }
