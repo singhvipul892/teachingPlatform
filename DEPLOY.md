@@ -133,7 +133,7 @@ Or just run `scripts/deploy.sh [branch]` (defaults to `main`) — it does the sa
 `.github/workflows/deploy.yml` SSHs into the EC2 box and runs `scripts/deploy.sh`:
 
 - **Push to `main`** → deploys automatically.
-- **Manual dispatch** → from the Actions tab (or `gh workflow run deploy.yml -f branch=my-feature`), deploy **any branch** on demand — useful for testing a branch on the real server before merging.
+- **Manual dispatch** → **Actions** tab → **Deploy** → **Run workflow**, then pick the branch from the dropdown (it lists every branch that has this workflow file). Useful for testing a branch on the real server before merging. CLI equivalent: `gh workflow run deploy.yml --ref my-feature`.
 
 Required GitHub repo secrets (Settings → Secrets and variables → Actions):
 
