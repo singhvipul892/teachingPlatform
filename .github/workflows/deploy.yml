@@ -17,6 +17,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: teacher-platform-prod
     steps:
       - name: Resolve branch
         id: vars
