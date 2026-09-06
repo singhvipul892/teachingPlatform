@@ -181,6 +181,33 @@ Set up a cron job on the EC2 instance (run once after first deploy):
 
 ---
 
+## Troubleshooting
+
+**`no space left on device` during a build**
+
+Each `--build` leaves the previous `api` image dangling and grows the Gradle build cache. `scripts/deploy.sh` now prunes both after every successful deploy, but to reclaim space manually:
+
+```bash
+df -h / && docker system df
+docker builder prune -af && docker image prune -f
+```
+
+> **Never** run `docker volume prune` or pass `--volumes` to a prune command — the `teacher_db` volume holds the entire database.
+
+If this keeps happening, the root EBS volume is likely too small — 30 GB is a comfortable size for the Gradle build image plus a few image generations.
+
+**`fatal: detected dubious ownership` during a deploy**
+
+The repo is owned by `root` (cloned by EC2 user-data) but deploys run as `ec2-user`:
+
+```bash
+sudo chown -R ec2-user:ec2-user /opt/teacherplatform
+```
+
+This also matters for `.env`, which is `chmod 600` — if `ec2-user` can't read it, `docker compose` silently substitutes **empty** values for `JWT_SECRET`, DB credentials, and Razorpay keys.
+
+---
+
 ## Useful Commands
 
 ```bash

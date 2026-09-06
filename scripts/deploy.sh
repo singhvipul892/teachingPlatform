@@ -19,4 +19,11 @@ git reset --hard "origin/$BRANCH"
 docker compose -f backend/docker-compose.prod.yml up -d --build api
 docker compose -f backend/docker-compose.prod.yml exec -T nginx nginx -s reload
 
+# Each rebuild leaves the previous api image dangling and grows the Gradle build
+# cache, which filled the disk once. Never prune volumes here — teacher_db lives
+# in one.
+docker image prune -f
+docker builder prune -f --filter until=168h
+
 echo "Deployed $BRANCH @ $(git rev-parse --short HEAD)"
+df -h / | tail -1
