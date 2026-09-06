@@ -7,6 +7,12 @@ BRANCH="${1:-main}"
 APP_DIR="/opt/teacherplatform"
 
 cd "$APP_DIR"
+
+# The repo is cloned by root via EC2 user-data, but deploys run as ec2-user.
+# Without this git refuses to operate on the directory ("dubious ownership").
+git config --global --get-all safe.directory | grep -qx "$APP_DIR" \
+  || git config --global --add safe.directory "$APP_DIR"
+
 git fetch origin "$BRANCH"
 git reset --hard "origin/$BRANCH"
 

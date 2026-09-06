@@ -1,14 +1,11 @@
 name: Deploy
 
+# Auto-deploys on push to main. To deploy any other branch, use
+# Actions -> Deploy -> Run workflow and pick it from the branch dropdown.
 on:
   push:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      branch:
-        description: "Branch to deploy"
-        required: false
-        default: main
 
 concurrency:
   group: deploy
@@ -19,28 +16,27 @@ jobs:
     runs-on: ubuntu-latest
     environment: teacher-platform-prod
     steps:
-      - name: Resolve branch
-        id: vars
-        run: echo "branch=${{ github.event.inputs.branch || 'main' }}" >> "$GITHUB_OUTPUT"
-
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          BRANCH: ${{ github.ref_name }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_SSH_PORT || 22 }}
+          envs: BRANCH
           script: |
             set -euo pipefail
             cd /opt/teacherplatform
-            git fetch origin ${{ steps.vars.outputs.branch }}
-            git reset --hard origin/${{ steps.vars.outputs.branch }}
-            bash scripts/deploy.sh ${{ steps.vars.outputs.branch }}
+            git fetch origin "$BRANCH"
+            git reset --hard "origin/$BRANCH"
+            bash scripts/deploy.sh "$BRANCH"
 
       - name: Smoke test
         run: |
           for i in $(seq 1 10); do
-            if curl -fsS -o /dev/null https://teacherplatform.duckdns.org/web/auth/login.html; then
+            if curl -fsS -o /dev/null http://13.205.19.207/web/auth/login.html; then
               echo "Site is up."
               exit 0
             fi
