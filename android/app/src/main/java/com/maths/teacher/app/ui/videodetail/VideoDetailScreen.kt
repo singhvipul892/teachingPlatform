@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -42,7 +43,6 @@ import com.maths.teacher.app.data.api.TeacherApi
 import com.maths.teacher.app.data.prefs.SessionManager
 import com.maths.teacher.app.domain.model.Video
 import com.maths.teacher.app.ui.components.PdfDownloadSection
-import com.maths.teacher.app.ui.home.YouTubeEmbedPlayer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,6 +69,7 @@ fun VideoDetailScreen(
     // A pin is held until the device is physically held that way (see below),
     // then released so plain rotation works again.
     var pinnedLandscape by remember { mutableStateOf<Boolean?>(null) }
+    var playbackError by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(pinnedLandscape) {
         activity?.requestedOrientation = when (pinnedLandscape) {
@@ -195,9 +196,9 @@ fun VideoDetailScreen(
                         video = uiState.video!!,
                         isLandscape = isLandscape,
                         userId = userId,
-                        onBack = { navController.popBackStack() },
                         onToggleFullscreen = { pinnedLandscape = !isLandscape },
-                        onNativeFullscreen = { pinnedLandscape = it },
+                        playbackError = playbackError,
+                        onPlaybackError = { playbackError = it },
                         onOpenPdf = { videoId, pdfId -> navController.navigate("pdf_viewer/$videoId/$pdfId") },
                         api = api
                     )
@@ -214,9 +215,9 @@ private fun VideoDetailContent(
     video: Video,
     isLandscape: Boolean,
     userId: Long?,
-    onBack: () -> Unit,
     onToggleFullscreen: () -> Unit,
-    onNativeFullscreen: (Boolean) -> Unit,
+    playbackError: String?,
+    onPlaybackError: (String) -> Unit,
     onOpenPdf: (videoId: Long, pdfId: Long) -> Unit,
     api: TeacherApi,
     modifier: Modifier = Modifier
@@ -224,8 +225,8 @@ private fun VideoDetailContent(
     Column(modifier = modifier.fillMaxSize()) {
         // The player box keeps the SAME position in the composition tree in both
         // orientations -- only its modifier changes. That is what lets the
-        // underlying WebView survive rotation without being recreated, so
-        // playback continues instead of reloading the page from the start.
+        // remembered YouTubePlayerView survive rotation without being recreated,
+        // so playback continues rather than reloading from the start.
         Box(
             modifier = (
                 if (isLandscape) {
@@ -237,20 +238,41 @@ private fun VideoDetailContent(
                 }
             ).background(Color.Black)
         ) {
-            YouTubeEmbedPlayer(
+            YouTubePlayer(
                 videoId = video.videoId,
                 modifier = Modifier.fillMaxSize(),
-                isFullscreen = isLandscape,
-                onNativeFullscreenChanged = onNativeFullscreen
+                onError = onPlaybackError
             )
 
-            // Landscape hides the app bar and the system bars, so this is the
-            // only way out of the screen. Without it the user is trapped.
+            // Without this an unplayable video is just a black rectangle with no
+            // explanation. onError fires when embedding is disabled on the video
+            // (150/152), which is the main risk of the IFrame player.
+            if (playbackError != null) {
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(Color.Black),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = playbackError,
+                        color = Color.White,
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(24.dp)
+                    )
+                }
+            }
+
+            // Landscape hides the app bar and the system bars, so without this
+            // there is no visible way out. It drops to the portrait player rather
+            // than leaving the screen -- exiting entirely is the portrait app
+            // bar's job, matching how the hardware back key behaves here.
             if (isLandscape) {
                 PlayerOverlayButton(
                     icon = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    onClick = onBack,
+                    contentDescription = "Exit fullscreen",
+                    onClick = onToggleFullscreen,
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(12.dp)
@@ -259,7 +281,7 @@ private fun VideoDetailContent(
 
             // Top-end, not bottom-end: YouTube's scrubber runs along the bottom
             // edge and must not be covered. The top-right corner is free because
-            // HIDE_UI_JS strips YouTube's own overflow and menu buttons.
+            // the IFrame player is built with fullscreen(0) and rel(0).
             PlayerOverlayButton(
                 icon = if (isLandscape) Icons.Filled.FullscreenExit else Icons.Filled.Fullscreen,
                 contentDescription = if (isLandscape) "Exit fullscreen" else "Enter fullscreen",
