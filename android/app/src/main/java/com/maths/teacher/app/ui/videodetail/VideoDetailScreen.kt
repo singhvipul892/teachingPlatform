@@ -3,20 +3,28 @@ package com.maths.teacher.app.ui.videodetail
 import android.app.Activity
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
+import android.view.OrientationEventListener
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -46,24 +54,77 @@ fun VideoDetailScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-    val activity = LocalContext.current as? Activity
+    val context = LocalContext.current
+    val activity = context as? Activity
 
-    // Force landscape when this screen opens
-    LaunchedEffect(Unit) {
-        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-    }
+    // Orientation policy for this screen:
+    //   null  -> free rotation, respecting the device auto-rotate setting.
+    //   true  -> pinned landscape, because the user tapped "fullscreen".
+    //   false -> pinned portrait, because the user tapped "exit fullscreen" or
+    //            pressed back while landscape.
+    // A pin is held until the device is physically held that way (see below),
+    // then released so plain rotation works again.
+    var pinnedLandscape by remember { mutableStateOf<Boolean?>(null) }
 
-    // Restore portrait orientation when this screen is removed from composition
-    DisposableEffect(Unit) {
-        onDispose {
-            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+    LaunchedEffect(pinnedLandscape) {
+        activity?.requestedOrientation = when (pinnedLandscape) {
+            true -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+            false -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            null -> ActivityInfo.SCREEN_ORIENTATION_USER
         }
     }
 
-    // Handle system/hardware back press: restore portrait then go back to home
+    // How the device is PHYSICALLY being held, independent of what is on screen
+    // and of the auto-rotate setting. Null until the sensor reports something
+    // unambiguous.
+    var physicallyLandscape by remember { mutableStateOf<Boolean?>(null) }
+    DisposableEffect(context) {
+        val listener = object : OrientationEventListener(context) {
+            override fun onOrientationChanged(degrees: Int) {
+                if (degrees == OrientationEventListener.ORIENTATION_UNKNOWN) return
+                physicallyLandscape = when {
+                    degrees in 60..120 || degrees in 240..300 -> true
+                    degrees < 30 || degrees > 330 || degrees in 150..210 -> false
+                    else -> return // held at an ambiguous angle; ignore
+                }
+            }
+        }
+        if (listener.canDetectOrientation()) listener.enable()
+        onDispose { listener.disable() }
+    }
+
+    // Release the pin only once the device is actually being held the way the
+    // pin asked for. Releasing on a timer instead would let the sensor flip the
+    // screen straight back: tapping "exit fullscreen" while still holding the
+    // phone sideways would snap to landscape again a moment later.
+    LaunchedEffect(pinnedLandscape, physicallyLandscape) {
+        val want = pinnedLandscape ?: return@LaunchedEffect
+        if (physicallyLandscape == want) {
+            pinnedLandscape = null
+        }
+    }
+
+    // Leave the activity as we found it: free orientation, system bars visible.
+    // The old code hard-set PORTRAIT here, which silently portrait-locked every
+    // other screen for the rest of the session.
+    DisposableEffect(activity) {
+        onDispose {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            activity?.window?.let { win ->
+                WindowCompat.getInsetsController(win, win.decorView)
+                    .show(WindowInsetsCompat.Type.systemBars())
+            }
+        }
+    }
+
+    // In landscape, back exits fullscreen first (standard video-player
+    // behaviour); a second back leaves the screen.
     BackHandler {
-        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-        navController.popBackStack()
+        if (isLandscape) {
+            pinnedLandscape = false
+        } else {
+            navController.popBackStack()
+        }
     }
 
     LaunchedEffect(isLandscape) {
@@ -102,10 +163,7 @@ fun VideoDetailScreen(
                         }
                     },
                     navigationIcon = {
-                        IconButton(onClick = {
-                            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                            navController.popBackStack()
-                        }) {
+                        IconButton(onClick = { navController.popBackStack() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                         }
                     },
@@ -131,7 +189,10 @@ fun VideoDetailScreen(
                 uiState.video != null -> {
                     VideoDetailContent(
                         video = uiState.video!!,
-                        isLandscape = isLandscape
+                        isLandscape = isLandscape,
+                        onBack = { navController.popBackStack() },
+                        onToggleFullscreen = { pinnedLandscape = !isLandscape },
+                        onNativeFullscreen = { pinnedLandscape = it }
                     )
                 }
             }
@@ -145,17 +206,90 @@ fun VideoDetailScreen(
 private fun VideoDetailContent(
     video: Video,
     isLandscape: Boolean,
+    onBack: () -> Unit,
+    onToggleFullscreen: () -> Unit,
+    onNativeFullscreen: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Box(
+    Column(modifier = modifier.fillMaxSize()) {
+        // The player box keeps the SAME position in the composition tree in both
+        // orientations -- only its modifier changes. That is what lets the
+        // underlying WebView survive rotation without being recreated, so
+        // playback continues instead of reloading the page from the start.
+        Box(
+            modifier = (
+                if (isLandscape) {
+                    Modifier.fillMaxSize()
+                } else {
+                    Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(16f / 9f)
+                }
+            ).background(Color.Black)
+        ) {
+            YouTubeEmbedPlayer(
+                videoId = video.videoId,
+                modifier = Modifier.fillMaxSize(),
+                isFullscreen = isLandscape,
+                onNativeFullscreenChanged = onNativeFullscreen
+            )
+
+            // Landscape hides the app bar and the system bars, so this is the
+            // only way out of the screen. Without it the user is trapped.
+            if (isLandscape) {
+                PlayerOverlayButton(
+                    icon = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    onClick = onBack,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(12.dp)
+                )
+            }
+
+            // Top-end, not bottom-end: YouTube's scrubber runs along the bottom
+            // edge and must not be covered. The top-right corner is free because
+            // HIDE_UI_JS strips YouTube's own overflow and menu buttons.
+            PlayerOverlayButton(
+                icon = if (isLandscape) Icons.Filled.FullscreenExit else Icons.Filled.Fullscreen,
+                contentDescription = if (isLandscape) "Exit fullscreen" else "Enter fullscreen",
+                onClick = onToggleFullscreen,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(12.dp)
+            )
+        }
+
+        if (!isLandscape) {
+            Text(
+                text = video.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun PlayerOverlayButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    IconButton(
+        onClick = onClick,
         modifier = modifier
-            .fillMaxSize()
-            .background(Color.Black)
+            .size(40.dp)
+            .background(Color.Black.copy(alpha = 0.45f), CircleShape)
     ) {
-        YouTubeEmbedPlayer(
-            videoId = video.videoId,
-            modifier = Modifier.fillMaxSize(),
-            isFullscreen = isLandscape
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = Color.White,
+            modifier = Modifier.size(22.dp)
         )
     }
 }

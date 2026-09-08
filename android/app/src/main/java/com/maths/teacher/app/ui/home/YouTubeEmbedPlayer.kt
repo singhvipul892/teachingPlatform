@@ -1,7 +1,6 @@
 package com.maths.teacher.app.ui.home
 
 import android.app.Activity
-import android.content.pm.ActivityInfo
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -26,9 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 
 @Composable
 fun YouTubeEmbedPlayer(
@@ -36,6 +32,10 @@ fun YouTubeEmbedPlayer(
     modifier: Modifier = Modifier,
     isFullscreen: Boolean = false,
     onFullscreenToggle: () -> Unit = {},
+    // Called when YouTube's own HTML5 fullscreen enters/exits. The host screen
+    // owns the orientation policy, so the player reports the change instead of
+    // calling requestedOrientation itself.
+    onNativeFullscreenChanged: (Boolean) -> Unit = {},
     // preparer receives a callback it must call after the guard JS has finished executing
     onExitFullscreenPreparer: (preparer: (onReady: () -> Unit) -> Unit) -> Unit = {}
 ) {
@@ -127,14 +127,8 @@ fun YouTubeEmbedPlayer(
                                 ViewGroup.LayoutParams.MATCH_PARENT
                             )
                         )
-                        activity.requestedOrientation =
-                            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-                        activity.window?.let { win ->
-                            val ctrl = WindowCompat.getInsetsController(win, win.decorView)
-                            ctrl.hide(WindowInsetsCompat.Type.systemBars())
-                            ctrl.systemBarsBehavior =
-                                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                        }
+                        // Host screen rotates and hides the system bars.
+                        onNativeFullscreenChanged(true)
                     }
 
                     override fun onHideCustomView() {
@@ -153,12 +147,8 @@ fun YouTubeEmbedPlayer(
                         customViewCallback?.onCustomViewHidden()
                         customViewCallback = null
 
-                        activity?.requestedOrientation =
-                            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                        activity?.window?.let { win ->
-                            WindowCompat.getInsetsController(win, win.decorView)
-                                .show(WindowInsetsCompat.Type.systemBars())
-                        }
+                        // Host screen restores orientation and the system bars.
+                        onNativeFullscreenChanged(false)
 
                         // Retry for up to 65 s but stop early once playback is confirmed
                         // stable for 3 consecutive 500 ms ticks (avoids poking a playing video).
