@@ -316,9 +316,47 @@ User is on Home Screen, has purchased "Algebra" course
               ↓
     User taps play on video
               ↓
-    Opens embedded video player (Vimeo/YouTube)
-    or native Android video player
+    Plays inline via the YouTube IFrame Player API
 ```
+
+### Video player (Android)
+
+`VideoDetailScreen` → `YouTubePlayer.kt` (`androidyoutubeplayer:core`, a wrapper
+around YouTube's IFrame Player API).
+
+**Orientation.** Plays in both portrait and landscape. Portrait lays the player
+out 16:9 with the title and PDFs below; landscape fills the screen with overlay
+back and exit-fullscreen buttons, because the app bar and system bars are hidden
+there. Orientation is a three-state pin (free / landscape / portrait) released
+only once an `OrientationEventListener` confirms the device is physically held
+that way — a timer-based release lets the sensor flip the screen straight back.
+
+The player sits at the **same position in the composition tree** in both
+orientations; only its modifier changes. That is what lets the remembered
+`YouTubePlayerView` survive rotation instead of being recreated, so playback
+continues. Branching into two different layout subtrees would reload the video.
+
+**Gotcha — embed origin (error 152).** The library defaults `origin` to
+`https://www.youtube.com` and loads the player with
+`loadDataWithBaseURL(origin, ...)`, so the hosting page claims to *be*
+youtube.com. YouTube rejects that with error **152**. The library maps only
+2/5/100/101/150, so 152 arrives as `UNKNOWN` and looks like a generic playback
+or network failure. Fixed by setting `.origin("https://teacherplatform.duckdns.org")`.
+**If the domain ever changes, update that origin too or playback breaks.**
+
+Diagnosing embed failures: always test with a **control video** known to be
+embeddable. Two obvious tests are invalid and fail for everything — loading
+`youtube.com/embed/<id>` as a top-level page, and injecting an iframe inside a
+youtube.com page. Use an ordinary third-party origin (a plain localhost static
+server works) and the IFrame API's `onError` for exact codes. A video's real
+embeddability is the `"playableInEmbed"` flag on its watch page.
+
+**Superseded.** `ui/home/YouTubeEmbedPlayer.kt` loaded m.youtube.com in a bare
+WebView and stripped its UI with injected CSS. It had no supported control
+channel — playback could only be driven by calling `play()` on the raw `<video>`
+element, which YouTube reverted within ~250ms, and it could not distinguish
+"YouTube paused it" from "the user paused it". Kept for now so the swap can be
+reverted; delete once the IFrame player has been in production a while.
 
 ### Journey 5: Teacher Manages Courses (Admin Panel)
 
