@@ -8,7 +8,9 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Fullscreen
@@ -39,6 +41,7 @@ import com.maths.teacher.app.R
 import com.maths.teacher.app.data.api.TeacherApi
 import com.maths.teacher.app.data.prefs.SessionManager
 import com.maths.teacher.app.domain.model.Video
+import com.maths.teacher.app.ui.components.PdfDownloadSection
 import com.maths.teacher.app.ui.home.YouTubeEmbedPlayer
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,6 +55,7 @@ fun VideoDetailScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val userId by sessionManager.userId.collectAsStateWithLifecycle(initialValue = null)
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val context = LocalContext.current
@@ -190,9 +194,12 @@ fun VideoDetailScreen(
                     VideoDetailContent(
                         video = uiState.video!!,
                         isLandscape = isLandscape,
+                        userId = userId,
                         onBack = { navController.popBackStack() },
                         onToggleFullscreen = { pinnedLandscape = !isLandscape },
-                        onNativeFullscreen = { pinnedLandscape = it }
+                        onNativeFullscreen = { pinnedLandscape = it },
+                        onOpenPdf = { videoId, pdfId -> navController.navigate("pdf_viewer/$videoId/$pdfId") },
+                        api = api
                     )
                 }
             }
@@ -206,9 +213,12 @@ fun VideoDetailScreen(
 private fun VideoDetailContent(
     video: Video,
     isLandscape: Boolean,
+    userId: Long?,
     onBack: () -> Unit,
     onToggleFullscreen: () -> Unit,
     onNativeFullscreen: (Boolean) -> Unit,
+    onOpenPdf: (videoId: Long, pdfId: Long) -> Unit,
+    api: TeacherApi,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -261,13 +271,32 @@ private fun VideoDetailContent(
         }
 
         if (!isLandscape) {
-            Text(
-                text = video.title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = video.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+
+                // PdfDownloadSection renders nothing when the list is empty, so no
+                // guard is needed here; the title still shows for PDF-less videos.
+                PdfDownloadSection(
+                    pdfs = video.pdfs,
+                    videoId = video.id,
+                    userId = userId,
+                    onOpenPdf = onOpenPdf,
+                    api = api,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     }
 }
