@@ -12,6 +12,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import android.util.Log
+import com.maths.teacher.app.BuildConfig
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.PlayerConstants
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
@@ -76,6 +77,17 @@ fun YouTubePlayer(
             .controls(1)
             .fullscreen(0)
             .rel(0)
+            // The library defaults origin to "https://www.youtube.com" and loads the
+            // player via loadDataWithBaseURL(origin, ...), so the page hosting the embed
+            // claims to BE youtube.com. YouTube rejects that with error 152, which the
+            // library does not map (it only knows 101 and 150), so it reached us as
+            // UNKNOWN and looked like a video problem.
+            //
+            // Verified with a controlled comparison: from a youtube.com origin both a
+            // known-good control video and ours return 152; from an ordinary
+            // third-party origin both load fine. So the origin is the fault, not the
+            // video. Claim the domain this app actually belongs to.
+            .origin("https://teacherplatform.duckdns.org")
             .build()
 
         val cleanId = extractVideoId(videoId)
@@ -117,13 +129,30 @@ fun YouTubePlayer(
                 // than leaving the user looking at a black rectangle.
                 Log.e("YouTubePlayer", "Playback error for id='$cleanId' (raw='$videoId'): $error")
                 onError(
-                    when (error) {
-                        PlayerConstants.PlayerError.VIDEO_NOT_PLAYABLE_IN_EMBEDDED_PLAYER ->
-                            "This video can't be played here. Please contact support."
-                        PlayerConstants.PlayerError.VIDEO_NOT_FOUND ->
-                            "This video is no longer available."
-                        else ->
-                            "Couldn't play this video. Check your connection and try again."
+                    buildString {
+                        append(
+                            when (error) {
+                                PlayerConstants.PlayerError.VIDEO_NOT_PLAYABLE_IN_EMBEDDED_PLAYER ->
+                                    "This video can't be embedded. Turn on \"Allow embedding\" for it in YouTube Studio."
+                                PlayerConstants.PlayerError.VIDEO_NOT_FOUND ->
+                                    "This video is no longer available."
+                                PlayerConstants.PlayerError.INVALID_PARAMETER_IN_REQUEST ->
+                                    "This video's ID is not valid."
+                                PlayerConstants.PlayerError.HTML_5_PLAYER ->
+                                    "The video player failed to start."
+                                // The library maps only 2/5/100/101/150. YouTube also returns
+                                // 152 and 153 for embedding and referrer restrictions, and both
+                                // fall through to UNKNOWN -- so this is very often still an
+                                // embedding problem rather than a network one.
+                                PlayerConstants.PlayerError.UNKNOWN ->
+                                    "Couldn't play this video. It may not be embeddable, or the connection dropped."
+                            }
+                        )
+                        // Debug builds show the technical detail so a screenshot is enough to
+                        // diagnose; release builds show only the sentence above.
+                        if (BuildConfig.DEBUG) {
+                            append("\n\n[$error | id=$cleanId]")
+                        }
                     }
                 )
             }
