@@ -2,7 +2,7 @@
 
 > **Living Document**: This file captures the current system architecture, user journeys, and data flows. Update this whenever significant features are added or changed.
 >
-> Last Updated: **2026-03-26** — Video edit API + admin UI (title, duration, display order)
+> Last Updated: **2026-09-08** — Home screen search (courses + classes, client-side)
 
 ---
 
@@ -357,6 +357,41 @@ channel — playback could only be driven by calling `play()` on the raw `<video
 element, which YouTube reverted within ~250ms, and it could not distinguish
 "YouTube paused it" from "the user paused it". Kept for now so the swap can be
 reverted; delete once the IFrame player has been in production a while.
+
+### Home search (Android) — courses and classes
+
+A course can hold dozens of classes, and Home renders each course as a **horizontal** carousel
+inside a **vertical** course list. Finding `DPB CLASS-27` used to mean swiping the carousel 27
+times. Search removes that.
+
+**Client-side only — there is no search endpoint.** `HomeViewModel` already holds the entire
+purchased catalog (`repository.getPurchasedCourses()` runs once on Home load), so filtering happens
+in memory: instant, offline, zero API cost.
+
+```
+ui/components/SearchField.kt   # rounded pill input (reused OutlinedTextField styling)
+ui/home/CourseSearch.kt        # pure matcher: searchCourses(courses, query) -> List<CourseSearchResult>
+ui/home/HomeViewModel.kt       # searchQuery + searchResults in HomeUiState; onSearchQueryChange()
+ui/home/HomeScreen.kt          # pinned field + results region
+```
+
+**Placement.** The field sits *outside* the `LazyColumn`, between `AppHeader` and the list, so it
+never scrolls out of reach — which is the point, since it is needed most when the student is deep in
+a long list. It renders only in the loaded-with-courses branch (not during loading/error/empty).
+
+**Results are promoted, never filtered away.** Matches render at the top using the *same*
+`SectionBlock` + `VideoCardCarousel` as always, then a divider and `ALL COURSES`, then the complete
+original list untouched. Because results are prepended, `HomeContent` auto-scrolls to item 0 on
+every query change. Item keys are prefixed `result-` / `all-`, since a course appears in both
+regions and duplicate `LazyColumn` keys crash.
+
+**Matching.** Tokenised on non-alphanumerics, lowercased, AND semantics (every query token must
+match). Scoring: exact token 3, token prefix 2, bare substring 1; `+5` exact title, `+2` title
+prefix. So `class 5` ranks `DPB CLASS-5` above `DPB CLASS-50` above `DPB CLASS-15`. Equal scores
+keep `displayOrder` (Kotlin's sort is stable). A course matching **by name** returns all its
+classes; otherwise it carries only the matching ones, labelled "3 of 24 classes".
+
+Matches `CourseWithVideos.name` and `Video.title` only — not PDF titles.
 
 ### Journey 5: Teacher Manages Courses (Admin Panel)
 
@@ -979,6 +1014,7 @@ JWT_SECRET_KEY=your_jwt_secret
 - ✅ `PATCH /admin/videos/{id}` — partial update endpoint; `Video.java` setters added (2026-03-26)
 - ✅ SSL nginx config ready — certbot challenge path, HTTPS redirect, TLS 1.2/1.3 (P1.4d)
 - ✅ `nginx.no-ssl.conf` bootstrap config for first-time SSL cert issuance (P1.4d)
+- ✅ Android Home search — pinned field, ranked course/class matching, client-side (2026-09-08)
 
 ### Pending (P1.5 — Go Live)
 - ⏳ Backend deployed and stable
