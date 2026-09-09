@@ -177,7 +177,7 @@ com.maths.teacher.app/
 │
 └── ui/
     ├── auth/        LoginScreen, SignupScreen, ViewModels
-    ├── home/        HomeScreen, HomeViewModel, YouTubeEmbedPlayer
+    ├── home/        HomeScreen, HomeViewModel
     ├── videodetail/ VideoDetailScreen
     ├── pdfviewer/   PdfViewerScreen
     ├── resources/   ResourcesScreen

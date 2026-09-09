@@ -341,8 +341,10 @@ continues. Branching into two different layout subtrees would reload the video.
 `loadDataWithBaseURL(origin, ...)`, so the hosting page claims to *be*
 youtube.com. YouTube rejects that with error **152**. The library maps only
 2/5/100/101/150, so 152 arrives as `UNKNOWN` and looks like a generic playback
-or network failure. Fixed by setting `.origin("https://teacherplatform.duckdns.org")`.
-**If the domain ever changes, update that origin too or playback breaks.**
+or network failure. Fixed by setting a real origin — `PLAYER_ORIGIN` at the top
+of `YouTubePlayer.kt`. **That constant is the only place the domain appears; if
+the domain ever changes, change it there or playback breaks.** The navigation
+guard below reads the same constant, so the two cannot drift apart.
 
 Diagnosing embed failures: always test with a **control video** known to be
 embeddable. Two obvious tests are invalid and fail for everything — loading
@@ -351,12 +353,69 @@ youtube.com page. Use an ordinary third-party origin (a plain localhost static
 server works) and the IFrame API's `onError` for exact codes. A video's real
 embeddability is the `"playableInEmbed"` flag on its watch page.
 
-**Superseded.** `ui/home/YouTubeEmbedPlayer.kt` loaded m.youtube.com in a bare
-WebView and stripped its UI with injected CSS. It had no supported control
-channel — playback could only be driven by calling `play()` on the raw `<video>`
-element, which YouTube reverted within ~250ms, and it could not distinguish
-"YouTube paused it" from "the user paused it". Kept for now so the swap can be
-reverted; delete once the IFrame player has been in production a while.
+**Navigation lock — why there is a `WebViewClient` at all.** Videos are paid
+content and must be watchable only inside the app. The library calls
+`setWebViewClient` **nowhere** (verified against the AAR), and a WebView with no
+client falls back to Chromium's private `NullWebViewClient`, whose
+`shouldOverrideUrlLoading` builds an `ACTION_VIEW` Intent and starts it. So every
+navigation was handed to the system: tapping the YouTube logo, the video title,
+"Watch on YouTube" or an end-screen card launched the YouTube app and left us.
+
+`installPlayerLockdown` walks the view tree for the library's WebView
+(`YouTubePlayerView → LegacyYouTubePlayerView → WebViewYouTubePlayer`, which *is*
+a `WebView`, all built in the constructor chain) and installs a client that
+allows only the embedded player and silently swallows everything else.
+
+Three things about that guard are easy to get wrong:
+
+- **It decides on URL shape, never on `isForMainFrame`.** The player runs in a
+  cross-origin iframe, and multiple-window support is off, so `target="_blank"`
+  folds into a *same-frame* navigation — the `/embed/` load we must allow and the
+  link taps we must block arrive on the same frame.
+- **Sub-resources are unaffected.** Scripts, images, media segments and XHR to
+  ytimg/gstatic/googlevideo go through `shouldInterceptRequest`, which is not
+  overridden. They never need allowlisting.
+- **Do not override `WebChromeClient`.** The library owns that slot for its
+  fullscreen path. `setSupportMultipleWindows(false)` is set explicitly so
+  `onCreateWindow` is never the route a popup takes.
+
+Blocked taps are silent; debug builds log every blocked URL under the
+`YouTubePlayer` tag, which is the tripwire if YouTube ever adds a navigation the
+allowlist should permit.
+
+**Chrome removal — why the app draws its own controls.** Blocking navigation is
+not enough on its own: the stock embed still *displays* the channel avatar, the
+channel name, the video title and a share button, which advertise the channel and
+hand out the video link even when the taps go nowhere. **No player parameter
+removes them** — `showinfo` was deleted in Sept 2018 and `modestbranding` became a
+no-op in Aug 2023 — and the player runs in a **cross-origin iframe**, so CSS
+cannot be injected into it either. Three things together are what actually clear
+it:
+
+1. **`controls(0)`** drops YouTube's transport bar: share, captions, settings, the
+   YouTube button, the scrubber.
+2. **Every touch is swallowed** (`setOnTouchListener { true }` in
+   `installPlayerLockdown`). Playback is driven entirely through the JS bridge, so
+   nothing is lost — and the remaining chrome can neither be tapped nor *summoned*,
+   since it appears in response to a tap.
+3. **A poster scrim covers the player whenever playback is not running.** YouTube
+   draws its chrome unprompted in the cued state, on pause and at the end, so
+   `YouTubePlayer` covers the whole player at exactly those moments with the video
+   thumbnail (`img.youtube.com/vi/<id>/hqdefault.jpg`, an image load and so not a
+   navigation) and its own play button.
+
+`PlayerState.BUFFERING` is deliberately *not* treated as "not playing" — a
+mid-lesson network stall must not slam the poster back over a video someone is
+watching. `hasStarted` is what separates "not begun" from "stalled".
+
+Replacing the transport bar is therefore mandatory, not cosmetic:
+`PlayerTransportBar` provides play/pause, elapsed/total time and a scrubber, built
+on the library's `play()` / `pause()` / `seekTo()` and its `onCurrentSecond` /
+`onVideoDuration` / `onStateChange` callbacks. It auto-hides after 3s of playback
+and reappears on tap. Fullscreen and back stay in `VideoDetailScreen`, drawn
+*after* the player so they sit above the scrim. `rel=0` only limits related videos
+to the same channel rather than removing them, so `PlayerState.ENDED` re-cues the
+video, which returns to our poster instead of YouTube's end-screen grid.
 
 ### Home search (Android) — courses and classes
 

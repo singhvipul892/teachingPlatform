@@ -279,9 +279,10 @@ private fun VideoDetailContent(
                 )
             }
 
-            // Top-end, not bottom-end: YouTube's scrubber runs along the bottom
-            // edge and must not be covered. The top-right corner is free because
-            // the IFrame player is built with fullscreen(0) and rel(0).
+            // Top-end, not bottom-end: the app's own transport bar (play/pause,
+            // scrubber, times) runs along the bottom edge of the player and must
+            // not be covered. Drawn after YouTubePlayer, so it stays tappable on
+            // top of the poster scrim.
             PlayerOverlayButton(
                 icon = if (isLandscape) Icons.Filled.FullscreenExit else Icons.Filled.Fullscreen,
                 contentDescription = if (isLandscape) "Exit fullscreen" else "Enter fullscreen",
