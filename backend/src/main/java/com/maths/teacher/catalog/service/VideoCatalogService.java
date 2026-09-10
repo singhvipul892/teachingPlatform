@@ -5,7 +5,9 @@ import com.maths.teacher.catalog.repository.VideoPdfRepository;
 import com.maths.teacher.catalog.repository.VideoRepository;
 import com.maths.teacher.catalog.web.dto.PdfResponse;
 import com.maths.teacher.catalog.web.dto.VideoResponse;
+import com.maths.teacher.payment.domain.Purchase;
 import com.maths.teacher.payment.repository.PurchaseRepository;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -36,8 +38,11 @@ public class VideoCatalogService {
 
     public List<VideoResponse> getVideosByCourse(Long courseId, Long userId) {
         logger.info("Fetching videos for course {} by user {}", courseId, userId);
-        if (!purchaseRepository.existsByUserIdAndCourseId(userId, courseId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You have not purchased this course.");
+        Purchase purchase = purchaseRepository.findByUserIdAndCourseId(userId, courseId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "You have not purchased this course."));
+        if (purchase.isExpired(Instant.now())) {
+            logger.info("Access expired for user {} on course {} (expired {})", userId, courseId, purchase.getExpiresAt());
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Your access to this course has expired.");
         }
         var videos = videoRepository.findByCourseIdOrderByDisplayOrderAsc(courseId);
         var pdfsByVideoId = loadPdfsByVideoId(videos);

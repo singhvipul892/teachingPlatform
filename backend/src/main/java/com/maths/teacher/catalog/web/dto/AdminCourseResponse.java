@@ -15,7 +15,12 @@ public class AdminCourseResponse {
     private final String currency;
     private final String thumbnailUrl;
     private final boolean active;
+    /** 0 = lifetime access for new purchases. */
+    private final int validityDays;
+    /** Everyone who ever enrolled, expired or not — this is what was sold. */
     private final int studentCount;
+    /** Enrolments that have not lapsed. Equals studentCount for lifetime courses. */
+    private final int activeStudentCount;
     private final Instant createdAt;
 
     public AdminCourseResponse(
@@ -26,7 +31,9 @@ public class AdminCourseResponse {
             String currency,
             String thumbnailUrl,
             boolean active,
+            int validityDays,
             int studentCount,
+            int activeStudentCount,
             Instant createdAt
     ) {
         this.id = id;
@@ -36,7 +43,9 @@ public class AdminCourseResponse {
         this.currency = currency;
         this.thumbnailUrl = thumbnailUrl;
         this.active = active;
+        this.validityDays = validityDays;
         this.studentCount = studentCount;
+        this.activeStudentCount = activeStudentCount;
         this.createdAt = createdAt;
     }
 
@@ -69,8 +78,16 @@ public class AdminCourseResponse {
         return active;
     }
 
+    public int getValidityDays() {
+        return validityDays;
+    }
+
     public int getStudentCount() {
         return studentCount;
+    }
+
+    public int getActiveStudentCount() {
+        return activeStudentCount;
     }
 
     public Instant getCreatedAt() {

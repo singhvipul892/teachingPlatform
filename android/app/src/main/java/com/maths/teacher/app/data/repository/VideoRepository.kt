@@ -17,30 +17,39 @@ class DefaultVideoRepository(
     override suspend fun getPurchasedCourses(): List<CourseWithVideos> {
         val coursesResponse = api.getUserCourses()
         return coursesResponse.purchasedCourses.map { courseDto ->
-            val videos = api.getCourseVideos(courseDto.id)
-                .sortedBy { it.displayOrder }
-                .map { dto ->
-                    Video(
-                        id = dto.id,
-                        videoId = dto.videoId,
-                        title = dto.title,
-                        thumbnailUrl = dto.thumbnailUrl,
-                        duration = dto.duration,
-                        pdfs = dto.pdfs.map { pdfDto ->
-                            Pdf(
-                                id = pdfDto.id,
-                                title = pdfDto.title,
-                                pdfType = pdfDto.pdfType,
-                                fileUrl = pdfDto.fileUrl,
-                                displayOrder = pdfDto.displayOrder
-                            )
-                        }.sortedBy { it.displayOrder }
-                    )
-                }
+            // An expired course would answer 403 and take the whole Home load down
+            // with it. The course still belongs on Home, just without its classes.
+            val videos = if (courseDto.expired) {
+                emptyList()
+            } else {
+                api.getCourseVideos(courseDto.id)
+                    .sortedBy { it.displayOrder }
+                    .map { dto ->
+                        Video(
+                            id = dto.id,
+                            videoId = dto.videoId,
+                            title = dto.title,
+                            thumbnailUrl = dto.thumbnailUrl,
+                            duration = dto.duration,
+                            pdfs = dto.pdfs.map { pdfDto ->
+                                Pdf(
+                                    id = pdfDto.id,
+                                    title = pdfDto.title,
+                                    pdfType = pdfDto.pdfType,
+                                    fileUrl = pdfDto.fileUrl,
+                                    displayOrder = pdfDto.displayOrder
+                                )
+                            }.sortedBy { it.displayOrder }
+                        )
+                    }
+            }
             CourseWithVideos(
                 courseId = courseDto.id,
                 name = courseDto.title,
-                videos = videos
+                videos = videos,
+                expiryDate = courseDto.expiryDate,
+                expired = courseDto.expired,
+                daysRemaining = courseDto.daysRemaining
             )
         }
     }

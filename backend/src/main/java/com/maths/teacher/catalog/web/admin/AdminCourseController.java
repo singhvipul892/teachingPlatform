@@ -7,6 +7,7 @@ import com.maths.teacher.catalog.web.dto.CreateCourseRequest;
 import com.maths.teacher.catalog.web.dto.StudentResponse;
 import com.maths.teacher.catalog.web.dto.TagStudentRequest;
 import com.maths.teacher.catalog.web.dto.UpdateCourseRequest;
+import com.maths.teacher.catalog.web.dto.UpdateStudentExpiryRequest;
 import com.maths.teacher.catalog.web.dto.VideoResponse;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -51,6 +52,7 @@ public class AdminCourseController {
      * @param pricePaise  price in paise (required)
      * @param currency    currency code (default: INR)
      * @param active      whether course is active (default: true)
+     * @param validityDays days of access a purchase gets; 0 (default) = lifetime
      * @param thumbnail   thumbnail image file (optional, JPEG/PNG max 5MB)
      * @return created course
      */
@@ -62,10 +64,11 @@ public class AdminCourseController {
             @RequestParam int pricePaise,
             @RequestParam(required = false, defaultValue = "INR") String currency,
             @RequestParam(required = false, defaultValue = "true") boolean active,
+            @RequestParam(required = false, defaultValue = "0") int validityDays,
             @RequestPart(required = false) MultipartFile thumbnail
     ) {
         CreateCourseRequest request = new CreateCourseRequest(
-                title, description, pricePaise, currency, active
+                title, description, pricePaise, currency, active, validityDays
         );
         return adminCourseService.createCourse(request, thumbnail);
     }
@@ -79,6 +82,7 @@ public class AdminCourseController {
      * @param pricePaise  new price in paise (optional)
      * @param currency    new currency (optional)
      * @param active      new active status (optional)
+     * @param validityDays new validity in days (optional); applies to future purchases only
      * @param thumbnail   new thumbnail image (optional)
      * @return updated course
      */
@@ -90,10 +94,11 @@ public class AdminCourseController {
             @RequestParam(required = false) Integer pricePaise,
             @RequestParam(required = false) String currency,
             @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false) Integer validityDays,
             @RequestPart(required = false) MultipartFile thumbnail
     ) {
         UpdateCourseRequest request = new UpdateCourseRequest(
-                title, description, pricePaise, currency, active
+                title, description, pricePaise, currency, active, validityDays
         );
         return adminCourseService.updateCourse(courseId, request, thumbnail);
     }
@@ -168,6 +173,19 @@ public class AdminCourseController {
             @RequestBody TagStudentRequest request
     ) {
         return adminCourseService.tagStudent(courseId, request);
+    }
+
+    /**
+     * Overrides one student's expiry for a course. Send {"expiryDate": null} to
+     * grant lifetime access; a date means access runs to the end of that day.
+     */
+    @PutMapping(value = "/{courseId}/students/{userId}/expiry", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public StudentResponse updateStudentExpiry(
+            @PathVariable Long courseId,
+            @PathVariable Long userId,
+            @RequestBody UpdateStudentExpiryRequest request
+    ) {
+        return adminCourseService.updateStudentExpiry(courseId, userId, request);
     }
 
     /**

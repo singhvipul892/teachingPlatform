@@ -571,6 +571,14 @@
         <small style="color: var(--muted); font-size: 0.8rem;">Enter price in rupees (e.g., 999 = ₹9.99)</small>
       </div>
       <div class="form-group">
+        <label>Validity (days)</label>
+        <input type="number" id="form-validity" min="0" step="1" value="0" placeholder="0" />
+        <small style="color: var(--muted); font-size: 0.8rem;">
+          0 = lifetime access. Changing this only affects students who buy afterwards —
+          anyone already enrolled keeps the expiry they were sold.
+        </small>
+      </div>
+      <div class="form-group">
         <label>Thumbnail Image (JPEG/PNG, max 5MB)</label>
         <div class="file-input-wrapper">
           <input type="file" id="form-thumbnail" accept="image/jpeg,image/png" />
@@ -884,6 +892,20 @@
     });
   }
 
+  function validityLabel(days) {
+    return days > 0 ? `${days} days` : 'Lifetime';
+  }
+
+  // The API sends the last day of access as a plain yyyy-mm-dd. Build it as a
+  // local date so it never slips a day, the way new Date("2027-03-09") can.
+  function formatDay(dateOnly) {
+    if (!dateOnly) return '';
+    const [y, m, d] = dateOnly.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('en-IN', {
+      year: 'numeric', month: 'short', day: 'numeric'
+    });
+  }
+
   // ── Modals ──
   function openModal(id) {
     document.getElementById(id).classList.add('active');
@@ -918,6 +940,7 @@
           <tr>
             <th>Title</th>
             <th>Price</th>
+            <th>Validity</th>
             <th>Students</th>
             <th>Status</th>
             <th>Created</th>
@@ -929,7 +952,13 @@
             <tr>
               <td>${course.title}</td>
               <td>${rupees(course.pricePaise)}</td>
-              <td>${course.studentCount}</td>
+              <td>${validityLabel(course.validityDays)}</td>
+              <td>
+                ${course.activeStudentCount}
+                ${course.activeStudentCount === course.studentCount
+                  ? ''
+                  : `<span style="color: var(--muted); font-size: 0.85rem;"> of ${course.studentCount}</span>`}
+              </td>
               <td>
                 <span class="badge ${course.active ? 'badge-active' : 'badge-inactive'}">
                   ${course.active ? 'Active' : 'Inactive'}
@@ -1005,6 +1034,7 @@
     document.getElementById('modal-title').textContent = 'Create Course';
     document.getElementById('form-submit-btn').textContent = 'Create Course';
     document.getElementById('form-course').reset();
+    document.getElementById('form-validity').value = 0;
     document.getElementById('preview-container').innerHTML = '';
     currentFilePreview = null;
     clearMsg('modal-form-msg');
@@ -1024,6 +1054,7 @@
     document.getElementById('form-price').value = Math.round(course.pricePaise / 100);
     document.getElementById('form-currency').value = course.currency;
     document.getElementById('form-active').checked = course.active;
+    document.getElementById('form-validity').value = course.validityDays || 0;
 
     if (course.thumbnailUrl) {
       const previewHtml = `<div class="image-preview"><img src="${course.thumbnailUrl}" alt="Current thumbnail" /></div>`;
@@ -1046,6 +1077,7 @@
     const price = parseInt(document.getElementById('form-price').value);
     const currency = document.getElementById('form-currency').value;
     const active = document.getElementById('form-active').checked;
+    const validityDays = parseInt(document.getElementById('form-validity').value, 10) || 0;
     const thumbnail = document.getElementById('form-thumbnail').files[0];
 
     if (!title || !price) {
@@ -1063,6 +1095,7 @@
       formData.append('pricePaise', price * 100);
       formData.append('currency', currency);
       formData.append('active', active);
+      formData.append('validityDays', validityDays);
       if (thumbnail) formData.append('thumbnail', thumbnail);
 
       const method = currentEditingCourseId ? 'PUT' : 'POST';
@@ -1156,12 +1189,22 @@
       const html = data.map(student => `
         <div class="student-item">
           <div>
-            <div class="student-name">${student.firstName} ${student.lastName}</div>
+            <div class="student-name">
+              ${student.firstName} ${student.lastName}
+              ${student.expired ? '<span class="badge badge-inactive">Expired</span>' : ''}
+            </div>
             <div class="student-contact">${student.email}</div>
             <div class="student-contact">${student.mobileNumber}</div>
+            <div class="student-contact">
+              Bought ${formatDate(student.purchasedAt)} ·
+              ${student.expiryDate ? `valid till ${formatDay(student.expiryDate)}` : 'lifetime access'}
+            </div>
           </div>
-          <div style="display:flex; align-items:center; gap:1rem;">
-            <div style="text-align: right; font-size: 0.85rem; color: var(--muted);">${formatDate(student.purchasedAt)}</div>
+          <div style="display:flex; align-items:center; gap:0.5rem;">
+            <input type="date" id="expiry-${student.id}" value="${student.expiryDate || ''}"
+                   title="Last day of access. Clear the date for lifetime access."
+                   style="padding:0.35rem; font-size:0.85rem;" />
+            <button class="btn-small" onclick="saveStudentExpiry(${courseId}, ${student.id})">Save</button>
             <button class="btn-small btn-danger" onclick="untagStudent(${courseId}, ${student.id}, '${student.firstName} ${student.lastName}')">Untag</button>
           </div>
         </div>
@@ -1171,6 +1214,26 @@
     } catch (e) {
       showMsg('students-msg', 'Failed to load students: ' + e.message, 'error');
       contentEl.innerHTML = '';
+    }
+  }
+
+  // ── Change one student's expiry ──
+  // An empty date means lifetime access. Only this student is affected; the
+  // course's own validity is left alone.
+  async function saveStudentExpiry(courseId, userId) {
+    const input = document.getElementById(`expiry-${userId}`);
+    const expiryDate = input.value ? input.value : null;
+
+    try {
+      await apiFetch(`/api/admin/courses/${courseId}/students/${userId}/expiry`, {
+        method: 'PUT',
+        body: JSON.stringify({ expiryDate })
+      });
+      showMsg('students-msg', expiryDate ? `Access updated to ${formatDay(expiryDate)}` : 'Access set to lifetime', 'success');
+      await loadStudents(courseId);
+      await loadCourses();
+    } catch (e) {
+      showMsg('students-msg', 'Failed to update expiry: ' + e.message, 'error');
     }
   }
 

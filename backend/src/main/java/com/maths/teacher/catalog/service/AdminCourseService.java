@@ -7,6 +7,8 @@ import com.maths.teacher.catalog.web.dto.CreateCourseRequest;
 import com.maths.teacher.catalog.web.dto.StudentResponse;
 import com.maths.teacher.catalog.web.dto.TagStudentRequest;
 import com.maths.teacher.catalog.web.dto.UpdateCourseRequest;
+import com.maths.teacher.catalog.web.dto.UpdateStudentExpiryRequest;
+import com.maths.teacher.payment.domain.AccessExpiry;
 import com.maths.teacher.payment.domain.Course;
 import com.maths.teacher.payment.domain.PaymentOrder;
 import com.maths.teacher.payment.domain.Purchase;
@@ -14,6 +16,7 @@ import com.maths.teacher.payment.repository.CourseRepository;
 import com.maths.teacher.payment.repository.PaymentOrderRepository;
 import com.maths.teacher.payment.repository.PurchaseRepository;
 import com.maths.teacher.storage.S3StorageService;
+import java.time.Instant;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,7 +72,8 @@ public class AdminCourseService {
                 request.getPricePaise(),
                 request.getCurrency(),
                 "",  // thumbnailUrl will be set after S3 upload if file provided
-                request.getActive()
+                request.getActive(),
+                request.getValidityDays() == null ? 0 : request.getValidityDays()
         );
 
         // Upload thumbnail if provided
@@ -116,6 +120,11 @@ public class AdminCourseService {
         }
         if (request.getActive() != null) {
             course.setActive(request.getActive());
+        }
+        if (request.getValidityDays() != null) {
+            // Deliberately does not touch existing purchases: students who already
+            // bought keep the expiry they were sold.
+            course.setValidityDays(request.getValidityDays());
         }
 
         // Handle thumbnail update
@@ -190,6 +199,7 @@ public class AdminCourseService {
 
         // Fetch purchases for this course
         List<Purchase> purchases = purchaseRepository.findByCourseId(courseId);
+        Instant now = Instant.now();
 
         return purchases.stream()
                 .map(purchase -> {
@@ -200,7 +210,9 @@ public class AdminCourseService {
                             user.getLastName(),
                             user.getEmail(),
                             user.getMobileNumber(),
-                            purchase.getPurchasedAt()
+                            purchase.getPurchasedAt(),
+                            AccessExpiry.lastDay(purchase.getExpiresAt()),
+                            purchase.isExpired(now)
                     );
                 })
                 .toList();
@@ -219,26 +231,40 @@ public class AdminCourseService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        if (purchaseRepository.existsByUserIdAndCourseId(userId, courseId)) {
+        Instant now = Instant.now();
+        Purchase existing = purchaseRepository.findByUserIdAndCourseId(userId, courseId).orElse(null);
+        if (existing != null && existing.isActive(now)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Student is already enrolled in this course");
         }
 
-        String txnId = (request.getRazorpayTransactionId() != null && !request.getRazorpayTransactionId().isBlank())
-                ? request.getRazorpayTransactionId().trim()
-                : "ADMIN-" + userId + "-" + courseId;
-        String orderId = "ADMIN-ORDER-" + userId + "-" + courseId;
+        Purchase purchase;
+        if (existing != null) {
+            // Expired enrolment: restart it in place rather than creating a second
+            // row, which the deterministic ADMIN- order and payment IDs could not
+            // support anyway.
+            existing.renew(existing.getRazorpayOrderId(), existing.getRazorpayPaymentId(),
+                    0, course.getCurrency(), course.getValidityDays());
+            purchase = purchaseRepository.save(existing);
+            logger.info("Admin renewed student {} on course {} until {}", userId, courseId, purchase.getExpiresAt());
+        } else {
+            String txnId = (request.getRazorpayTransactionId() != null && !request.getRazorpayTransactionId().isBlank())
+                    ? request.getRazorpayTransactionId().trim()
+                    : "ADMIN-" + userId + "-" + courseId;
+            String orderId = "ADMIN-ORDER-" + userId + "-" + courseId;
 
-        PaymentOrder adminOrder = new PaymentOrder(orderId, userId, courseId, 0, course.getCurrency());
-        adminOrder.markPaid();
-        paymentOrderRepository.save(adminOrder);
+            PaymentOrder adminOrder = new PaymentOrder(orderId, userId, courseId, 0, course.getCurrency());
+            adminOrder.markPaid();
+            paymentOrderRepository.save(adminOrder);
 
-        Purchase purchase = new Purchase(userId, courseId, orderId, txnId, 0, course.getCurrency());
-        purchase.setUser(user);
-        purchase = purchaseRepository.save(purchase);
+            purchase = new Purchase(userId, courseId, orderId, txnId, 0, course.getCurrency(), course.getValidityDays());
+            purchase.setUser(user);
+            purchase = purchaseRepository.save(purchase);
+            logger.info("Admin tagged student {} to course {} until {}", userId, courseId, purchase.getExpiresAt());
+        }
 
-        logger.info("Admin tagged student {} to course {}", userId, courseId);
         return new StudentResponse(user.getId(), user.getFirstName(), user.getLastName(),
-                user.getEmail(), user.getMobileNumber(), purchase.getPurchasedAt());
+                user.getEmail(), user.getMobileNumber(), purchase.getPurchasedAt(),
+                AccessExpiry.lastDay(purchase.getExpiresAt()), purchase.isExpired(now));
     }
 
     /**
@@ -259,10 +285,35 @@ public class AdminCourseService {
     }
 
     /**
+     * Overrides one student's expiry for a course. A null date grants lifetime
+     * access; otherwise access runs to the end of the given day, Indian time, the
+     * same way a purchase-time expiry does.
+     */
+    @Transactional
+    public StudentResponse updateStudentExpiry(Long courseId, Long userId, UpdateStudentExpiryRequest request) {
+        Purchase purchase = purchaseRepository.findByUserIdAndCourseId(userId, courseId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Student is not enrolled in this course"));
+
+        Instant expiresAt = request.getExpiryDate() == null
+                ? null
+                : AccessExpiry.endOfDay(request.getExpiryDate());
+        purchase.setExpiresAt(expiresAt);
+        purchaseRepository.save(purchase);
+
+        logger.info("Admin set expiry for student {} on course {} to {}", userId, courseId, expiresAt);
+
+        User user = purchase.getUser();
+        return new StudentResponse(user.getId(), user.getFirstName(), user.getLastName(),
+                user.getEmail(), user.getMobileNumber(), purchase.getPurchasedAt(),
+                AccessExpiry.lastDay(purchase.getExpiresAt()), purchase.isExpired(Instant.now()));
+    }
+
+    /**
      * Converts a Course entity to AdminCourseResponse DTO.
      */
     private AdminCourseResponse toAdminResponse(Course course) {
         long studentCount = purchaseRepository.countByCourseId(course.getId());
+        long activeStudentCount = purchaseRepository.countActiveByCourseId(course.getId(), Instant.now());
         return new AdminCourseResponse(
                 course.getId(),
                 course.getTitle(),
@@ -271,7 +322,9 @@ public class AdminCourseService {
                 course.getCurrency(),
                 course.getThumbnailUrl(),
                 course.isActive(),
+                course.getValidityDays(),
                 (int) studentCount,
+                (int) activeStudentCount,
                 course.getCreatedAt()
         );
     }

@@ -53,11 +53,24 @@ public class Purchase {
     @Column(name = "purchased_at", nullable = false)
     private Instant purchasedAt;
 
+    /**
+     * When access ends. Null means it never does — which is every purchase made
+     * before course validity existed, and every purchase of a course whose
+     * validity is 0. Fixed at purchase time and never recalculated, so editing
+     * a course's validity cannot change what a student already paid for.
+     */
+    @Column(name = "expires_at")
+    private Instant expiresAt;
+
     protected Purchase() {
         // for JPA
     }
 
     public Purchase(Long userId, Long courseId, String razorpayOrderId, String razorpayPaymentId, int amountPaise, String currency) {
+        this(userId, courseId, razorpayOrderId, razorpayPaymentId, amountPaise, currency, 0);
+    }
+
+    public Purchase(Long userId, Long courseId, String razorpayOrderId, String razorpayPaymentId, int amountPaise, String currency, int validityDays) {
         this.userId = userId;
         this.courseId = courseId;
         this.razorpayOrderId = razorpayOrderId;
@@ -65,6 +78,7 @@ public class Purchase {
         this.amountPaise = amountPaise;
         this.currency = currency;
         this.purchasedAt = Instant.now();
+        this.expiresAt = AccessExpiry.from(this.purchasedAt, validityDays);
     }
 
     public Long getId() { return id; }
@@ -76,6 +90,34 @@ public class Purchase {
     public int getAmountPaise() { return amountPaise; }
     public String getCurrency() { return currency; }
     public Instant getPurchasedAt() { return purchasedAt; }
+    public Instant getExpiresAt() { return expiresAt; }
 
     public void setUser(User user) { this.user = user; }
+
+    /** True while the student still has access. Lifetime purchases are always active. */
+    public boolean isActive(Instant now) {
+        return expiresAt == null || expiresAt.isAfter(now);
+    }
+
+    public boolean isExpired(Instant now) {
+        return !isActive(now);
+    }
+
+    /**
+     * Restarts access from today for a fresh payment. Used when an expired
+     * student buys the course again — the row is reused so there stays one
+     * enrolment per student per course; the full payment history lives in
+     * payment_orders.
+     */
+    public void renew(String razorpayOrderId, String razorpayPaymentId, int amountPaise, String currency, int validityDays) {
+        this.razorpayOrderId = razorpayOrderId;
+        this.razorpayPaymentId = razorpayPaymentId;
+        this.amountPaise = amountPaise;
+        this.currency = currency;
+        this.purchasedAt = Instant.now();
+        this.expiresAt = AccessExpiry.from(this.purchasedAt, validityDays);
+    }
+
+    /** Admin override of a single student's expiry. Null grants lifetime access. */
+    public void setExpiresAt(Instant expiresAt) { this.expiresAt = expiresAt; }
 }

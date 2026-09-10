@@ -19,16 +19,28 @@ public class UpdateCourseRequest {
 
     private Boolean active;
 
+    /**
+     * Days of access a new purchase gets; 0 means lifetime. Only ever applies to
+     * purchases made after the change — existing students keep their own expiry.
+     */
+    @Min(value = 0, message = "Validity must be >= 0")
+    private Integer validityDays;
+
     // Constructors
     public UpdateCourseRequest() {
     }
 
     public UpdateCourseRequest(String title, String description, Integer pricePaise, String currency, Boolean active) {
+        this(title, description, pricePaise, currency, active, null);
+    }
+
+    public UpdateCourseRequest(String title, String description, Integer pricePaise, String currency, Boolean active, Integer validityDays) {
         this.title = title;
         this.description = description;
         this.pricePaise = pricePaise;
         this.currency = currency;
         this.active = active;
+        this.validityDays = validityDays;
     }
 
     // Getters and Setters
@@ -70,5 +82,13 @@ public class UpdateCourseRequest {
 
     public void setActive(Boolean active) {
         this.active = active;
+    }
+
+    public Integer getValidityDays() {
+        return validityDays;
+    }
+
+    public void setValidityDays(Integer validityDays) {
+        this.validityDays = validityDays;
     }
 }
