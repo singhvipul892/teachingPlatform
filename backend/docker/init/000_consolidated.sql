@@ -65,6 +65,8 @@ CREATE TABLE IF NOT EXISTS courses (
     currency      VARCHAR(10)  NOT NULL DEFAULT 'INR',
     thumbnail_url VARCHAR(500) NOT NULL DEFAULT '',
     active        BOOLEAN      NOT NULL DEFAULT TRUE,
+    -- 0 = lifetime access. Otherwise the number of days a new purchase lasts.
+    validity_days INTEGER      NOT NULL DEFAULT 0,
     created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
@@ -108,12 +110,15 @@ CREATE TABLE IF NOT EXISTS purchases (
     razorpay_payment_id VARCHAR(100) NOT NULL UNIQUE,
     amount_paise        INTEGER      NOT NULL,
     currency            VARCHAR(10)  NOT NULL DEFAULT 'INR',
-    purchased_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+    purchased_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    -- NULL = access never expires. Stamped at purchase, never recalculated.
+    expires_at          TIMESTAMPTZ  NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_purchases_user_id    ON purchases(user_id);
 CREATE INDEX IF NOT EXISTS idx_purchases_course_id  ON purchases(course_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_purchases_user_course ON purchases(user_id, course_id);
+CREATE INDEX IF NOT EXISTS idx_purchases_expires_at ON purchases(expires_at);
 
 -- ============================================================================
 -- 5. Done - All tables created with proper dependencies

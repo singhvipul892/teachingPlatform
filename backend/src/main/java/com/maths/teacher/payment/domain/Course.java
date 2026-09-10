@@ -40,16 +40,29 @@ public class Course {
     @Column(name = "active", nullable = false)
     private boolean active;
 
+    /**
+     * How long access lasts after purchase, in days. 0 means the course never
+     * expires. Only applied to purchases made while this value is set — changing
+     * it never affects students who have already bought.
+     */
+    @Column(name = "validity_days", nullable = false)
+    private int validityDays;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
     public Course(String title, String description, int pricePaise, String currency, String thumbnailUrl, boolean active) {
+        this(title, description, pricePaise, currency, thumbnailUrl, active, 0);
+    }
+
+    public Course(String title, String description, int pricePaise, String currency, String thumbnailUrl, boolean active, int validityDays) {
         this.title = title;
         this.description = description;
         this.pricePaise = pricePaise;
         this.currency = currency;
         this.thumbnailUrl = thumbnailUrl;
         this.active = active;
+        this.validityDays = validityDays;
         this.createdAt = Instant.now();
     }
 
@@ -64,6 +77,7 @@ public class Course {
     public String getCurrency() { return currency; }
     public String getThumbnailUrl() { return thumbnailUrl; }
     public boolean isActive() { return active; }
+    public int getValidityDays() { return validityDays; }
     public Instant getCreatedAt() { return createdAt; }
 
     // Setters for admin updates
@@ -73,4 +87,5 @@ public class Course {
     public void setCurrency(String currency) { this.currency = currency; }
     public void setThumbnailUrl(String thumbnailUrl) { this.thumbnailUrl = thumbnailUrl; }
     public void setActive(boolean active) { this.active = active; }
+    public void setValidityDays(int validityDays) { this.validityDays = validityDays; }
 }

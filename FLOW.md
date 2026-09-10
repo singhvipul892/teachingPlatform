@@ -77,6 +77,7 @@ users (Authentication + RBAC)
 
 courses (Products)
 ├── id, title, description, pricePaise, currency, thumbnailUrl, active, createdAt
+└── validityDays  ← 0 = lifetime. Days of access a NEW purchase gets.
 
 videos (Content per Course)
 ├── id, videoId (Vimeo/YT), title, courseId (FK), thumbnailUrl, duration, displayOrder
@@ -92,8 +93,22 @@ payment_orders (Razorpay Orders)
 
 purchases (Verified Payments)
 ├── id, userId (FK), courseId (FK), razorpayOrderId (FK), razorpayPaymentId, amountPaise, purchasedAt
-├── Unique Index: (userId, courseId)  ← One purchase per user per course
+├── expiresAt  ← NULL = access never ends. Stamped at purchase, never recalculated.
+├── Unique Index: (userId, courseId)  ← One enrolment per user per course; a
+│                                        renewal reuses the row, so the payment
+│                                        history lives in payment_orders
 └── FKs: users(id), courses(id), payment_orders(razorpayOrderId)
+
+Course validity
+├── Set per course as validityDays; 0 (the default, and every pre-existing
+│   course) means access never expires.
+├── At purchase, expiresAt = end of the day (IST) validityDays after the
+│   purchase date. AccessExpiry.java owns that one rule.
+├── Editing a course's validityDays NEVER moves an existing student — the
+│   expiry they were sold is already stored on their purchase row.
+├── Access = purchase row exists AND expiresAt is null or still in the future.
+└── An expired student keeps the course on Home (flagged Expired), keeps any
+    PDFs already downloaded to their phone, and may buy the course again.
 ```
 
 ### Key Relationships
@@ -294,7 +309,7 @@ User is on Home Screen, has purchased "Algebra" course
               ↓
     VideoDetailScreen loads
               ↓
-    GET /api/videos/by-course/{courseId}
+    GET /api/courses/{courseId}/videos
     (Android app passes courseId + JWT token)
               ↓
     Backend:
@@ -660,7 +675,7 @@ Response:
 |---|---|---|---|
 | `/api/courses` | GET | ❌ | List all active courses |
 | `/api/user/courses` | GET | ✅ JWT | Get user's purchased courses |
-| `/api/videos/by-course/{id}` | GET | ✅ JWT | Get videos + PDFs for a course (only if purchased) |
+| `/api/courses/{id}/videos` | GET | ✅ JWT | Get videos + PDFs for a course (403 unless purchased AND not expired) |
 
 **Request / Response:**
 ```json
@@ -673,7 +688,8 @@ Response:
     "description": "Fundamentals of algebra...",
     "pricePaise": 99900,
     "currency": "INR",
-    "thumbnailUrl": "https://cdn.../thumb.jpg"
+    "thumbnailUrl": "https://cdn.../thumb.jpg",
+    "validityDays": 180          // 0 = lifetime access
   },
   ...
 ]
@@ -685,13 +701,30 @@ Headers: Authorization: Bearer <JWT>
 
 Response:
 {
-  "purchasedSectionNames": ["Algebra", "Geometry"]
-  // OR full courses list (depending on backend version)
+  "purchasedCourses": [
+    {
+      "id": 1,
+      "title": "Algebra",
+      "description": "...",
+      "pricePaise": 99900,
+      "currency": "INR",
+      "thumbnailUrl": "https://cdn.../thumb.jpg",
+      "validityDays": 180,
+      "expiryDate": "2027-03-09",  // last usable day, IST; null = lifetime
+      "expired": false,
+      "daysRemaining": 12          // 0 = tonight; null = lifetime
+    }
+  ]
 }
+
+Expired courses are still listed — the app shows them as expired so the
+student can renew, rather than making the purchase appear to vanish.
+The app gets expiryDate/daysRemaining rather than a raw instant because it
+runs on API 24, where java.time is unavailable.
 
 ───────────────────────────────────────────
 
-GET /api/videos/by-course/1
+GET /api/courses/1/videos
 Headers: Authorization: Bearer <JWT>
 
 Response:
@@ -735,8 +768,15 @@ Non-admin users receive **403 Forbidden**.
 | `/api/admin/courses/{id}` | PUT | Update course fields or thumbnail |
 | `/api/admin/courses/{id}` | DELETE | Soft delete (sets active=false) |
 | `/api/admin/courses/{id}` | GET | Get single course detail |
-| `/api/admin/courses/{id}/students` | GET | List enrolled students |
+| `/api/admin/courses/{id}/students` | GET | List enrolled students (with expiry + expired flag) |
+| `/api/admin/courses/{id}/students` | POST | Manually enrol a student (stamps expiry; renews an expired one) |
+| `/api/admin/courses/{id}/students/{userId}` | DELETE | Remove a student from a course |
+| `/api/admin/courses/{id}/students/{userId}/expiry` | PUT | Override one student's expiry (`{"expiryDate": "2027-03-09"}`; null = lifetime) |
 | `/api/admin/courses/{id}/videos` | GET | List all videos + PDFs for a course (no purchase check) |
+
+Course create/update accept `validityDays`. `AdminCourseResponse` carries
+`validityDays`, `studentCount` (everyone who ever enrolled) and
+`activeStudentCount` (those whose access has not lapsed).
 
 **Video & PDF Management Endpoints:**
 
@@ -790,7 +830,9 @@ Response:
     "lastName": "Sharma",
     "email": "rahul@email.com",
     "mobileNumber": "9876543210",
-    "purchasedAt": "2026-03-05T14:22:00Z"
+    "purchasedAt": "2026-03-05T14:22:00Z",
+    "expiryDate": "2027-03-09",   // null = access never ends
+    "expired": false
   },
   ...
 ]

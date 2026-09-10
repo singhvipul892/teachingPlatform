@@ -20,16 +20,25 @@ public class CreateCourseRequest {
 
     private Boolean active = true;
 
+    /** Days of access a new purchase gets. 0 (the default) means lifetime. */
+    @Min(value = 0, message = "Validity must be >= 0")
+    private Integer validityDays = 0;
+
     // Constructors
     public CreateCourseRequest() {
     }
 
     public CreateCourseRequest(String title, String description, Integer pricePaise, String currency, Boolean active) {
+        this(title, description, pricePaise, currency, active, 0);
+    }
+
+    public CreateCourseRequest(String title, String description, Integer pricePaise, String currency, Boolean active, Integer validityDays) {
         this.title = title;
         this.description = description;
         this.pricePaise = pricePaise;
         this.currency = currency;
         this.active = active;
+        this.validityDays = validityDays;
     }
 
     // Getters and Setters
@@ -71,5 +80,13 @@ public class CreateCourseRequest {
 
     public void setActive(Boolean active) {
         this.active = active;
+    }
+
+    public Integer getValidityDays() {
+        return validityDays;
+    }
+
+    public void setValidityDays(Integer validityDays) {
+        this.validityDays = validityDays;
     }
 }

@@ -55,6 +55,8 @@ import com.maths.teacher.app.ui.components.FooterLink
 import com.maths.teacher.app.ui.components.NavigationItem
 import com.maths.teacher.app.ui.components.SearchField
 import com.maths.teacher.app.ui.components.VideoCardCarousel
+import com.maths.teacher.app.util.EXPIRY_WARNING_DAYS
+import com.maths.teacher.app.util.formatExpiryDate
 import com.maths.teacher.app.R
 import androidx.navigation.NavController
 import kotlinx.coroutines.launch
@@ -440,13 +442,48 @@ private fun SectionBlock(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        VideoCardCarousel(
-            videos = course.videos,
-            onVideoSelected = onVideoSelected,
-            api = api,
-            userId = userId,
-            onOpenPdf = onOpenPdf,
-            onShowPdfList = onShowPdfList
-        )
+        ValidityLabel(course)
+        if (course.expired) {
+            Text(
+                text = "Your access to this course has ended. Purchase it again on the website to continue.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else {
+            VideoCardCarousel(
+                videos = course.videos,
+                onVideoSelected = onVideoSelected,
+                api = api,
+                userId = userId,
+                onOpenPdf = onOpenPdf,
+                onShowPdfList = onShowPdfList
+            )
+        }
     }
+}
+
+/**
+ * States when access ends, and turns into a warning as the date approaches.
+ * Lifetime courses say nothing at all — there is no date worth the student's attention.
+ */
+@Composable
+private fun ValidityLabel(course: CourseWithVideos) {
+    val expiryDate = course.expiryDate ?: return
+    val daysLeft = course.daysRemaining
+
+    val (text, isWarning) = when {
+        course.expired -> "Expired on ${formatExpiryDate(expiryDate)}" to true
+        daysLeft == null -> "Valid till ${formatExpiryDate(expiryDate)}" to false
+        daysLeft == 0 -> "Expires today" to true
+        daysLeft == 1 -> "Expires tomorrow" to true
+        daysLeft <= EXPIRY_WARNING_DAYS -> "Expires in $daysLeft days" to true
+        else -> "Valid till ${formatExpiryDate(expiryDate)}" to false
+    }
+
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        fontWeight = if (isWarning) FontWeight.SemiBold else FontWeight.Normal,
+        color = if (isWarning) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+    )
 }

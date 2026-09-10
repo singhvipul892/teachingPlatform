@@ -2,6 +2,9 @@ name: Deploy
 
 # Auto-deploys on push to main. To deploy any other branch, use
 # Actions -> Deploy -> Run workflow and pick it from the branch dropdown.
+#
+# Two stages: `build` compiles the image and pushes it to GHCR, `deploy` SSHes
+# in and pulls it. The server never compiles — see DEPLOY.md.
 on:
   push:
     branches: [main]
@@ -12,27 +15,71 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute image tag
+        id: vars
+        run: |
+          # GHCR requires a lowercase path; the repo name is mixed case.
+          echo "image=ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/teachingplatform-api" >> "$GITHUB_OUTPUT"
+          echo "short_sha=$(git rev-parse --short=7 HEAD)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          # The short SHA is what scripts/deploy.sh pins to; :latest is a
+          # convenience for manual pulls. Every commit keeps its own tag, so a
+          # rollback is `scripts/deploy.sh <old-sha>`.
+          tags: |
+            ${{ steps.vars.outputs.image }}:${{ steps.vars.outputs.short_sha }}
+            ${{ steps.vars.outputs.image }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
   deploy:
+    needs: build
     runs-on: ubuntu-latest
     environment: teacher-platform-prod
     steps:
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.0
         env:
-          BRANCH: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_SSH_PORT || 22 }}
-          envs: BRANCH
+          envs: SHA
           script: |
             set -euo pipefail
             cd /opt/teacherplatform
-            git fetch origin "$BRANCH"
-            git reset --hard "origin/$BRANCH"
-            bash scripts/deploy.sh "$BRANCH"
+            # Update the tree first so the *new* deploy.sh is the one that runs.
+            git fetch --prune origin
+            git reset --hard "$SHA"
+            bash scripts/deploy.sh "$SHA"
 
+      # NOTE: this check is currently vacuous — over HTTP nginx returns 301 and
+      # curl without -L treats 3xx as success, so it passes even when the API is
+      # dead. Fixing it needs the actuator health endpoint (plan item 4);
+      # left as-is here to keep this change scoped to the build pipeline.
       - name: Smoke test
         run: |
           for i in $(seq 1 10); do

@@ -19,6 +19,14 @@ services:
     restart: unless-stopped
 
   api:
+    # Normal path: CI builds this image and pushes it to GHCR; the server only
+    # pulls it (scripts/deploy.sh). API_IMAGE is set by that script to a
+    # commit-pinned tag, so the running image always matches the checked-out
+    # tree and a rollback is just an older tag.
+    image: ${API_IMAGE:-ghcr.io/singhvipul892/teachingplatform-api:latest}
+    # Fallback only, for building on the server by hand if CI is unavailable:
+    #   docker compose -f backend/docker-compose.prod.yml build api
+    # Note this needs ~1.5 GB free RAM and several GB of disk.
     build:
       context: .
       dockerfile: Dockerfile

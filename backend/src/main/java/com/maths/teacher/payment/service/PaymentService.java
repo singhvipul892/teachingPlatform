@@ -3,6 +3,7 @@ package com.maths.teacher.payment.service;
 import com.maths.teacher.auth.domain.User;
 import com.maths.teacher.auth.repository.UserRepository;
 import com.maths.teacher.payment.config.RazorpayProperties;
+import com.maths.teacher.payment.domain.AccessExpiry;
 import com.maths.teacher.payment.domain.Course;
 import com.maths.teacher.payment.domain.PaymentOrder;
 import com.maths.teacher.payment.domain.Purchase;
@@ -18,6 +19,7 @@ import com.razorpay.Order;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
 import com.razorpay.Utils;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import org.json.JSONObject;
@@ -59,7 +61,8 @@ public class PaymentService {
     /** Returns all active courses (public endpoint). */
     public List<CourseResponse> listCourses() {
         return courseRepository.findByActiveTrue().stream()
-                .map(c -> new CourseResponse(c.getId(), c.getTitle(), c.getDescription(), c.getPricePaise(), c.getCurrency(), c.getThumbnailUrl()))
+                .map(c -> new CourseResponse(c.getId(), c.getTitle(), c.getDescription(), c.getPricePaise(),
+                        c.getCurrency(), c.getThumbnailUrl(), c.getValidityDays()))
                 .toList();
     }
 
@@ -73,7 +76,11 @@ public class PaymentService {
                 .filter(Course::isActive)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Course not found."));
 
-        if (purchaseRepository.existsByUserIdAndCourseId(userId, courseId)) {
+        // An expired enrolment is allowed to buy again; a live one is not.
+        boolean hasLiveAccess = purchaseRepository.findByUserIdAndCourseId(userId, courseId)
+                .map(p -> p.isActive(Instant.now()))
+                .orElse(false);
+        if (hasLiveAccess) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "You have already purchased this course.");
         }
 
@@ -175,18 +182,37 @@ public class PaymentService {
                         return new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found for enrollment.");
                     });
 
-            Purchase purchase = new Purchase(
-                    userId,
-                    paymentOrder.getCourseId(),
-                    razorpayOrderId,
-                    razorpayPaymentId,
-                    paymentOrder.getAmountPaise(),
-                    paymentOrder.getCurrency()
-            );
+            Long courseId = paymentOrder.getCourseId();
+            // Validity is read once, here, and baked into the purchase. Editing the
+            // course later must never move a student's expiry.
+            int validityDays = courseRepository.findById(courseId)
+                    .map(Course::getValidityDays)
+                    .orElse(0);
+
+            Purchase purchase = purchaseRepository.findByUserIdAndCourseId(userId, courseId)
+                    .orElse(null);
+            if (purchase != null) {
+                // Expired student buying again: reuse the enrolment row so there stays
+                // one per student per course. payment_orders keeps the payment history.
+                purchase.renew(razorpayOrderId, razorpayPaymentId, paymentOrder.getAmountPaise(),
+                        paymentOrder.getCurrency(), validityDays);
+                logger.info("Purchase renewed: userId={}, courseId={}, payment={}, expiresAt={}",
+                        userId, courseId, razorpayPaymentId, purchase.getExpiresAt());
+            } else {
+                purchase = new Purchase(
+                        userId,
+                        courseId,
+                        razorpayOrderId,
+                        razorpayPaymentId,
+                        paymentOrder.getAmountPaise(),
+                        paymentOrder.getCurrency(),
+                        validityDays
+                );
+                logger.info("Purchase record created successfully: userId={}, courseId={}, payment={}, expiresAt={}",
+                        userId, courseId, razorpayPaymentId, purchase.getExpiresAt());
+            }
             purchase.setUser(user);
             purchaseRepository.save(purchase);
-            logger.info("Purchase record created successfully: userId={}, courseId={}, payment={}",
-                    userId, paymentOrder.getCourseId(), razorpayPaymentId);
         } catch (ResponseStatusException e) {
             throw e;
         } catch (Exception e) {
@@ -201,13 +227,22 @@ public class PaymentService {
         return new VerifyPaymentResponse(true, "Payment verified successfully.");
     }
 
-    /** Returns full course details for all courses the user has purchased. */
+    /**
+     * Returns full course details for all courses the user has purchased,
+     * expired ones included — the app shows those as expired rather than hiding
+     * them, so the student can renew.
+     */
     public UserCoursesResponse getUserCourses(Long userId) {
+        Instant now = Instant.now();
         List<Purchase> purchases = purchaseRepository.findByUserId(userId);
         List<CourseResponse> courses = purchases.stream()
-                .map(p -> courseRepository.findById(p.getCourseId()).orElse(null))
+                .map(p -> courseRepository.findById(p.getCourseId())
+                        .map(c -> new CourseResponse(c.getId(), c.getTitle(), c.getDescription(), c.getPricePaise(),
+                                c.getCurrency(), c.getThumbnailUrl(), c.getValidityDays(),
+                                AccessExpiry.lastDay(p.getExpiresAt()), p.isExpired(now),
+                                AccessExpiry.daysRemaining(p.getExpiresAt(), now)))
+                        .orElse(null))
                 .filter(c -> c != null)
-                .map(c -> new CourseResponse(c.getId(), c.getTitle(), c.getDescription(), c.getPricePaise(), c.getCurrency(), c.getThumbnailUrl()))
                 .toList();
         return new UserCoursesResponse(courses);
     }
