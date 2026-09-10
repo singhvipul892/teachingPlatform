@@ -15,7 +15,9 @@ data class HomeUiState(
     val isLoading: Boolean = false,
     val courses: List<CourseWithVideos> = emptyList(),
     val errorMessage: String? = null,
-    val selectedVideo: Video? = null
+    val selectedVideo: Video? = null,
+    val searchQuery: String = "",
+    val searchResults: List<CourseSearchResult> = emptyList()
 )
 
 class HomeViewModel(
@@ -36,7 +38,9 @@ class HomeViewModel(
                 val courses = repository.getPurchasedCourses()
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    courses = courses
+                    courses = courses,
+                    // Keep any active query applied to the freshly loaded courses.
+                    searchResults = searchCourses(courses, _uiState.value.searchQuery)
                 )
             } catch (ex: Exception) {
                 // A real 401 is already handled centrally by the ApiClient interceptor
@@ -49,6 +53,18 @@ class HomeViewModel(
                 )
             }
         }
+    }
+
+    /**
+     * Filtering runs synchronously against the already-loaded courses -- the whole catalog is in
+     * memory, so there is nothing to debounce and no network call to make.
+     */
+    fun onSearchQueryChange(query: String) {
+        val current = _uiState.value
+        _uiState.value = current.copy(
+            searchQuery = query,
+            searchResults = searchCourses(current.courses, query)
+        )
     }
 
     fun selectVideo(videoId: Long) {

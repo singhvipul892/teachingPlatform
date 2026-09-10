@@ -2,7 +2,7 @@
 
 > **Living Document**: This file captures the current system architecture, user journeys, and data flows. Update this whenever significant features are added or changed.
 >
-> Last Updated: **2026-03-26** — Video edit API + admin UI (title, duration, display order)
+> Last Updated: **2026-09-08** — Home screen search (courses + classes, client-side)
 
 ---
 
@@ -316,9 +316,141 @@ User is on Home Screen, has purchased "Algebra" course
               ↓
     User taps play on video
               ↓
-    Opens embedded video player (Vimeo/YouTube)
-    or native Android video player
+    Plays inline via the YouTube IFrame Player API
 ```
+
+### Video player (Android)
+
+`VideoDetailScreen` → `YouTubePlayer.kt` (`androidyoutubeplayer:core`, a wrapper
+around YouTube's IFrame Player API).
+
+**Orientation.** Plays in both portrait and landscape. Portrait lays the player
+out 16:9 with the title and PDFs below; landscape fills the screen with overlay
+back and exit-fullscreen buttons, because the app bar and system bars are hidden
+there. Orientation is a three-state pin (free / landscape / portrait) released
+only once an `OrientationEventListener` confirms the device is physically held
+that way — a timer-based release lets the sensor flip the screen straight back.
+
+The player sits at the **same position in the composition tree** in both
+orientations; only its modifier changes. That is what lets the remembered
+`YouTubePlayerView` survive rotation instead of being recreated, so playback
+continues. Branching into two different layout subtrees would reload the video.
+
+**Gotcha — embed origin (error 152).** The library defaults `origin` to
+`https://www.youtube.com` and loads the player with
+`loadDataWithBaseURL(origin, ...)`, so the hosting page claims to *be*
+youtube.com. YouTube rejects that with error **152**. The library maps only
+2/5/100/101/150, so 152 arrives as `UNKNOWN` and looks like a generic playback
+or network failure. Fixed by setting a real origin — `PLAYER_ORIGIN` at the top
+of `YouTubePlayer.kt`. **That constant is the only place the domain appears; if
+the domain ever changes, change it there or playback breaks.** The navigation
+guard below reads the same constant, so the two cannot drift apart.
+
+Diagnosing embed failures: always test with a **control video** known to be
+embeddable. Two obvious tests are invalid and fail for everything — loading
+`youtube.com/embed/<id>` as a top-level page, and injecting an iframe inside a
+youtube.com page. Use an ordinary third-party origin (a plain localhost static
+server works) and the IFrame API's `onError` for exact codes. A video's real
+embeddability is the `"playableInEmbed"` flag on its watch page.
+
+**Navigation lock — why there is a `WebViewClient` at all.** Videos are paid
+content and must be watchable only inside the app. The library calls
+`setWebViewClient` **nowhere** (verified against the AAR), and a WebView with no
+client falls back to Chromium's private `NullWebViewClient`, whose
+`shouldOverrideUrlLoading` builds an `ACTION_VIEW` Intent and starts it. So every
+navigation was handed to the system: tapping the YouTube logo, the video title,
+"Watch on YouTube" or an end-screen card launched the YouTube app and left us.
+
+`installPlayerLockdown` walks the view tree for the library's WebView
+(`YouTubePlayerView → LegacyYouTubePlayerView → WebViewYouTubePlayer`, which *is*
+a `WebView`, all built in the constructor chain) and installs a client that
+allows only the embedded player and silently swallows everything else.
+
+Three things about that guard are easy to get wrong:
+
+- **It decides on URL shape, never on `isForMainFrame`.** The player runs in a
+  cross-origin iframe, and multiple-window support is off, so `target="_blank"`
+  folds into a *same-frame* navigation — the `/embed/` load we must allow and the
+  link taps we must block arrive on the same frame.
+- **Sub-resources are unaffected.** Scripts, images, media segments and XHR to
+  ytimg/gstatic/googlevideo go through `shouldInterceptRequest`, which is not
+  overridden. They never need allowlisting.
+- **Do not override `WebChromeClient`.** The library owns that slot for its
+  fullscreen path. `setSupportMultipleWindows(false)` is set explicitly so
+  `onCreateWindow` is never the route a popup takes.
+
+Blocked taps are silent; debug builds log every blocked URL under the
+`YouTubePlayer` tag, which is the tripwire if YouTube ever adds a navigation the
+allowlist should permit.
+
+**Chrome removal — why the app draws its own controls.** Blocking navigation is
+not enough on its own: the stock embed still *displays* the channel avatar, the
+channel name, the video title and a share button, which advertise the channel and
+hand out the video link even when the taps go nowhere. **No player parameter
+removes them** — `showinfo` was deleted in Sept 2018 and `modestbranding` became a
+no-op in Aug 2023 — and the player runs in a **cross-origin iframe**, so CSS
+cannot be injected into it either. Three things together are what actually clear
+it:
+
+1. **`controls(0)`** drops YouTube's transport bar: share, captions, settings, the
+   YouTube button, the scrubber.
+2. **Every touch is swallowed** (`setOnTouchListener { true }` in
+   `installPlayerLockdown`). Playback is driven entirely through the JS bridge, so
+   nothing is lost — and the remaining chrome can neither be tapped nor *summoned*,
+   since it appears in response to a tap.
+3. **A poster scrim covers the player whenever playback is not running.** YouTube
+   draws its chrome unprompted in the cued state, on pause and at the end, so
+   `YouTubePlayer` covers the whole player at exactly those moments with the video
+   thumbnail (`img.youtube.com/vi/<id>/hqdefault.jpg`, an image load and so not a
+   navigation) and its own play button.
+
+`PlayerState.BUFFERING` is deliberately *not* treated as "not playing" — a
+mid-lesson network stall must not slam the poster back over a video someone is
+watching. `hasStarted` is what separates "not begun" from "stalled".
+
+Replacing the transport bar is therefore mandatory, not cosmetic:
+`PlayerTransportBar` provides play/pause, elapsed/total time and a scrubber, built
+on the library's `play()` / `pause()` / `seekTo()` and its `onCurrentSecond` /
+`onVideoDuration` / `onStateChange` callbacks. It auto-hides after 3s of playback
+and reappears on tap. Fullscreen and back stay in `VideoDetailScreen`, drawn
+*after* the player so they sit above the scrim. `rel=0` only limits related videos
+to the same channel rather than removing them, so `PlayerState.ENDED` re-cues the
+video, which returns to our poster instead of YouTube's end-screen grid.
+
+### Home search (Android) — courses and classes
+
+A course can hold dozens of classes, and Home renders each course as a **horizontal** carousel
+inside a **vertical** course list. Finding `DPB CLASS-27` used to mean swiping the carousel 27
+times. Search removes that.
+
+**Client-side only — there is no search endpoint.** `HomeViewModel` already holds the entire
+purchased catalog (`repository.getPurchasedCourses()` runs once on Home load), so filtering happens
+in memory: instant, offline, zero API cost.
+
+```
+ui/components/SearchField.kt   # rounded pill input (reused OutlinedTextField styling)
+ui/home/CourseSearch.kt        # pure matcher: searchCourses(courses, query) -> List<CourseSearchResult>
+ui/home/HomeViewModel.kt       # searchQuery + searchResults in HomeUiState; onSearchQueryChange()
+ui/home/HomeScreen.kt          # pinned field + results region
+```
+
+**Placement.** The field sits *outside* the `LazyColumn`, between `AppHeader` and the list, so it
+never scrolls out of reach — which is the point, since it is needed most when the student is deep in
+a long list. It renders only in the loaded-with-courses branch (not during loading/error/empty).
+
+**Results are promoted, never filtered away.** Matches render at the top using the *same*
+`SectionBlock` + `VideoCardCarousel` as always, then a divider and `ALL COURSES`, then the complete
+original list untouched. Because results are prepended, `HomeContent` auto-scrolls to item 0 on
+every query change. Item keys are prefixed `result-` / `all-`, since a course appears in both
+regions and duplicate `LazyColumn` keys crash.
+
+**Matching.** Tokenised on non-alphanumerics, lowercased, AND semantics (every query token must
+match). Scoring: exact token 3, token prefix 2, bare substring 1; `+5` exact title, `+2` title
+prefix. So `class 5` ranks `DPB CLASS-5` above `DPB CLASS-50` above `DPB CLASS-15`. Equal scores
+keep `displayOrder` (Kotlin's sort is stable). A course matching **by name** returns all its
+classes; otherwise it carries only the matching ones, labelled "3 of 24 classes".
+
+Matches `CourseWithVideos.name` and `Video.title` only — not PDF titles.
 
 ### Journey 5: Teacher Manages Courses (Admin Panel)
 
@@ -941,6 +1073,7 @@ JWT_SECRET_KEY=your_jwt_secret
 - ✅ `PATCH /admin/videos/{id}` — partial update endpoint; `Video.java` setters added (2026-03-26)
 - ✅ SSL nginx config ready — certbot challenge path, HTTPS redirect, TLS 1.2/1.3 (P1.4d)
 - ✅ `nginx.no-ssl.conf` bootstrap config for first-time SSL cert issuance (P1.4d)
+- ✅ Android Home search — pinned field, ranked course/class matching, client-side (2026-09-08)
 
 ### Pending (P1.5 — Go Live)
 - ⏳ Backend deployed and stable

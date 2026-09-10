@@ -16,7 +16,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Home
@@ -31,6 +33,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -50,6 +53,7 @@ import com.maths.teacher.app.ui.components.AppHeader
 import com.maths.teacher.app.ui.components.AppNavigationDrawer
 import com.maths.teacher.app.ui.components.FooterLink
 import com.maths.teacher.app.ui.components.NavigationItem
+import com.maths.teacher.app.ui.components.SearchField
 import com.maths.teacher.app.ui.components.VideoCardCarousel
 import com.maths.teacher.app.R
 import androidx.navigation.NavController
@@ -178,22 +182,39 @@ fun HomeScreen(
                         EmptyState()
                     }
                     else -> {
-                        HomeContent(
-                            courses = uiState.courses,
-                            onVideoSelected = { id, courseName ->
-                                navController.navigate("video_detail/$id/${java.net.URLEncoder.encode(courseName, "UTF-8")}")
-                            },
-                            displayName = displayName,
-                            api = api,
-                            userId = userId,
-                            onOpenPdf = { v, p ->
-                                navController.navigate("pdf_viewer/$v/$p")
-                            },
-                            onShowPdfList = { v ->
-                                navController.navigate("pdf_list/$v")
-                            },
-                            modifier = Modifier.fillMaxSize()
-                        )
+                        // The search field sits outside the LazyColumn so it stays reachable no
+                        // matter how far down the student has scrolled.
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(androidx.compose.ui.graphics.Color.White)
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                            ) {
+                                SearchField(
+                                    query = uiState.searchQuery,
+                                    onQueryChange = viewModel::onSearchQueryChange
+                                )
+                            }
+                            HomeContent(
+                                courses = uiState.courses,
+                                searchQuery = uiState.searchQuery,
+                                searchResults = uiState.searchResults,
+                                onVideoSelected = { id, courseName ->
+                                    navController.navigate("video_detail/$id/${java.net.URLEncoder.encode(courseName, "UTF-8")}")
+                                },
+                                displayName = displayName,
+                                api = api,
+                                userId = userId,
+                                onOpenPdf = { v, p ->
+                                    navController.navigate("pdf_viewer/$v/$p")
+                                },
+                                onShowPdfList = { v ->
+                                    navController.navigate("pdf_list/$v")
+                                },
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
                     }
                 }
             }
@@ -241,6 +262,8 @@ private fun EmptyState() {
 @Composable
 private fun HomeContent(
     courses: List<CourseWithVideos>,
+    searchQuery: String,
+    searchResults: List<CourseSearchResult>,
     onVideoSelected: (Long, String) -> Unit,
     displayName: String?,
     api: TeacherApi,
@@ -249,13 +272,77 @@ private fun HomeContent(
     onShowPdfList: (videoId: Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isSearching = searchQuery.isNotBlank()
+    val listState = rememberLazyListState()
+
+    // Results are prepended, so without this a student searching from deep in the list would see
+    // nothing change.
+    LaunchedEffect(searchQuery) {
+        listState.animateScrollToItem(0)
+    }
+
     LazyColumn(
+        state = listState,
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Welcome text with avatar - scrolls with content
-        item {
+        if (isSearching) {
+            item(key = "results-header") {
+                Text(
+                    text = "RESULTS FOR \"${searchQuery.trim()}\"",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 12.dp)
+                )
+            }
+
+            if (searchResults.isEmpty()) {
+                item(key = "results-empty") {
+                    Text(
+                        text = "No course or class matches \"${searchQuery.trim()}\".",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                items(searchResults, key = { "result-${it.course.courseId}" }) { result ->
+                    SectionBlock(
+                        course = result.course,
+                        subtitle = if (result.matchedByName) {
+                            null
+                        } else {
+                            "${result.course.videos.size} of ${result.totalVideos} classes"
+                        },
+                        onVideoSelected = { id -> onVideoSelected(id, result.course.name) },
+                        api = api,
+                        userId = userId,
+                        onOpenPdf = onOpenPdf,
+                        onShowPdfList = onShowPdfList
+                    )
+                }
+            }
+
+            item(key = "results-divider") {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    SectionDivider(modifier = Modifier.padding(top = 16.dp))
+                    Text(
+                        text = "ALL COURSES",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        // Welcome text with avatar - scrolls with content. Hidden while searching so results sit
+        // right under the search field.
+        if (!isSearching) item(key = "greeting") {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -294,7 +381,8 @@ private fun HomeContent(
             }
         }
 
-        itemsIndexed(courses) { index, course ->
+        // Keys are prefixed because a course can appear in both the results region and here.
+        itemsIndexed(courses, key = { _, course -> "all-${course.courseId}" }) { index, course ->
             SectionBlock(
                 course = course,
                 onVideoSelected = { id -> onVideoSelected(id, course.name) },
@@ -304,23 +392,26 @@ private fun HomeContent(
                 onShowPdfList = onShowPdfList
             )
             if (index < courses.size - 1) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 32.dp),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Spacer(modifier = Modifier.weight(0.2f))
-                    Box(
-                        modifier = Modifier
-                            .weight(0.6f)
-                            .height(1.dp)
-                            .background(androidx.compose.ui.graphics.Color(0xFFD6DDE7))
-                    )
-                    Spacer(modifier = Modifier.weight(0.2f))
-                }
+                SectionDivider(modifier = Modifier.padding(top = 32.dp))
             }
         }
+    }
+}
+
+@Composable
+private fun SectionDivider(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Spacer(modifier = Modifier.weight(0.2f))
+        Box(
+            modifier = Modifier
+                .weight(0.6f)
+                .height(1.dp)
+                .background(androidx.compose.ui.graphics.Color(0xFFD6DDE7))
+        )
+        Spacer(modifier = Modifier.weight(0.2f))
     }
 }
 
@@ -331,7 +422,8 @@ private fun SectionBlock(
     api: TeacherApi,
     userId: Long?,
     onOpenPdf: (videoId: Long, pdfId: Long) -> Unit,
-    onShowPdfList: (videoId: Long) -> Unit
+    onShowPdfList: (videoId: Long) -> Unit,
+    subtitle: String? = null
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -341,6 +433,13 @@ private fun SectionBlock(
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(horizontal = 0.dp)
         )
+        if (subtitle != null) {
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         VideoCardCarousel(
             videos = course.videos,
             onVideoSelected = onVideoSelected,
