@@ -12,12 +12,11 @@
 -- Existing rows need no backfill: courses default to 0 and purchases to NULL,
 -- so every student who has already bought keeps permanent access.
 --
--- RUN THIS BEFORE DEPLOYING THE NEW BACKEND. Production runs with
--- hibernate ddl-auto=validate, so the app will refuse to start until the
--- columns exist.
+-- Applied automatically by scripts/run-migrations.sh, which scripts/deploy.sh
+-- runs before starting the new API image. Nothing to do by hand.
 --
---   docker compose -f backend/docker-compose.prod.yml exec -T db \
---     psql -U teacher -d teacher_videos < backend/docker/migrations/001_course_validity.sql
+-- Safe to re-run: every statement is IF NOT EXISTS, so a database that already
+-- has these columns is simply recorded as migrated.
 -- ============================================================================
 
 ALTER TABLE courses   ADD COLUMN IF NOT EXISTS validity_days INTEGER NOT NULL DEFAULT 0;

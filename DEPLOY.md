@@ -131,28 +131,45 @@ the on-disk nginx config / `web/` bundle can never drift apart.
 **Rollback** is just an older commit: every build keeps its own tag, so
 `scripts/deploy.sh <old-sha>` reverts in about 20 seconds without a rebuild.
 
-### Schema changes come first
+### Schema migrations
 
-There is no Flyway or Liquibase. `backend/docker/init/000_consolidated.sql` only
-runs on an empty database, so an existing production database is migrated by
-hand, from `backend/docker/migrations/`.
+There is no Flyway or Liquibase, but deploys are not manual either.
+`scripts/deploy.sh` runs `scripts/run-migrations.sh` before starting the new
+image, so a schema change ships with its code and there is nothing to remember.
 
-Production runs Hibernate with `ddl-auto: validate`, which means **the API will
-refuse to start if the new code expects a column the database does not have.**
-So the order is not optional:
+Why the ordering matters: production runs Hibernate with `ddl-auto: validate`,
+so **the API refuses to start if the new code expects a column the database does
+not have.** If a migration fails, the deploy aborts before the API is touched —
+it keeps running the previous image against the previous schema.
 
-```bash
-# 1. Apply the migration FIRST, against the running database
-docker compose -f backend/docker-compose.prod.yml exec -T db \
-  psql -U teacher -d teacher_videos < backend/docker/migrations/001_course_validity.sql
+To add one, drop a numbered file in `backend/docker/migrations/`:
 
-# 2. Then deploy the code
-scripts/deploy.sh main
+```
+backend/docker/migrations/002_whatever_it_is.sql
 ```
 
-Migrations are written to be safe to run twice (`ADD COLUMN IF NOT EXISTS`), so
-re-running one after a rollback does no harm. A rollback to code that predates a
-column is also fine — the old code simply ignores it.
+They are applied in filename order, once each, tracked in a `schema_migrations`
+table. Each file runs in a single transaction together with the row recording
+it, so a migration cannot end up half-applied — Postgres DDL is transactional.
+
+Two rules for writing one:
+
+- **Make it re-runnable** (`ADD COLUMN IF NOT EXISTS`). A database already
+  changed by hand then records cleanly instead of failing a deploy.
+- **Make it backward compatible** with the currently running code — new columns
+  nullable or defaulted. The old image is still serving traffic while the
+  migration runs, and it is what you roll back to.
+
+`backend/docker/init/000_consolidated.sql` is not part of this. Postgres runs it
+itself, and only on a genuinely empty data directory.
+
+To apply migrations without deploying (e.g. checking a stuck server):
+
+```bash
+cd /opt/teacherplatform && scripts/run-migrations.sh
+```
+
+Rolling back to code that predates a column is fine — the old code ignores it.
 
 If CI is unavailable and you must build on the server itself (needs ~1.5 GB free
 RAM and several GB of disk — this is what used to fill the root volume):

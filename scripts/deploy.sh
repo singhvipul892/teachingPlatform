@@ -10,6 +10,11 @@
 # and the static web/ bundle are read from disk, not baked into the image.
 # Tree and image are pinned to the same commit, so they can never drift.
 #
+# Pending SQL migrations are applied before the new image starts. That ordering
+# is not a nicety: the API runs with hibernate ddl-auto=validate and refuses to
+# boot against a schema older than its entities. Doing it here means a deploy is
+# one step again, and nobody has to remember to run psql first.
+#
 # Usage:
 #   scripts/deploy.sh                 # deploy origin/main
 #   scripts/deploy.sh my-feature      # deploy any branch
@@ -43,6 +48,12 @@ git reset --hard "$SHA"
 if [ -n "${GHCR_TOKEN:-}" ]; then
   echo "$GHCR_TOKEN" | docker login ghcr.io -u "${GHCR_USER:?GHCR_USER required when GHCR_TOKEN is set}" --password-stdin
 fi
+
+# Apply pending schema migrations BEFORE the new image starts: the API runs with
+# ddl-auto=validate and will not boot against a schema older than its entities.
+# A failure here exits non-zero and the API is left untouched, still running the
+# previous image against the previous schema.
+APP_DIR="$APP_DIR" bash scripts/run-migrations.sh
 
 export API_IMAGE="${IMAGE_REPO}:${SHORT}"
 echo "Deploying ${API_IMAGE}"
