@@ -28,6 +28,14 @@ public class Course {
     @Column(name = "description", nullable = false, columnDefinition = "text")
     private String description;
 
+    /**
+     * Last day a NEW student may join, Indian time. Null means open with no end
+     * date. Deliberately separate from validityDays: this closes the door on new
+     * people, validityDays decides how long the people already inside keep access.
+     */
+    @Column(name = "enrolment_closes_on")
+    private java.time.LocalDate enrolmentClosesOn;
+
     @Column(name = "price_paise", nullable = false)
     private int pricePaise;
 
@@ -77,6 +85,18 @@ public class Course {
     public String getCurrency() { return currency; }
     public String getThumbnailUrl() { return thumbnailUrl; }
     public boolean isActive() { return active; }
+    public java.time.LocalDate getEnrolmentClosesOn() { return enrolmentClosesOn; }
+    public void setEnrolmentClosesOn(java.time.LocalDate enrolmentClosesOn) {
+        this.enrolmentClosesOn = enrolmentClosesOn;
+    }
+
+    /**
+     * Whether the course still takes new students today. An inactive course is
+     * off sale outright; a dated one closes after its last enrolment day.
+     */
+    public boolean isEnrolmentOpen(java.time.LocalDate today) {
+        return active && (enrolmentClosesOn == null || !today.isAfter(enrolmentClosesOn));
+    }
     public int getValidityDays() { return validityDays; }
     public Instant getCreatedAt() { return createdAt; }
 

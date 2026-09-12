@@ -1,0 +1,73 @@
+# Throwaway stack for destructive backend tests.
+#
+# Exists so there is somewhere other than production to write to. Nothing here
+# persists: the database lives in a tmpfs and dies with the container, so
+# `docker compose down` leaves no trace and every run starts from the real
+# schema in backend/docker/init.
+#
+# The API image is PULLED, never built — Gradle cannot start on this machine
+# (see the loopback-failure note), but the image CI already built runs fine.
+#
+#   docker compose -f docker-compose.test.yml pull    # get the latest CI build
+#   docker compose -f docker-compose.test.yml up -d
+#   docker compose -f docker-compose.test.yml down -v
+#
+# Ports are deliberately non-default (55432 / 18080) so this can never be
+# confused with a real local stack on 5432 / 8080.
+
+name: singhsir-tests
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: teacher_videos
+      POSTGRES_USER: teacher
+      POSTGRES_PASSWORD: teacher
+    tmpfs:
+      # No named volume on purpose. There is nothing here worth keeping, and a
+      # volume is one `docker volume ls` mistake away from being confused with
+      # teacher_db, which holds real student data.
+      - /var/lib/postgresql/data
+    volumes:
+      - ../backend/docker/init/000_consolidated.sql:/docker-entrypoint-initdb.d/000_consolidated.sql:ro
+    ports:
+      - "55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U teacher -d teacher_videos"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    image: ${API_IMAGE:-ghcr.io/singhvipul892/teachingplatform-api:latest}
+    environment:
+      # The prod profile on purpose: this exercises the same configuration path
+      # production uses, so a config regression shows up here first.
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/teacher_videos
+      SPRING_DATASOURCE_USERNAME: teacher
+      SPRING_DATASOURCE_PASSWORD: teacher
+
+      # Never send a real SMS from a test run. Prod has this false.
+      SMS_MOCK: "true"
+
+      APP_STORAGE_S3_REGION: ap-south-1
+      APP_STORAGE_S3_BUCKET: singhsir-tests-no-such-bucket
+
+      # Razorpay TEST keys (already in application-local.yml). No money moves,
+      # and the specs avoid the endpoints that would call Razorpay at all.
+      RAZORPAY_KEY_ID: rzp_test_SP86pvPiQnFUbQ
+      RAZORPAY_KEY_SECRET: 0j3002i8Sx1c1AIis9Cfbcpb
+
+      # Static dummy credentials so the AWS SDK resolves instantly. Without
+      # these it walks the default chain to EC2 instance metadata and stalls
+      # startup for many seconds before failing.
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_EC2_METADATA_DISABLED: "true"
+    ports:
+      - "18080:8080"
+    depends_on:
+      db:
+        condition: service_healthy

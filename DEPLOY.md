@@ -111,11 +111,91 @@ curl -I https://teacherplatform.duckdns.org
 
 ---
 
-## Subsequent Deploys
+## Deploying a Change
 
-Deploys are automated — see [Automated Deploys](#automated-deploys-github-actions) below. Push to `main`, or run the workflow manually to deploy any branch.
+This is the standing procedure for every deploy. It has been the process since
+2026-09-10, when image builds moved to CI and schema migrations became automatic.
 
-To deploy from the server by hand (fallback, e.g. if GitHub Actions is down):
+**The short version: merge to `main`.** Everything below is detail about the
+cases that need one extra thing.
+
+### The normal path
+
+1. Work on a branch, open a PR, merge it to `main`.
+2. That is the deploy. GitHub Actions builds the image, pushes it to GHCR, and
+   the server pulls it — typically 3–5 minutes end to end.
+3. [Verify it](#verifying-a-deploy). Do not rely on the workflow going green.
+
+To deploy a branch **without** merging — useful for trying something on the real
+server first — use **Actions → Deploy → Run workflow** and pick it from the
+dropdown.
+
+### If your change touches the database
+
+Add a numbered file to `backend/docker/migrations/` in the same commit as the
+code that needs it. It will be applied automatically, before the new image
+starts. Nothing else to do, and nothing to run by hand.
+
+See [Schema migrations](#schema-migrations) for how to write one — there are two
+rules, and both matter.
+
+### If your change touches `web/` only
+
+Still just merge. The static files are a live bind mount, so the deploy's
+`git reset` alone updates the site — no image rebuild is involved. Tell people
+to hard-refresh (`Ctrl+Shift+R`); the old page may be cached in their browser.
+
+### If your change touches the Android app
+
+**Merging does not ship it.** The app reaches students only through a Play Store
+release: bump `versionCode` and `versionName` in `android/app/build.gradle.kts`,
+build the signed bundle, and upload it.
+
+This means the server and the app are versioned independently, so keep backend
+changes backward compatible with the released APK. Adding fields to a JSON
+response is safe — Retrofit uses Gson, which ignores unknown fields. Removing or
+renaming one is not; nor is a change in behaviour that the old app cannot
+interpret. When a feature needs both tiers, deploy the server first in an inert
+state, then release the app, then switch the feature on.
+
+### Verifying a deploy
+
+The workflow's own smoke test passes even when the API is dead — see the warning
+under [Automated Deploys](#automated-deploys-github-actions). Check it yourself:
+
+```bash
+# On the server: the API actually came back up
+docker compose -f backend/docker-compose.prod.yml logs api | grep "Started TeacherPlatformApplication"
+
+# Migrations that have been applied, if the change had one
+docker compose -f backend/docker-compose.prod.yml exec -T db psql -U teacher -d teacher_videos -c "SELECT filename, applied_at FROM schema_migrations;"
+```
+
+```bash
+# From anywhere: the API is serving
+curl -s http://13.205.19.207/api/courses | head -c 200
+```
+
+Then click through whatever you actually changed.
+
+### Rolling back
+
+Every commit keeps its own image tag, so a rollback is an older commit rather
+than a rebuild — about twenty seconds:
+
+```bash
+cd /opt/teacherplatform && scripts/deploy.sh <old-sha>
+```
+
+**Leave any new database columns in place.** Migrations are written to be
+backward compatible, so the older image ignores them, and `schema_migrations`
+will not re-apply them when you roll forward again. Restoring a database backup
+is for actual data corruption, not for a bad deploy.
+
+### Deploying by hand
+
+If GitHub Actions is unavailable, the same script the workflow calls can be run
+directly on the server. It still pulls a prebuilt image; it does not compile:
 
 ```bash
 cd /opt/teacherplatform
@@ -124,12 +204,28 @@ scripts/deploy.sh my-feature   # deploys any branch
 scripts/deploy.sh a9d4186      # deploys, or rolls back to, any commit
 ```
 
-The script pulls a prebuilt image from GHCR — it does not compile. It resets the
-working tree and pulls the image tag for the same commit, so the running code and
-the on-disk nginx config / `web/` bundle can never drift apart.
+This only works if CI already built an image for that commit. If it never did,
+you can build on the server as a last resort — it needs ~1.5 GB free RAM and
+several GB of disk, and is what used to fill the root volume:
 
-**Rollback** is just an older commit: every build keeps its own tag, so
-`scripts/deploy.sh <old-sha>` reverts in about 20 seconds without a rebuild.
+```bash
+docker compose -f backend/docker-compose.prod.yml build api
+docker compose -f backend/docker-compose.prod.yml up -d api
+```
+
+### Before a risky deploy
+
+Routine deploys need no ceremony — the API restart is a few seconds and the `db`
+container is never touched. Take a backup first when a migration does anything
+beyond adding a nullable or defaulted column:
+
+```bash
+docker compose -f backend/docker-compose.prod.yml exec -T db pg_dump -U teacher teacher_videos | gzip > ~/pre-deploy-$(date +%F-%H%M).sql.gz
+gzip -t ~/pre-deploy-*.sql.gz && echo "archive is valid"
+```
+
+Run that **on the server**, in bash. In PowerShell the `>` redirect will corrupt
+the gzip stream and hand you a backup that cannot be restored.
 
 ### Schema migrations
 
@@ -169,16 +265,6 @@ To apply migrations without deploying (e.g. checking a stuck server):
 cd /opt/teacherplatform && scripts/run-migrations.sh
 ```
 
-Rolling back to code that predates a column is fine — the old code ignores it.
-
-If CI is unavailable and you must build on the server itself (needs ~1.5 GB free
-RAM and several GB of disk — this is what used to fill the root volume):
-
-```bash
-docker compose -f backend/docker-compose.prod.yml build api
-docker compose -f backend/docker-compose.prod.yml up -d api
-```
-
 ---
 
 ## Automated Deploys (GitHub Actions)
@@ -203,12 +289,25 @@ The workflow has two jobs. `build` runs on GitHub's runners; `deploy` touches th
 2. **deploy** — SSHes in, `git fetch` + `git reset --hard` to the deployed commit (not
    `git pull` — avoids conflicts if the server's tree drifts; untracked `.env` survives),
    then runs `scripts/deploy.sh`.
-3. That script **pulls** the image tagged with the same commit and restarts **only** the
+3. That script applies any **pending schema migrations** (`scripts/run-migrations.sh`)
+   *before* the new image starts — the API validates its schema on boot and would refuse
+   to start against an older one. A migration failure aborts here, leaving the previous
+   image running against the previous schema. See [Schema migrations](#schema-migrations).
+4. It then **pulls** the image tagged with the same commit and restarts **only** the
    `api` service — the `db` container is never touched, so there's no database downtime.
-4. Reloads nginx. Static `web/` files need no rebuild at all; they're a live bind mount,
+5. Reloads nginx. Static `web/` files need no rebuild at all; they're a live bind mount,
    so the `git reset` alone updates the site.
-5. Prunes dangling images, then prints disk usage.
-6. Smoke-tests the login page and fails the run if the site doesn't come back.
+6. Prunes dangling images, then prints disk usage.
+7. Runs a "smoke test" — but see the warning below before trusting it.
+
+> ⚠️ **The smoke test proves almost nothing.** It curls the login page over HTTP, where
+> nginx answers `301`, and `curl` without `-L` treats any 3xx as success. It therefore
+> passes even when the API is dead. Until it is replaced with a real health check, confirm
+> a deploy yourself:
+>
+> ```bash
+> docker compose -f backend/docker-compose.prod.yml logs api | grep "Started TeacherPlatformApplication"
+> ```
 
 > The server no longer compiles anything. It used to run `docker compose up -d --build`,
 > which pulled the ~1 GB `gradle:8.7-jdk21` image and ran a Gradle build alongside the

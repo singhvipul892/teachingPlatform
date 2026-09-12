@@ -1,99 +1,101 @@
 # Deployment Status
 
-**Date:** 2026-03-26
-**Status:** 🟡 BLOCKED — Android app incompatible with new backend APIs (web + nginx ready for deploy)
+**Date:** 2026-09-10
+**Status:** 🟢 Backend, admin panel and student site live and current with `main`.
+Android APK is the only tier behind.
+
+> Previous versions of this file (dated 2026-03-26) said deployment was BLOCKED on
+> an Android migration to course-based endpoints. **That migration is done** —
+> `TeacherApi.kt` calls only `api/courses/{courseId}/videos` and `api/user/courses`,
+> and `VideoRepository` is course-based. The block no longer exists. `DRY_RUN_AUDIT.md`
+> from the same date is historical for the same reason.
 
 ---
 
-## What Works ✅
-- Backend payment system (Razorpay integration)
-- Course management (admin dashboard) — create, edit, toggle active/inactive status
-- Admin panel video & PDF management (add/edit/delete videos and PDFs per course)
-- Student web app (HTML/JS) — course listing, payment checkout, video access
-- Database schema (courses, videos, purchases, PDFs)
+## Where each tier stands
 
-## What's Broken ❌
-- **Android app calls deleted API endpoints** — will crash on startup for all users
+| Tier | State | Notes |
+|---|---|---|
+| **Backend** | 🟢 Live, current | Deployed from `main` via GitHub Actions → GHCR |
+| **Admin panel** (`web/admin/`) | 🟢 Live, current | Served by nginx from the repo bind mount |
+| **Student site** (`web/student/`) | 🟢 Live, current | Same |
+| **Database** | 🟢 Migrated | `001_course_validity.sql` applied automatically during deploy |
+| **Android APK** | 🟡 Code current, **not released** | Play Store release outstanding — see below |
+| **HTTPS** | 🔴 Not set up | Port 443 refuses connections; see below |
 
----
+## Verified live
 
-## Architecture
+```
+$ curl -s http://13.205.19.207/api/courses
+[{"id":2,"title":"DAILY PRACTICE BATCH 1.0 (DPB 1.0)",...,"validityDays":0,
+  "expiryDate":null,"expired":false,"daysRemaining":null}, ...]
+```
 
-### Backend (Migrated)
-| Endpoint | Auth | Description |
-|----------|------|-------------|
-| `GET /api/courses` | None | List all active courses |
-| `POST /api/payment/create-order` | JWT | Create Razorpay order |
-| `POST /api/payment/verify` | JWT | Verify and record payment |
-| `GET /api/user/courses` | JWT | Get user's purchased courses |
-| `GET /api/courses/{courseId}/videos` | JWT + purchase | Get videos for a course |
-| `GET /api/videos/{videoId}/pdfs/{pdfId}/download` | JWT | S3 presigned PDF URL |
+Course validity is deployed and every course reads `validityDays: 0` — lifetime
+access, unchanged for everyone who has already bought. `001_course_validity.sql`
+was applied automatically by the deploy; confirm with:
 
-### Android (Needs Migration)
-| File | Issue |
-|------|-------|
-| `TeacherApi.kt` | Still calls `GET /api/sections` and `GET /api/sections/{section}/videos` (both deleted) |
-| `VideoRepository.kt` | Calls `getSections()` and `getVideosBySection()` against deleted endpoints |
-| `HomeViewModel.kt` | Calls `repository.getHomeSections()` → 404 on startup |
-| `HomeScreen.kt` | Shows "Failed to load videos" error on launch |
+```bash
+docker compose -f backend/docker-compose.prod.yml exec -T db psql -U teacher -d teacher_videos -c "SELECT filename, applied_at FROM schema_migrations;" -c "SELECT count(*) AS purchases, count(expires_at) AS with_expiry FROM purchases;"
+```
+
+`with_expiry` stays at 0 until a course is deliberately given a validity.
 
 ---
 
-## Android Migration Tasks
+## How deployment works now
 
-1. **Update `TeacherApi.kt`**
-   - Remove `getSections()` and `getVideosBySection()`
-   - Add `getCourseVideos(courseId: Long)` → `GET /api/courses/{courseId}/videos`
-   - `getUserCourses()` already exists (`GET /api/user/courses`) ✅
+Push to `main` (or run the workflow on a branch). GitHub Actions builds the API
+image and pushes it to GHCR; the server pulls it. **The server compiles nothing**,
+and **schema migrations are applied automatically** before the new image starts.
 
-2. **Refactor `VideoRepository.kt`**
-   - Remove section-based methods
-   - Add course-based methods using `getCourseVideos(courseId)`
-   - Pass JWT token from auth state
+Full detail in [DEPLOY.md](DEPLOY.md). Two sections worth knowing:
 
-3. **Update `HomeViewModel.kt` + `HomeScreen.kt`**
-   - Replace "load all sections" with "load purchased courses"
-   - Add empty state: "You haven't purchased any courses yet"
-   - Add navigation to course catalog/purchase flow
+- [Deploying a Change](DEPLOY.md#deploying-a-change) — the standing procedure, including
+  what differs for database, `web/` and Android changes.
+- [Schema migrations](DEPLOY.md#schema-migrations) — how to add one so it ships with its code.
 
-4. **Test**
-   - Emulator smoke test (login → home → course videos)
-   - Real device APK build
-   - Payment flow regression
-
-5. **Build and release updated APK**
+Rollback is `scripts/deploy.sh <old-sha>` — about twenty seconds, no rebuild.
 
 ---
 
-## Backend Files Modified (Done)
+## Outstanding
 
-- `backend/.../catalog/web/VideoCatalogController.java` — Removed section endpoints, added `GET /courses/{courseId}/videos`
-- `backend/.../payment/repository/CourseRepository.java` — `findByActiveTrue()`
-- `docker-compose.prod.yml` — healthcheck, restart policies, admin volume, pgadmin behind `--profile tools`
-- `nginx/nginx.conf` — SSL config: HTTP→HTTPS redirect, `/web/` static alias, certbot challenge, API proxy; `client_max_body_size 50m` for multi-PDF uploads
-- `nginx/nginx.no-ssl.conf` — Bootstrap config: HTTP only, same `/web/` static + proxy (use for first SSL cert); `client_max_body_size 50m` for multi-PDF uploads
-- Root `/` → redirects to `/web/auth/login.html`; `/policies.html` → `/web/student/policies.html` (both configs)
+### 1. Android APK release (🟡)
+
+The app code is current, including the course-validity UI, but students are still
+running the old build. Needs the version bump currently uncommitted in
+`android/app/build.gradle.kts` (`versionCode` 13 → 15, `versionName` 2.0.9 → 3.1.0),
+then a Play Store release.
+
+**Until that ships, leave every course at validity 0.** Old APKs ignore the new
+fields harmlessly, but a student on the old app whose access expired would just
+see the course fail to load.
+
+### 2. HTTPS is not configured (🔴)
+
+Port 443 refuses connections. `nginx/nginx.conf` has a complete SSL server block
+ready, but certbot has never been run, so the server still serves
+`nginx/nginx.no-ssl.conf` over plain HTTP. The Android app talks to
+`http://13.205.19.207:8080` directly.
+
+This matters beyond the padlock: taking Razorpay payments over plain HTTP on a
+bare IP is a poor look for a paid product, and Let's Encrypt will not issue a
+certificate for an IP address — HTTPS needs a real domain first.
+See `DEPLOYMENT_PLAN.md` for the wider argument.
+
+### 3. Deferred product work
+
+[BACKLOG.md](BACKLOG.md): out-of-app expiry reminders (B1), the ungated PDF
+download endpoint (B2), revenue figures drifting once renewals exist (B3).
 
 ---
 
-## Local Development Setup
+## Configuration notes
 
-**API_BASE Configuration:**
-- Web app files (`web/auth/login.html`, `web/admin/index.html`, `web/student/index.html`) have `const API_BASE = 'http://13.205.19.207:8080';` for local development
-- **Before production deployment:** Change to `const API_BASE = '';` (empty string) so web app uses relative URLs and calls the same domain
-- Comments in each file mark what to revert for production
-- **Tip:** Hard refresh browser (`Ctrl+Shift+R`) after changing API_BASE to clear cache
-
----
-
-## Next Steps
-
-### To Unblock Deployment
-- [ ] Complete Android migration tasks above
-- [ ] Build and test APK
-- [ ] `./gradlew build` on backend
-
-### Post-Deployment
-- [ ] Monitor error logs
-- [ ] End-to-end test: teacher uploads → student purchases → student watches
-- [ ] Confirm Razorpay payments received
+- `web/*/index.html` all use `const API_BASE = ''` (relative URLs), which is the
+  correct production setting — they call whatever host served the page.
+- Static `web/` files are a **live bind mount**, so a deploy's `git reset` updates
+  the site with no image rebuild.
+- Only the `api` container restarts on deploy. The `db` container is never
+  touched, so there is no database downtime.

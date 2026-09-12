@@ -20,6 +20,7 @@ import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
 import com.razorpay.Utils;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import org.json.JSONObject;
@@ -76,8 +77,18 @@ public class PaymentService {
                 .filter(Course::isActive)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Course not found."));
 
-        // An expired enrolment is allowed to buy again; a live one is not.
-        boolean hasLiveAccess = purchaseRepository.findByUserIdAndCourseId(userId, courseId)
+        // A dated batch stops taking new people after its last enrolment day.
+        // Students already in it are untouched — this gate is only about joining.
+        if (!course.isEnrolmentOpen(LocalDate.now(AccessExpiry.ZONE))) {
+            logger.info("Enrolment closed for course {} (closed {})", courseId, course.getEnrolmentClosesOn());
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Enrolment for this course closed on "
+                            + course.getEnrolmentClosesOn() + ".");
+        }
+
+        // An expired enrolment is allowed to buy again, and so is a student an
+        // admin removed — neither has access. Only a live one is blocked.
+        boolean hasLiveAccess = purchaseRepository.findEnrolled(userId, courseId)
                 .map(p -> p.isActive(Instant.now()))
                 .orElse(false);
         if (hasLiveAccess) {
@@ -150,7 +161,8 @@ public class PaymentService {
         if (PaymentOrder.Status.PAID.name().equals(paymentOrder.getStatus())) {
             logger.warn("Order already marked PAID: razorpayOrderId={}, userId={}", razorpayOrderId, userId);
             // Check if Purchase already exists for idempotency
-            var existingPurchase = purchaseRepository.findByRazorpayPaymentId(razorpayPaymentId);
+            var existingPurchase = purchaseRepository
+                    .findByCourseIdAndRazorpayPaymentId(paymentOrder.getCourseId(), razorpayPaymentId);
             if (existingPurchase.isPresent()) {
                 logger.info("Purchase already exists for payment {} (idempotent success)", razorpayPaymentId);
                 return new VerifyPaymentResponse(true, "Payment already verified successfully.");
@@ -159,7 +171,8 @@ public class PaymentService {
         }
 
         // Idempotency check: if Purchase already exists for this payment ID, return success
-        var existingPurchase = purchaseRepository.findByRazorpayPaymentId(razorpayPaymentId);
+        var existingPurchase = purchaseRepository
+                .findByCourseIdAndRazorpayPaymentId(paymentOrder.getCourseId(), razorpayPaymentId);
         if (existingPurchase.isPresent()) {
             logger.info("Purchase already exists for payment {} (idempotent success)", razorpayPaymentId);
             // Ensure order is marked as paid
@@ -172,6 +185,8 @@ public class PaymentService {
         }
 
         paymentOrder.markPaid();
+        // The gateway's payment id is what a person quotes for an online sale.
+        paymentOrder.setReference(razorpayPaymentId);
         paymentOrderRepository.save(paymentOrder);
         logger.info("Marked PaymentOrder as PAID: razorpayOrderId={}, userId={}", razorpayOrderId, userId);
 
@@ -189,11 +204,12 @@ public class PaymentService {
                     .map(Course::getValidityDays)
                     .orElse(0);
 
-            Purchase purchase = purchaseRepository.findByUserIdAndCourseId(userId, courseId)
+            Purchase purchase = purchaseRepository.findIncludingUnenrolled(userId, courseId)
                     .orElse(null);
             if (purchase != null) {
-                // Expired student buying again: reuse the enrolment row so there stays
-                // one per student per course. payment_orders keeps the payment history.
+                // Expired student buying again, or one an admin removed paying their
+                // way back in: reuse the enrolment row so there stays one per student
+                // per course. payment_orders keeps the payment history.
                 purchase.renew(razorpayOrderId, razorpayPaymentId, paymentOrder.getAmountPaise(),
                         paymentOrder.getCurrency(), validityDays);
                 logger.info("Purchase renewed: userId={}, courseId={}, payment={}, expiresAt={}",
@@ -234,13 +250,17 @@ public class PaymentService {
      */
     public UserCoursesResponse getUserCourses(Long userId) {
         Instant now = Instant.now();
+        LocalDate today = LocalDate.now(AccessExpiry.ZONE);
         List<Purchase> purchases = purchaseRepository.findByUserId(userId);
         List<CourseResponse> courses = purchases.stream()
                 .map(p -> courseRepository.findById(p.getCourseId())
                         .map(c -> new CourseResponse(c.getId(), c.getTitle(), c.getDescription(), c.getPricePaise(),
                                 c.getCurrency(), c.getThumbnailUrl(), c.getValidityDays(),
                                 AccessExpiry.lastDay(p.getExpiresAt()), p.isExpired(now),
-                                AccessExpiry.daysRemaining(p.getExpiresAt(), now)))
+                                AccessExpiry.daysRemaining(p.getExpiresAt(), now),
+                                // Retired and closed courses stay listed so the student
+                                // can see what they had; they just cannot be bought again.
+                                c.isEnrolmentOpen(today)))
                         .orElse(null))
                 .filter(c -> c != null)
                 .toList();
@@ -263,8 +283,12 @@ public class PaymentService {
     ) {
         logger.info("Checking payment status: userId={}, razorpayOrderId={}, razorpayPaymentId={}", userId, razorpayOrderId, razorpayPaymentId);
 
-        // Check if Purchase exists (payment was verified)
-        var purchase = purchaseRepository.findByRazorpayPaymentId(razorpayPaymentId);
+        // Check if Purchase exists (payment was verified). The order names the
+        // course, and a payment reference is only unique within one.
+        var paymentOrder = paymentOrderRepository.findByRazorpayOrderId(razorpayOrderId);
+        var purchase = paymentOrder
+                .flatMap(o -> purchaseRepository.findByCourseIdAndRazorpayPaymentId(
+                        o.getCourseId(), razorpayPaymentId));
         if (purchase.isPresent()) {
             Purchase p = purchase.get();
             if (p.getUserId().equals(userId)) {
@@ -288,7 +312,6 @@ public class PaymentService {
         }
 
         // Check if PaymentOrder exists but not verified
-        var paymentOrder = paymentOrderRepository.findByRazorpayOrderId(razorpayOrderId);
         if (paymentOrder.isPresent()) {
             PaymentOrder order = paymentOrder.get();
             if (!order.getUserId().equals(userId)) {

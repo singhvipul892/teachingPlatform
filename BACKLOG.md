@@ -107,3 +107,58 @@ to the dashboard, and it would make the number correct on all three counts at
 once.
 
 ---
+
+## B4. Tell a student when their access is removed
+
+**Area:** Enrolment
+**Raised:** 2026-09-12
+**Status:** Deferred — current silence is now a decision, not an oversight
+
+### What it is
+
+When an admin removes a student from a course, the student is told nothing. The
+course simply disappears from their list the next time the app loads.
+
+### Why it matters
+
+Expiry is explained and removal is not, which is backwards — expiry is the one the
+student can predict. `/api/user/courses` returns `expired`, `expiryDate` and
+`daysRemaining`, and the app shows an expired course greyed with its date, so the
+student knows what happened and can renew. Removal has no equivalent: the row is
+excluded from the response entirely, the Android app has no concept of a removed
+enrolment (`UserCoursesResponse.kt` carries no such field), and the student is left
+to guess whether they were removed, whether it expired, or whether something broke.
+
+The likely support message is "my course disappeared", which costs more to answer
+than it would have cost to say.
+
+### Why it's deferred
+
+Two reasons, and the first is a decision rather than a constraint:
+
+- **Silence is deliberate for now.** Removals are usually corrections or refunds,
+  and a notification is not always wanted. Keeping the current behaviour is the
+  chosen default until there is a reason to change it.
+- **There is still no channel.** Same blocker as [B1](#b1-expiry-reminder-outside-the-app):
+  no push setup, no student email. Anything that reaches a student who is not
+  currently in the app is new infrastructure.
+
+These two share a channel entirely. Whoever builds B1 should pick up B4 in the
+same pass — the second message costs very little once the first one can be sent.
+
+### Still to decide
+
+- Whether removal is announced at all, or only shown in-app when the student next
+  opens it (a removed course listed as removed, rather than vanishing).
+- Whether the reason is included. An admin-entered note would be more use than a
+  bare "access withdrawn", but it is a field that has to be written every time.
+- Whether a restore is announced too. Restoring is an undo, so a student who was
+  never told about the removal should probably not be told about the undo either.
+
+### Related
+
+Removal now keeps the enrolment row (`purchases.unenrolled_at`, migration
+`002_purchase_unenrolment.sql`), so the data needed to show "removed on <date>" to
+a student already exists. Only the surfacing is missing.
+
+---

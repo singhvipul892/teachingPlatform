@@ -1,0 +1,19 @@
+{
+  "name": "singhsir-backend-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Black-box API tests for the Singh Sir backend. Read-only against production; full CRUD against a throwaway stack.",
+  "scripts": {
+    "test": "playwright test --project=local",
+    "test:prod": "playwright test --project=prod",
+    "report": "playwright show-report",
+    "stack:up": "docker compose -f docker-compose.test.yml up -d",
+    "stack:down": "docker compose -f docker-compose.test.yml down -v",
+    "stack:logs": "docker compose -f docker-compose.test.yml logs -f api",
+    "stack:pull": "docker compose -f docker-compose.test.yml pull"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "dotenv": "^16.4.7"
+  }
+}

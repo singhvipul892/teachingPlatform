@@ -26,6 +26,13 @@ public class UpdateCourseRequest {
     @Min(value = 0, message = "Validity must be >= 0")
     private Integer validityDays;
 
+    /**
+     * Last day a NEW student may join, ISO yyyy-MM-dd, Indian time. Null leaves
+     * enrolment open with no end date. Separate from validityDays, which is how
+     * long access lasts once someone has joined.
+     */
+    private java.time.LocalDate enrolmentClosesOn;
+
     // Constructors
     public UpdateCourseRequest() {
     }
@@ -90,5 +97,13 @@ public class UpdateCourseRequest {
 
     public void setValidityDays(Integer validityDays) {
         this.validityDays = validityDays;
+    }
+
+    public java.time.LocalDate getEnrolmentClosesOn() {
+        return enrolmentClosesOn;
+    }
+
+    public void setEnrolmentClosesOn(java.time.LocalDate enrolmentClosesOn) {
+        this.enrolmentClosesOn = enrolmentClosesOn;
     }
 }

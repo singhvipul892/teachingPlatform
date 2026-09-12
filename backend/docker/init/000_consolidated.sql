@@ -67,6 +67,9 @@ CREATE TABLE IF NOT EXISTS courses (
     active        BOOLEAN      NOT NULL DEFAULT TRUE,
     -- 0 = lifetime access. Otherwise the number of days a new purchase lasts.
     validity_days INTEGER      NOT NULL DEFAULT 0,
+    -- Last day a NEW student may join, Indian time. NULL = open indefinitely.
+    -- Not validity_days: that is how long access lasts once bought.
+    enrolment_closes_on DATE   NULL,
     created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
@@ -95,30 +98,45 @@ CREATE TABLE IF NOT EXISTS payment_orders (
     amount_paise      INTEGER      NOT NULL,
     currency          VARCHAR(10)  NOT NULL DEFAULT 'INR',
     status            VARCHAR(20)  NOT NULL DEFAULT 'CREATED',
+    -- RAZORPAY paid online · OFFLINE paid in cash/UPI and tagged by an admin ·
+    -- COMPLIMENTARY granted with no payment (always amount_paise = 0).
+    source            VARCHAR(20)  NOT NULL DEFAULT 'RAZORPAY',
+    -- What a person would quote: the UPI/bank reference an admin typed, or the
+    -- gateway payment id. NULL for free seats and for rows predating this.
+    reference         VARCHAR(100) NULL,
     created_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_payment_orders_user_id           ON payment_orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_payment_orders_razorpay_order_id ON payment_orders(razorpay_order_id);
 CREATE INDEX IF NOT EXISTS idx_payment_orders_course_id         ON payment_orders(course_id);
+CREATE INDEX IF NOT EXISTS idx_payment_orders_status_source   ON payment_orders(status, source);
+CREATE INDEX IF NOT EXISTS idx_payment_orders_course_reference ON payment_orders(course_id, reference);
 
 CREATE TABLE IF NOT EXISTS purchases (
     id                  BIGSERIAL PRIMARY KEY,
     user_id             BIGINT       NOT NULL REFERENCES users(id),
     course_id           BIGINT       NOT NULL REFERENCES courses(id),
     razorpay_order_id   VARCHAR(100) NOT NULL UNIQUE REFERENCES payment_orders(razorpay_order_id),
-    razorpay_payment_id VARCHAR(100) NOT NULL UNIQUE,
+    -- Unique per course, not globally: one offline payment reference can pay
+    -- for two courses. See idx_purchases_course_payment below.
+    razorpay_payment_id VARCHAR(100) NOT NULL,
     amount_paise        INTEGER      NOT NULL,
     currency            VARCHAR(10)  NOT NULL DEFAULT 'INR',
     purchased_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     -- NULL = access never expires. Stamped at purchase, never recalculated.
-    expires_at          TIMESTAMPTZ  NULL
+    expires_at          TIMESTAMPTZ  NULL,
+    -- NULL = still enrolled. A timestamp is when an admin removed the student;
+    -- the row is kept so the enrolment is never destroyed, and re-tagging reuses it.
+    unenrolled_at       TIMESTAMPTZ  NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_purchases_user_id    ON purchases(user_id);
 CREATE INDEX IF NOT EXISTS idx_purchases_course_id  ON purchases(course_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_purchases_user_course ON purchases(user_id, course_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_purchases_course_payment ON purchases(course_id, razorpay_payment_id);
 CREATE INDEX IF NOT EXISTS idx_purchases_expires_at ON purchases(expires_at);
+CREATE INDEX IF NOT EXISTS idx_purchases_unenrolled_at ON purchases(unenrolled_at);
 
 -- ============================================================================
 -- 5. Done - All tables created with proper dependencies

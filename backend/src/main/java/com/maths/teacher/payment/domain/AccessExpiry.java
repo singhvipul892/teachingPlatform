@@ -56,7 +56,12 @@ public final class AccessExpiry {
      * on API 24 without java.time.
      */
     public static LocalDate lastDay(Instant expiresAt) {
-        return expiresAt == null ? null : expiresAt.atZone(ZONE).toLocalDate();
+        return dayOf(expiresAt);
+    }
+
+    /** The Indian calendar day an instant fell on. Null in, null out. */
+    public static LocalDate dayOf(Instant instant) {
+        return instant == null ? null : instant.atZone(ZONE).toLocalDate();
     }
 
     /**

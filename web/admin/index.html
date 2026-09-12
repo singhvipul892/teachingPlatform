@@ -401,6 +401,10 @@
     .student-item:last-child { border-bottom: none; }
     .student-name { font-weight: 600; }
     .student-contact { color: var(--muted); font-size: 0.85rem; }
+    /* Removed students stay listed so a mistaken untag can be undone. */
+    .student-item.removed { background: #fafafa; }
+    .student-item.removed .student-name,
+    .student-item.removed .student-contact { opacity: 0.55; }
 
     /* ── Video Thumbnail ── */
     .video-thumb {
@@ -571,6 +575,14 @@
         <small style="color: var(--muted); font-size: 0.8rem;">Enter price in rupees (e.g., 999 = ₹9.99)</small>
       </div>
       <div class="form-group">
+        <label>Close enrolment on <span style="font-weight:400; color:var(--muted);">(optional)</span></label>
+        <input type="date" id="form-enrolment-closes" />
+        <small style="color: var(--muted); font-size: 0.8rem;">
+          Last day a <b>new</b> student may join. Leave blank to stay open.
+          Different from validity: students already enrolled keep the access they were sold.
+        </small>
+      </div>
+      <div class="form-group">
         <label>Validity (days)</label>
         <input type="number" id="form-validity" min="0" step="1" value="0" placeholder="0" />
         <small style="color: var(--muted); font-size: 0.8rem;">
@@ -600,17 +612,17 @@
   </div>
 </div>
 
-<!-- ── Delete Confirmation Modal ── -->
+<!-- ── Off-sale Confirmation Modal ── -->
 <div id="modal-confirm-delete" class="modal-overlay">
   <div class="modal" style="max-width: 400px;">
     <div class="modal-header">
-      <h2>Delete Course?</h2>
+      <h2>Take course off sale?</h2>
       <button class="btn-close" onclick="closeModal('modal-confirm-delete')">×</button>
     </div>
     <p id="confirm-message" style="color: var(--muted); margin-bottom: 1.5rem; line-height: 1.6;"></p>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" onclick="closeModal('modal-confirm-delete')">Cancel</button>
-      <button type="button" class="btn-danger" id="btn-confirm-delete">Delete Course</button>
+      <button type="button" class="btn-danger" id="btn-confirm-delete">Take off sale</button>
     </div>
   </div>
 </div>
@@ -637,6 +649,16 @@
         </div>
         <button class="btn-primary" onclick="searchAndTagStudent()" id="btn-tag-search" style="white-space:nowrap; padding:0.55rem 1rem;">Search &amp; Tag</button>
       </div>
+      <label style="display:flex; align-items:flex-start; gap:0.5rem; margin-top:0.85rem; font-size:0.87rem; cursor:pointer;">
+        <input type="checkbox" id="tag-record-payment" checked style="margin-top:0.2rem;" />
+        <span>
+          <b>Record a payment</b> at the course price
+          <span style="color:var(--muted);">
+            — untick for a free seat or a scholarship. Either way the student gets access;
+            only the revenue figure changes.
+          </span>
+        </span>
+      </label>
       <div id="tag-search-result" style="margin-top:0.75rem;"></div>
     </div>
 
@@ -979,50 +1001,77 @@
     listEl.innerHTML = html;
   }
 
+  // Revenue comes from the payment ledger, never from price x head count. The
+  // old sum changed retroactively whenever a price was edited or a student was
+  // removed; this one is what actually arrived.
+  const SOURCE_LABEL = {
+    RAZORPAY: 'Online',
+    OFFLINE: 'Offline (cash / UPI)',
+    COMPLIMENTARY: 'Free seats'
+  };
+
   async function loadReports() {
     const reportsEl = document.getElementById('reports-content');
+    reportsEl.innerHTML = '<div class="loading"><div class="spinner"></div> Loading...</div>';
     try {
-      let totalRevenue = 0;
-      let totalStudents = 0;
+      const report = await apiFetch('/api/admin/reports/revenue');
+      const totalStudents = allCourses.reduce((sum, c) => sum + c.studentCount, 0);
 
-      allCourses.forEach(c => {
-        totalRevenue += c.pricePaise * c.studentCount;
-        totalStudents += c.studentCount;
-      });
+      const tile = (label, value, tone) => `
+        <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; text-align: center;">
+          <div style="font-size: 0.9rem; color: var(--muted); margin-bottom: 0.5rem;">${label}</div>
+          <div style="font-size: 2rem; font-weight: 700; color: var(--${tone});">${value}</div>
+        </div>`;
 
-      const html = `
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">
-          <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; text-align: center;">
-            <div style="font-size: 0.9rem; color: var(--muted); margin-bottom: 0.5rem;">Total Courses</div>
-            <div style="font-size: 2rem; font-weight: 700; color: var(--primary);">${allCourses.length}</div>
+      const sourceRows = report.bySource.length ? report.bySource.map(line => `
+        <div style="padding: 0.85rem 1rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; gap: 1rem;">
+          <div>
+            <div style="font-weight: 600;">${SOURCE_LABEL[line.source] || line.source}</div>
+            <div style="font-size: 0.85rem; color: var(--muted);">${line.paymentCount} payment${line.paymentCount === 1 ? '' : 's'}</div>
           </div>
-          <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; text-align: center;">
-            <div style="font-size: 0.9rem; color: var(--muted); margin-bottom: 0.5rem;">Total Students</div>
-            <div style="font-size: 2rem; font-weight: 700; color: var(--success);">${totalStudents}</div>
-          </div>
-          <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; text-align: center;">
-            <div style="font-size: 0.9rem; color: var(--muted); margin-bottom: 0.5rem;">Total Revenue</div>
-            <div style="font-size: 2rem; font-weight: 700; color: var(--accent);">${rupees(totalRevenue)}</div>
-          </div>
-          <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; text-align: center;">
-            <div style="font-size: 0.9rem; color: var(--muted); margin-bottom: 0.5rem;">Avg Students/Course</div>
-            <div style="font-size: 2rem; font-weight: 700; color: var(--primary);">${allCourses.length ? Math.round(totalStudents / allCourses.length) : 0}</div>
-          </div>
-        </div>
-        <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;">Top Courses</h3>
-        <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
-          ${allCourses.sort((a, b) => b.studentCount - a.studentCount).slice(0, 5).map(c => `
-            <div style="padding: 1rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <div style="font-weight: 600;">${c.title}</div>
-                <div style="font-size: 0.85rem; color: var(--muted);">${c.studentCount} students</div>
-              </div>
-              <div style="font-weight: 600; color: var(--primary);">${rupees(c.pricePaise)}</div>
+          <div style="font-weight: 600; white-space: nowrap;">${rupees(line.amountPaise)}</div>
+        </div>`).join('') : '<div class="loading">No payments recorded yet</div>';
+
+      const courseRows = report.byCourse.length ? report.byCourse.slice(0, 8).map(c => `
+        <div style="padding: 1rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+          <div style="min-width:0;">
+            <div style="font-weight: 600;">${c.title} ${c.active ? '' : '<span class="badge badge-inactive">Off sale</span>'}</div>
+            <div style="font-size: 0.85rem; color: var(--muted);">
+              ${c.payerCount} student${c.payerCount === 1 ? '' : 's'} ·
+              ${c.paymentCount} payment${c.paymentCount === 1 ? '' : 's'}
             </div>
-          `).join('')}
+          </div>
+          <div style="font-weight: 600; color: var(--primary); white-space: nowrap;">${rupees(c.amountPaise)}</div>
+        </div>`).join('') : '<div class="loading">Nothing to show yet</div>';
+
+      reportsEl.innerHTML = `
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+          ${tile('Revenue received', rupees(report.totalPaise), 'accent')}
+          ${tile('Payments', report.paymentCount, 'primary')}
+          ${tile('Enrolled students', totalStudents, 'success')}
+          ${tile('Free seats granted', report.complimentaryCount, 'muted')}
+        </div>
+        <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: ${report.untrackedOfflineCount ? '0.5rem' : '2rem'};">
+          Summed from payments actually recorded. Editing a course price does not change it,
+          and removing a student does not erase a sale that happened.
+        </p>
+        ${report.untrackedOfflineCount ? `
+          <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 2rem; padding: 0.6rem 0.85rem; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px;">
+            Not included: <b>${report.untrackedOfflineCount}</b> offline enrolment${report.untrackedOfflineCount === 1 ? '' : 's'}
+            recorded before amounts were tracked. What those students paid was never stored, so it
+            is left out rather than guessed at. Everything tagged from now on carries its amount.
+          </p>` : ''}
+
+        <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;">How the money arrived</h3>
+        <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 2rem;">
+          ${sourceRows}
+        </div>
+
+        <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;">Courses by revenue</h3>
+        <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
+          ${courseRows}
         </div>
       `;
-      reportsEl.innerHTML = html;
     } catch (e) {
       reportsEl.innerHTML = `<div class="msg error">Failed to load reports: ${e.message}</div>`;
     }
@@ -1035,6 +1084,7 @@
     document.getElementById('form-submit-btn').textContent = 'Create Course';
     document.getElementById('form-course').reset();
     document.getElementById('form-validity').value = 0;
+    document.getElementById('form-enrolment-closes').value = '';
     document.getElementById('preview-container').innerHTML = '';
     currentFilePreview = null;
     clearMsg('modal-form-msg');
@@ -1055,6 +1105,7 @@
     document.getElementById('form-currency').value = course.currency;
     document.getElementById('form-active').checked = course.active;
     document.getElementById('form-validity').value = course.validityDays || 0;
+    document.getElementById('form-enrolment-closes').value = course.enrolmentClosesOn || '';
 
     if (course.thumbnailUrl) {
       const previewHtml = `<div class="image-preview"><img src="${course.thumbnailUrl}" alt="Current thumbnail" /></div>`;
@@ -1078,6 +1129,7 @@
     const currency = document.getElementById('form-currency').value;
     const active = document.getElementById('form-active').checked;
     const validityDays = parseInt(document.getElementById('form-validity').value, 10) || 0;
+    const enrolmentClosesOn = document.getElementById('form-enrolment-closes').value;
     const thumbnail = document.getElementById('form-thumbnail').files[0];
 
     if (!title || !price) {
@@ -1096,6 +1148,7 @@
       formData.append('currency', currency);
       formData.append('active', active);
       formData.append('validityDays', validityDays);
+      if (enrolmentClosesOn) formData.append('enrolmentClosesOn', enrolmentClosesOn);
       if (thumbnail) formData.append('thumbnail', thumbnail);
 
       const method = currentEditingCourseId ? 'PUT' : 'POST';
@@ -1123,9 +1176,25 @@
   }
 
   // ── Toggle Course Status ──
+  // Deactivating takes a course OFF SALE. It does not revoke anything: students
+  // already enrolled keep full access, which is why the confirmation says so and
+  // names how many people that is.
   async function toggleCourseStatus(courseId, currentlyActive) {
     const action = currentlyActive ? 'deactivate' : 'activate';
-    if (!confirm(`Are you sure you want to ${action} this course?`)) return;
+    const course = allCourses.find(c => c.id === courseId);
+    const enrolled = course ? course.studentCount : 0;
+
+    const message = currentlyActive
+      ? `Take "${course ? course.title : 'this course'}" off sale?
+
+`
+        + `· It stops appearing in the catalogue and cannot be bought.
+`
+        + `· ${enrolled} enrolled student${enrolled === 1 ? '' : 's'} keep${enrolled === 1 ? 's' : ''} full access.
+`
+        + `· You can put it back on sale at any time.`
+      : `Put "${course ? course.title : 'this course'}" back on sale?`;
+    if (!confirm(message)) return;
 
     try {
       await apiFetch(`/api/admin/courses/${courseId}`, {
@@ -1142,7 +1211,12 @@
   // ── Delete Course ──
   function confirmDelete(courseId, title) {
     currentDeleteCourseId = courseId;
-    document.getElementById('confirm-message').textContent = `Are you sure you want to delete "${title}"? This action will deactivate the course and students will lose access. This cannot be undone.`;
+    const course = allCourses.find(c => c.id === courseId);
+    const enrolled = course ? course.studentCount : 0;
+    document.getElementById('confirm-message').textContent =
+      `Take "${title}" off sale? It disappears from the catalogue and cannot be bought. `
+      + `${enrolled} enrolled student${enrolled === 1 ? '' : 's'} keep${enrolled === 1 ? 's' : ''} full access, `
+      + `and you can put it back on sale at any time.`;
     openModal('modal-confirm-delete');
   }
 
@@ -1168,6 +1242,7 @@
     document.getElementById('students-modal-title').textContent = `Students — ${courseTitle}`;
     document.getElementById('tag-search-query').value = '';
     document.getElementById('tag-txn-id').value = '';
+    document.getElementById('tag-record-payment').checked = true;
     document.getElementById('tag-search-result').innerHTML = '';
     foundUserForTagging = null;
     openModal('modal-students');
@@ -1180,24 +1255,54 @@
     clearMsg('students-msg');
 
     try {
-      const data = await apiFetch(`/api/admin/courses/${courseId}/students`);
+      // Removed students are listed too, greyed out, so an untag done by mistake
+      // is visible and can be undone. Restoring records no payment; tagging does.
+      const data = await apiFetch(`/api/admin/courses/${courseId}/students?includeRemoved=true`);
       if (!data.length) {
         contentEl.innerHTML = '<div class="loading">No students enrolled yet</div>';
         return;
       }
 
-      const html = data.map(student => `
+      // Enrolled first, then the removed ones at the bottom.
+      const sorted = [...data].sort((a, b) => Number(!!a.removedOn) - Number(!!b.removedOn));
+
+      const html = sorted.map(student => {
+        const name = `${student.firstName} ${student.lastName}`;
+        if (student.removedOn) {
+          return `
+        <div class="student-item removed">
+          <div>
+            <div class="student-name">
+              ${name}
+              <span class="badge badge-inactive">Removed ${formatDay(student.removedOn)}</span>
+            </div>
+            <div class="student-contact">${student.email}</div>
+            <div class="student-contact">${student.mobileNumber}</div>
+            <div class="student-contact">
+              ${student.expiryDate ? `access was valid till ${formatDay(student.expiryDate)}` : 'had lifetime access'}
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:0.5rem;">
+            <button class="btn-small" title="Undo the removal. Records no payment — use Tag if they paid again."
+                    onclick="restoreStudent(${courseId}, ${student.id}, '${name}')">Restore</button>
+          </div>
+        </div>`;
+        }
+        return `
         <div class="student-item">
           <div>
             <div class="student-name">
-              ${student.firstName} ${student.lastName}
+              ${name}
               ${student.expired ? '<span class="badge badge-inactive">Expired</span>' : ''}
             </div>
             <div class="student-contact">${student.email}</div>
             <div class="student-contact">${student.mobileNumber}</div>
             <div class="student-contact">
-              Bought ${formatDate(student.purchasedAt)} ·
+              ${paidSummary(student)} ·
               ${student.expiryDate ? `valid till ${formatDay(student.expiryDate)}` : 'lifetime access'}
+              ${student.paymentCount > 0
+                  ? `· <a href="#" onclick="showPayments(${courseId}, ${student.id}, '${name}'); return false;">history</a>`
+                  : ''}
             </div>
           </div>
           <div style="display:flex; align-items:center; gap:0.5rem;">
@@ -1205,10 +1310,10 @@
                    title="Last day of access. Clear the date for lifetime access."
                    style="padding:0.35rem; font-size:0.85rem;" />
             <button class="btn-small" onclick="saveStudentExpiry(${courseId}, ${student.id})">Save</button>
-            <button class="btn-small btn-danger" onclick="untagStudent(${courseId}, ${student.id}, '${student.firstName} ${student.lastName}')">Untag</button>
+            <button class="btn-small btn-danger" onclick="untagStudent(${courseId}, ${student.id}, '${name}')">Untag</button>
           </div>
-        </div>
-      `).join('');
+        </div>`;
+      }).join('');
 
       contentEl.innerHTML = html;
     } catch (e) {
@@ -1270,7 +1375,25 @@
     }
   }
 
+  // Tagging is allowed when a course is off sale or past its enrolment date —
+  // the payment may well have been taken before it closed — but say so first,
+  // because the usual reason to be here is a mistake.
+  function confirmClosedCourse(courseId) {
+    const course = allCourses.find(c => c.id === courseId);
+    if (!course || course.enrolmentOpen) return true;
+    const why = !course.active
+      ? 'is off sale'
+      : `stopped taking new students on ${formatDay(course.enrolmentClosesOn)}`;
+    return confirm(
+      `"${course.title}" ${why}.
+
+`
+      + 'Students cannot buy it. Tag anyway only if they paid while it was open.'
+    );
+  }
+
   async function confirmTagStudent(userId, userName) {
+    if (!confirmClosedCourse(currentStudentsModalCourseId)) return;
     const txnId = document.getElementById('tag-txn-id').value.trim();
     const resultEl = document.getElementById('tag-search-result');
     clearMsg('students-msg');
@@ -1278,7 +1401,7 @@
     try {
       await apiFetch(`/api/admin/courses/${currentStudentsModalCourseId}/students`, {
         method: 'POST',
-        body: JSON.stringify({ userId, razorpayTransactionId: txnId || null })
+        body: JSON.stringify({ userId, razorpayTransactionId: txnId || null, recordPayment: paymentChecked() })
       });
       resultEl.innerHTML = '';
       document.getElementById('tag-search-query').value = '';
@@ -1302,6 +1425,63 @@
       await loadCourses(); // refresh student count
     } catch (e) {
       showMsg('students-msg', 'Failed to remove student: ' + e.message, 'error');
+    }
+  }
+
+  // What the student paid, read from the ledger rather than from the enrolment
+  // row — purchasedAt moves forward every time they are re-tagged or renew.
+  function paidSummary(student) {
+    if (!student.paymentCount) return 'Free seat';
+    const first = student.firstPaidOn ? formatDay(student.firstPaidOn) : formatDate(student.purchasedAt);
+    return student.paymentCount === 1
+      ? `Paid ${first}`
+      : `Paid ${student.paymentCount}× since ${first}`;
+  }
+
+  // ── One student's payment history ──
+  async function showPayments(courseId, userId, userName) {
+    clearMsg('students-msg');
+    try {
+      const payments = await apiFetch(`/api/admin/courses/${courseId}/students/${userId}/payments`);
+      const lines = payments.map(p => `
+        <div style="display:flex; justify-content:space-between; gap:1rem; padding:0.5rem 0; border-bottom:1px solid var(--border);">
+          <div>
+            <div style="font-weight:600;">${rupees(p.amountPaise)} · ${SOURCE_LABEL[p.source] || p.source}</div>
+            <div style="font-size:0.8rem; color:var(--muted);">${p.reference}</div>
+          </div>
+          <div style="font-size:0.85rem; color:var(--muted); white-space:nowrap;">${formatDate(p.paidAt)}</div>
+        </div>`).join('');
+      showMsg('students-msg',
+        `<b>${userName}</b> — ${payments.length} payment${payments.length === 1 ? '' : 's'}` +
+        `<div style="margin-top:0.5rem;">${lines}</div>`, 'success');
+    } catch (e) {
+      showMsg('students-msg', 'Failed to load payments: ' + e.message, 'error');
+    }
+  }
+
+  // Whether this tag represents money actually arriving. Unticked means the
+  // student gets access but nothing is added to revenue.
+  function paymentChecked() {
+    const box = document.getElementById('tag-record-payment');
+    return box ? box.checked : true;
+  }
+
+  // ── Undo a removal ──
+  // For an untag done by mistake. No money changed hands, so this writes no
+  // payment record and leaves the expiry exactly as it was. If the student
+  // actually paid again, use Tag instead so the payment is recorded.
+  async function restoreStudent(courseId, userId, userName) {
+    if (!confirm(`Restore ${userName} to this course?
+
+This undoes the removal without recording a payment.`)) return;
+    clearMsg('students-msg');
+    try {
+      await apiFetch(`/api/admin/courses/${courseId}/students/${userId}/restore`, { method: 'POST' });
+      showMsg('students-msg', `${userName} restored. No payment was recorded.`, 'success');
+      await loadStudents(courseId);
+      await loadCourses(); // refresh student count
+    } catch (e) {
+      showMsg('students-msg', 'Failed to restore student: ' + e.message, 'error');
     }
   }
 
@@ -1344,7 +1524,7 @@
       if (courseId) {
         await apiFetch(`/api/admin/courses/${courseId}/students`, {
           method: 'POST',
-          body: JSON.stringify({ userId: user.id, razorpayTransactionId: txnId || null })
+          body: JSON.stringify({ userId: user.id, razorpayTransactionId: txnId || null, recordPayment: paymentChecked() })
         });
         await loadCourses();
         showMsg('students-panel-msg', `Student "${user.firstName} ${user.lastName}" registered and tagged to course!`, 'success');
@@ -1416,7 +1596,7 @@
     try {
       await apiFetch(`/api/admin/courses/${courseId}/students`, {
         method: 'POST',
-        body: JSON.stringify({ userId, razorpayTransactionId: txnId || null })
+        body: JSON.stringify({ userId, razorpayTransactionId: txnId || null, recordPayment: paymentChecked() })
       });
       await loadCourses();
       msgEl.innerHTML = `<div class="msg success">${userName} tagged to course successfully!</div>`;

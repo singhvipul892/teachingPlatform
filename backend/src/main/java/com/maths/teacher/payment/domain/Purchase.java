@@ -19,7 +19,10 @@ import java.time.Instant;
         indexes = {
                 @Index(name = "idx_purchases_user_id", columnList = "user_id"),
                 @Index(name = "idx_purchases_course_id", columnList = "course_id"),
-                @Index(name = "idx_purchases_user_course", columnList = "user_id, course_id", unique = true)
+                @Index(name = "idx_purchases_user_course", columnList = "user_id, course_id", unique = true),
+                // Per course, not global: one offline payment reference can cover
+                // two courses, and only a genuine duplicate on one is refused.
+                @Index(name = "idx_purchases_course_payment", columnList = "course_id, razorpay_payment_id", unique = true)
         }
 )
 public class Purchase {
@@ -41,7 +44,7 @@ public class Purchase {
     @Column(name = "razorpay_order_id", nullable = false, unique = true, length = 100)
     private String razorpayOrderId;
 
-    @Column(name = "razorpay_payment_id", nullable = false, unique = true, length = 100)
+    @Column(name = "razorpay_payment_id", nullable = false, length = 100)
     private String razorpayPaymentId;
 
     @Column(name = "amount_paise", nullable = false)
@@ -61,6 +64,19 @@ public class Purchase {
      */
     @Column(name = "expires_at")
     private Instant expiresAt;
+
+    /**
+     * When an admin removed this student from the course. Null means they are
+     * still enrolled, which is every row that has never been untagged. Untagging
+     * stamps this rather than deleting the row, so the enrolment is never
+     * destroyed and re-tagging reuses the row the unique (user, course) index
+     * allows only one of.
+     *
+     * <p>Repository lookups filter this out, so an unenrolled row is only ever
+     * reachable through the methods that name it explicitly.
+     */
+    @Column(name = "unenrolled_at")
+    private Instant unenrolledAt;
 
     protected Purchase() {
         // for JPA
@@ -91,10 +107,39 @@ public class Purchase {
     public String getCurrency() { return currency; }
     public Instant getPurchasedAt() { return purchasedAt; }
     public Instant getExpiresAt() { return expiresAt; }
+    public Instant getUnenrolledAt() { return unenrolledAt; }
 
     public void setUser(User user) { this.user = user; }
 
-    /** True while the student still has access. Lifetime purchases are always active. */
+    /** False once an admin has removed the student from the course. */
+    public boolean isEnrolled() {
+        return unenrolledAt == null;
+    }
+
+    /**
+     * Removes the student from the course without destroying the record of the
+     * enrolment. The expiry is left exactly as it was: what they were sold stays
+     * on the row, and {@link #isEnrolled()} is what decides access.
+     */
+    public void unenrol(Instant when) {
+        this.unenrolledAt = when;
+    }
+
+    /**
+     * Undoes a removal, and only that. No payment happened — an admin clicked
+     * the wrong row — so the expiry, the amount and the payment this enrolment
+     * points at all stay exactly as they were. A student whose access had
+     * already lapsed before the removal comes back lapsed.
+     */
+    public void restore() {
+        this.unenrolledAt = null;
+    }
+
+    /**
+     * True while the student still has access, judged on expiry alone — callers
+     * reach a Purchase through lookups that have already excluded unenrolled
+     * rows. Lifetime purchases are always active.
+     */
     public boolean isActive(Instant now) {
         return expiresAt == null || expiresAt.isAfter(now);
     }
@@ -116,6 +161,8 @@ public class Purchase {
         this.currency = currency;
         this.purchasedAt = Instant.now();
         this.expiresAt = AccessExpiry.from(this.purchasedAt, validityDays);
+        // Paying again re-enrols someone who had been removed.
+        this.unenrolledAt = null;
     }
 
     /** Admin override of a single student's expiry. Null grants lifetime access. */

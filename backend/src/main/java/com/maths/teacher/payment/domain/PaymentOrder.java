@@ -22,6 +22,14 @@ public class PaymentOrder {
 
     public enum Status { CREATED, PAID, FAILED }
 
+    /**
+     * How the money arrived. Revenue sums amounts across all of these, so a
+     * COMPLIMENTARY order — an admin granting access with no payment — is always
+     * zero and contributes nothing, while still leaving a record that access was
+     * granted and when.
+     */
+    public enum Source { RAZORPAY, OFFLINE, COMPLIMENTARY }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -44,6 +52,17 @@ public class PaymentOrder {
     @Column(name = "status", nullable = false, length = 20)
     private String status;
 
+    @Column(name = "source", nullable = false, length = 20)
+    private String source;
+
+    /**
+     * What a person would quote when asked which payment this was: the UPI or
+     * bank reference an admin typed in, or the gateway's payment id. Null for a
+     * free seat, which has no payment to reference.
+     */
+    @Column(name = "reference", length = 100)
+    private String reference;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -51,13 +70,20 @@ public class PaymentOrder {
         // for JPA
     }
 
+    /** Online purchases; the gateway is the default way money arrives. */
     public PaymentOrder(String razorpayOrderId, Long userId, Long courseId, int amountPaise, String currency) {
+        this(razorpayOrderId, userId, courseId, amountPaise, currency, Source.RAZORPAY);
+    }
+
+    public PaymentOrder(String razorpayOrderId, Long userId, Long courseId, int amountPaise,
+                        String currency, Source source) {
         this.razorpayOrderId = razorpayOrderId;
         this.userId = userId;
         this.courseId = courseId;
         this.amountPaise = amountPaise;
         this.currency = currency;
         this.status = Status.CREATED.name();
+        this.source = source.name();
         this.createdAt = Instant.now();
     }
 
@@ -72,5 +98,11 @@ public class PaymentOrder {
     public int getAmountPaise() { return amountPaise; }
     public String getCurrency() { return currency; }
     public String getStatus() { return status; }
+    public String getSource() { return source; }
+    public String getReference() { return reference; }
+    public void setReference(String reference) { this.reference = reference; }
+
+    /** True when money actually changed hands, online or off. */
+    public boolean isPayment() { return !Source.COMPLIMENTARY.name().equals(source); }
     public Instant getCreatedAt() { return createdAt; }
 }
