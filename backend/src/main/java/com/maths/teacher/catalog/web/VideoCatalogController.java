@@ -45,13 +45,16 @@ public class VideoCatalogController {
 
     /**
      * Returns a presigned S3 URL for downloading a PDF.
-     * Can be called with or without JWT (optional access control).
+     * JWT required — the student must currently have access to the course the
+     * PDF belongs to, the same rule the video listing applies.
      */
     @GetMapping("/videos/{videoId}/pdfs/{pdfId}/download")
     public PdfDownloadResponse downloadPdf(
             @PathVariable Long videoId,
-            @PathVariable Long pdfId
+            @PathVariable Long pdfId,
+            @RequestHeader("Authorization") String authHeader
     ) {
-        return pdfDownloadService.getDownloadUrl(videoId, pdfId);
+        Long userId = Long.parseLong(authService.requireUserId(authHeader));
+        return pdfDownloadService.getDownloadUrl(videoId, pdfId, userId);
     }
 }

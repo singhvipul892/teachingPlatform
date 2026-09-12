@@ -1,15 +1,19 @@
 package com.maths.teacher.catalog.web.admin;
 
 import com.maths.teacher.catalog.service.AdminCourseService;
+import com.maths.teacher.catalog.service.AdminReportService;
 import com.maths.teacher.catalog.service.AdminService;
 import com.maths.teacher.catalog.web.dto.AdminCourseResponse;
 import com.maths.teacher.catalog.web.dto.CreateCourseRequest;
+import com.maths.teacher.catalog.web.dto.PaymentRecordResponse;
 import com.maths.teacher.catalog.web.dto.StudentResponse;
 import com.maths.teacher.catalog.web.dto.TagStudentRequest;
 import com.maths.teacher.catalog.web.dto.UpdateCourseRequest;
 import com.maths.teacher.catalog.web.dto.UpdateStudentExpiryRequest;
 import com.maths.teacher.catalog.web.dto.VideoResponse;
 import java.util.List;
+import java.time.LocalDate;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -38,10 +42,13 @@ public class AdminCourseController {
 
     private final AdminCourseService adminCourseService;
     private final AdminService adminService;
+    private final AdminReportService adminReportService;
 
-    public AdminCourseController(AdminCourseService adminCourseService, AdminService adminService) {
+    public AdminCourseController(AdminCourseService adminCourseService, AdminService adminService,
+                                 AdminReportService adminReportService) {
         this.adminCourseService = adminCourseService;
         this.adminService = adminService;
+        this.adminReportService = adminReportService;
     }
 
     /**
@@ -53,6 +60,8 @@ public class AdminCourseController {
      * @param currency    currency code (default: INR)
      * @param active      whether course is active (default: true)
      * @param validityDays days of access a purchase gets; 0 (default) = lifetime
+     * @param enrolmentClosesOn last day a NEW student may join (optional, yyyy-MM-dd);
+     *                    unrelated to validityDays, which is how long access lasts
      * @param thumbnail   thumbnail image file (optional, JPEG/PNG max 5MB)
      * @return created course
      */
@@ -65,11 +74,13 @@ public class AdminCourseController {
             @RequestParam(required = false, defaultValue = "INR") String currency,
             @RequestParam(required = false, defaultValue = "true") boolean active,
             @RequestParam(required = false, defaultValue = "0") int validityDays,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate enrolmentClosesOn,
             @RequestPart(required = false) MultipartFile thumbnail
     ) {
         CreateCourseRequest request = new CreateCourseRequest(
                 title, description, pricePaise, currency, active, validityDays
         );
+        request.setEnrolmentClosesOn(enrolmentClosesOn);
         return adminCourseService.createCourse(request, thumbnail);
     }
 
@@ -83,6 +94,7 @@ public class AdminCourseController {
      * @param currency    new currency (optional)
      * @param active      new active status (optional)
      * @param validityDays new validity in days (optional); applies to future purchases only
+     * @param enrolmentClosesOn new last day for NEW students to join (optional)
      * @param thumbnail   new thumbnail image (optional)
      * @return updated course
      */
@@ -95,11 +107,13 @@ public class AdminCourseController {
             @RequestParam(required = false) String currency,
             @RequestParam(required = false) Boolean active,
             @RequestParam(required = false) Integer validityDays,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate enrolmentClosesOn,
             @RequestPart(required = false) MultipartFile thumbnail
     ) {
         UpdateCourseRequest request = new UpdateCourseRequest(
                 title, description, pricePaise, currency, active, validityDays
         );
+        request.setEnrolmentClosesOn(enrolmentClosesOn);
         return adminCourseService.updateCourse(courseId, request, thumbnail);
     }
 
@@ -158,8 +172,32 @@ public class AdminCourseController {
      * @return list of enrolled students with purchase details
      */
     @GetMapping("/{courseId}/students")
-    public List<StudentResponse> getEnrolledStudents(@PathVariable Long courseId) {
-        return adminCourseService.getEnrolledStudents(courseId);
+    public List<StudentResponse> getEnrolledStudents(
+            @PathVariable Long courseId,
+            @RequestParam(defaultValue = "false") boolean includeRemoved
+    ) {
+        return adminCourseService.getEnrolledStudents(courseId, includeRemoved);
+    }
+
+    /**
+     * Every payment this student made for this course, oldest first. Answers
+     * "how many times did they buy it?", which the single enrolment row cannot.
+     */
+    @GetMapping("/{courseId}/students/{userId}/payments")
+    public List<PaymentRecordResponse> getStudentPayments(
+            @PathVariable Long courseId,
+            @PathVariable Long userId
+    ) {
+        return adminReportService.getStudentPayments(courseId, userId);
+    }
+
+    /**
+     * Undoes a removal, for when a student was untagged by mistake. Records no
+     * payment — see AdminCourseService.restoreStudent.
+     */
+    @PostMapping("/{courseId}/students/{userId}/restore")
+    public StudentResponse restoreStudent(@PathVariable Long courseId, @PathVariable Long userId) {
+        return adminCourseService.restoreStudent(courseId, userId);
     }
 
     /**

@@ -17,6 +17,10 @@ public class AdminCourseResponse {
     private final boolean active;
     /** 0 = lifetime access for new purchases. */
     private final int validityDays;
+    /** Last day a new student may join. Null = open indefinitely. */
+    private final java.time.LocalDate enrolmentClosesOn;
+    /** Whether the course takes new students today — active, and within its window. */
+    private final boolean enrolmentOpen;
     /** Everyone who ever enrolled, expired or not — this is what was sold. */
     private final int studentCount;
     /** Enrolments that have not lapsed. Equals studentCount for lifetime courses. */
@@ -32,6 +36,8 @@ public class AdminCourseResponse {
             String thumbnailUrl,
             boolean active,
             int validityDays,
+            java.time.LocalDate enrolmentClosesOn,
+            boolean enrolmentOpen,
             int studentCount,
             int activeStudentCount,
             Instant createdAt
@@ -44,6 +50,8 @@ public class AdminCourseResponse {
         this.thumbnailUrl = thumbnailUrl;
         this.active = active;
         this.validityDays = validityDays;
+        this.enrolmentClosesOn = enrolmentClosesOn;
+        this.enrolmentOpen = enrolmentOpen;
         this.studentCount = studentCount;
         this.activeStudentCount = activeStudentCount;
         this.createdAt = createdAt;
@@ -80,6 +88,14 @@ public class AdminCourseResponse {
 
     public int getValidityDays() {
         return validityDays;
+    }
+
+    public java.time.LocalDate getEnrolmentClosesOn() {
+        return enrolmentClosesOn;
+    }
+
+    public boolean isEnrolmentOpen() {
+        return enrolmentOpen;
     }
 
     public int getStudentCount() {

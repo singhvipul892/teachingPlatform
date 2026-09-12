@@ -1,0 +1,8 @@
+# Real QA credentials — never commit these.
+.env
+
+node_modules/
+playwright-report/
+test-results/
+blob-report/
+.playwright/

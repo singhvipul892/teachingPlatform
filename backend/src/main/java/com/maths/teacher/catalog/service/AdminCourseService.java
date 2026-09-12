@@ -14,10 +14,14 @@ import com.maths.teacher.payment.domain.PaymentOrder;
 import com.maths.teacher.payment.domain.Purchase;
 import com.maths.teacher.payment.repository.CourseRepository;
 import com.maths.teacher.payment.repository.PaymentOrderRepository;
+import com.maths.teacher.payment.repository.StudentPayments;
 import com.maths.teacher.payment.repository.PurchaseRepository;
 import com.maths.teacher.storage.S3StorageService;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -75,6 +79,7 @@ public class AdminCourseService {
                 request.getActive(),
                 request.getValidityDays() == null ? 0 : request.getValidityDays()
         );
+        course.setEnrolmentClosesOn(request.getEnrolmentClosesOn());
 
         // Upload thumbnail if provided
         if (thumbnail != null && !thumbnail.isEmpty()) {
@@ -125,6 +130,11 @@ public class AdminCourseService {
             // Deliberately does not touch existing purchases: students who already
             // bought keep the expiry they were sold.
             course.setValidityDays(request.getValidityDays());
+        }
+        if (request.getEnrolmentClosesOn() != null) {
+            // Closing enrolment never touches who is already in: it only stops
+            // new people joining from that day on.
+            course.setEnrolmentClosesOn(request.getEnrolmentClosesOn());
         }
 
         // Handle thumbnail update
@@ -190,20 +200,28 @@ public class AdminCourseService {
     /**
      * Gets all students enrolled in a course.
      */
-    public List<StudentResponse> getEnrolledStudents(Long courseId) {
-        logger.info("Fetching enrolled students for course: {}", courseId);
+    public List<StudentResponse> getEnrolledStudents(Long courseId, boolean includeRemoved) {
+        logger.info("Fetching students for course: {} (includeRemoved={})", courseId, includeRemoved);
 
         // Verify course exists
         courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Course not found"));
 
         // Fetch purchases for this course
-        List<Purchase> purchases = purchaseRepository.findByCourseId(courseId);
+        List<Purchase> purchases = includeRemoved
+                ? purchaseRepository.findByCourseIdIncludingUnenrolled(courseId)
+                : purchaseRepository.findByCourseId(courseId);
         Instant now = Instant.now();
+
+        // One grouped query for the whole roster rather than a ledger lookup per
+        // student. Absent from the map means they never paid — a free seat.
+        Map<Long, StudentPayments> payments = paymentOrderRepository.summarisePayersOn(courseId).stream()
+                .collect(Collectors.toMap(StudentPayments::userId, Function.identity()));
 
         return purchases.stream()
                 .map(purchase -> {
                     User user = purchase.getUser();
+                    StudentPayments paid = payments.get(user.getId());
                     return new StudentResponse(
                             user.getId(),
                             user.getFirstName(),
@@ -212,10 +230,42 @@ public class AdminCourseService {
                             user.getMobileNumber(),
                             purchase.getPurchasedAt(),
                             AccessExpiry.lastDay(purchase.getExpiresAt()),
-                            purchase.isExpired(now)
+                            purchase.isExpired(now),
+                            AccessExpiry.dayOf(purchase.getUnenrolledAt()),
+                            paid == null ? 0 : paid.paymentCount(),
+                            paid == null ? null : AccessExpiry.dayOf(paid.firstPaidAt())
                     );
                 })
                 .toList();
+    }
+
+    /**
+     * Undoes a removal. This is the "I clicked the wrong row" path, so unlike
+     * tagging it records no payment: nobody paid anything, the student simply
+     * gets back the enrolment they already had, expiry and all.
+     *
+     * <p>Only a removed student can be restored. Someone whose access merely
+     * lapsed has to be tagged again, because that is a real second payment.
+     */
+    @Transactional
+    public StudentResponse restoreStudent(Long courseId, Long userId) {
+        courseRepository.findById(courseId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Course not found"));
+
+        Purchase purchase = purchaseRepository.findIncludingUnenrolled(userId, courseId)
+                .filter(p -> !p.isEnrolled())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "No removed enrolment to restore for this student"));
+
+        purchase.restore();
+        purchaseRepository.save(purchase);
+        logger.info("Admin restored student {} to course {} (expiry unchanged: {})",
+                userId, courseId, purchase.getExpiresAt());
+
+        User user = purchase.getUser();
+        return new StudentResponse(user.getId(), user.getFirstName(), user.getLastName(),
+                user.getEmail(), user.getMobileNumber(), purchase.getPurchasedAt(),
+                AccessExpiry.lastDay(purchase.getExpiresAt()), purchase.isExpired(Instant.now()));
     }
 
     /**
@@ -227,39 +277,101 @@ public class AdminCourseService {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Course not found"));
 
+        // Deliberately NOT blocked when the course is off sale or its enrolment
+        // window has closed. Students are stopped at createOrder; an admin is
+        // recording something that already happened, and a student who paid before
+        // the course closed must not be stranded because the paperwork came late.
+        // The panel warns instead.
+        if (!course.isEnrolmentOpen(java.time.LocalDate.now(AccessExpiry.ZONE))) {
+            logger.info("Admin tagging into a closed course {} (active={}, closes={})",
+                    courseId, course.isActive(), course.getEnrolmentClosesOn());
+        }
+
         Long userId = request.getUserId();
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
         Instant now = Instant.now();
-        Purchase existing = purchaseRepository.findByUserIdAndCourseId(userId, courseId).orElse(null);
-        if (existing != null && existing.isActive(now)) {
+        // Deliberately looks through unenrolment: a student who was removed has a
+        // row that has to be reused, because only one may exist per (user, course).
+        Purchase existing = purchaseRepository.findIncludingUnenrolled(userId, courseId).orElse(null);
+        if (existing != null && existing.isEnrolled() && existing.isActive(now)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Student is already enrolled in this course");
         }
 
+        // Was this a payment? A tag usually means the student paid off the books -
+        // cash, UPI, a bank transfer - but it is also how a free seat is granted and
+        // how a mistaken removal gets undone by hand. Only the admin knows which,
+        // so for a student who was removed we refuse to guess: guessing is how a
+        // correction turns into a sale that never happened.
+        boolean paid;
+        if (request.getRecordPayment() != null) {
+            paid = request.getRecordPayment();
+        } else if (existing != null && !existing.isEnrolled()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "This student was removed from the course. Say whether they paid again "
+                            + "(recordPayment true) or use Restore to undo the removal.");
+        } else {
+            // A first-time tag with nothing said is the ordinary offline sale.
+            paid = true;
+        }
+
+        PaymentOrder.Source source = paid ? PaymentOrder.Source.OFFLINE : PaymentOrder.Source.COMPLIMENTARY;
+
+        // The reference the admin typed, if any. Entering the same one twice for
+        // one course is one payment being recorded as two, which would overstate
+        // revenue; the same reference on another course is a bundle, and fine.
+        String reference = (request.getRazorpayTransactionId() != null
+                && !request.getRazorpayTransactionId().isBlank())
+                ? request.getRazorpayTransactionId().trim()
+                : null;
+        if (paid && reference != null && paymentOrderRepository.referenceUsedOn(courseId, reference)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Payment reference " + reference + " is already recorded against this course. "
+                            + "Use a different reference, or Restore if you meant to undo a removal.");
+        }
+
+        // The money is real, so each paid tag records its own payment, stamped with
+        // the moment it happened. Tagging the same student again after untagging
+        // means they paid a second time: that has to append to the history, not land
+        // on the id the first payment already took.
+        long paidAt = now.toEpochMilli();
+        String orderId = "ADMIN-ORDER-" + userId + "-" + courseId + "-" + paidAt;
+        String txnId = reference != null ? reference : "ADMIN-" + userId + "-" + courseId + "-" + paidAt;
+
+        // What the student actually handed over: the course price as it stands
+        // today, so offline sales show up in the books at their real value instead
+        // of as zero. A free seat is worth exactly nothing and says so.
+        int amountPaise = paid ? course.getPricePaise() : 0;
+
+        // The row is written either way - purchases.razorpay_order_id is NOT NULL
+        // and references this table, so an enrolment cannot exist without one. A
+        // COMPLIMENTARY order at zero is how "access granted, nobody paid" is
+        // recorded: it adds nothing to revenue and still leaves the audit trail.
+        PaymentOrder adminOrder = new PaymentOrder(orderId, userId, courseId, amountPaise,
+                course.getCurrency(), source);
+        adminOrder.setReference(reference);
+        adminOrder.markPaid();
+        paymentOrderRepository.save(adminOrder);
+
         Purchase purchase;
         if (existing != null) {
-            // Expired enrolment: restart it in place rather than creating a second
-            // row, which the deterministic ADMIN- order and payment IDs could not
-            // support anyway.
-            existing.renew(existing.getRazorpayOrderId(), existing.getRazorpayPaymentId(),
-                    0, course.getCurrency(), course.getValidityDays());
+            // A row is already here because the student was removed, or because
+            // their access simply lapsed. Either way the unique (user, course)
+            // index means this enrolment has to be restarted in place; the count
+            // of how many times they paid lives in payment_orders, which the
+            // order above just added to.
+            existing.renew(orderId, txnId, amountPaise, course.getCurrency(), course.getValidityDays());
             purchase = purchaseRepository.save(existing);
-            logger.info("Admin renewed student {} on course {} until {}", userId, courseId, purchase.getExpiresAt());
+            logger.info("Admin re-enrolled student {} on course {} until {} (order {}, {})",
+                    userId, courseId, purchase.getExpiresAt(), orderId, source);
         } else {
-            String txnId = (request.getRazorpayTransactionId() != null && !request.getRazorpayTransactionId().isBlank())
-                    ? request.getRazorpayTransactionId().trim()
-                    : "ADMIN-" + userId + "-" + courseId;
-            String orderId = "ADMIN-ORDER-" + userId + "-" + courseId;
-
-            PaymentOrder adminOrder = new PaymentOrder(orderId, userId, courseId, 0, course.getCurrency());
-            adminOrder.markPaid();
-            paymentOrderRepository.save(adminOrder);
-
-            purchase = new Purchase(userId, courseId, orderId, txnId, 0, course.getCurrency(), course.getValidityDays());
+            purchase = new Purchase(userId, courseId, orderId, txnId, amountPaise,
+                    course.getCurrency(), course.getValidityDays());
             purchase.setUser(user);
             purchase = purchaseRepository.save(purchase);
-            logger.info("Admin tagged student {} to course {} until {}", userId, courseId, purchase.getExpiresAt());
+            logger.info("Admin tagged student {} to course {} until {} (order {}, {})",
+                    userId, courseId, purchase.getExpiresAt(), orderId, source);
         }
 
         return new StudentResponse(user.getId(), user.getFirstName(), user.getLastName(),
@@ -276,11 +388,13 @@ public class AdminCourseService {
         courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Course not found"));
 
-        if (!purchaseRepository.existsByUserIdAndCourseId(userId, courseId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Student is not enrolled in this course");
-        }
+        Purchase purchase = purchaseRepository.findEnrolled(userId, courseId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Student is not enrolled in this course"));
 
-        purchaseRepository.deleteByUserIdAndCourseId(userId, courseId);
+        // Stamped, not deleted: the enrolment stays on record, and the payments
+        // behind it stay in payment_orders where they can still be counted.
+        purchase.unenrol(Instant.now());
+        purchaseRepository.save(purchase);
         logger.info("Admin untagged student {} from course {}", userId, courseId);
     }
 
@@ -291,7 +405,7 @@ public class AdminCourseService {
      */
     @Transactional
     public StudentResponse updateStudentExpiry(Long courseId, Long userId, UpdateStudentExpiryRequest request) {
-        Purchase purchase = purchaseRepository.findByUserIdAndCourseId(userId, courseId)
+        Purchase purchase = purchaseRepository.findEnrolled(userId, courseId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Student is not enrolled in this course"));
 
         Instant expiresAt = request.getExpiryDate() == null
@@ -323,6 +437,8 @@ public class AdminCourseService {
                 course.getThumbnailUrl(),
                 course.isActive(),
                 course.getValidityDays(),
+                course.getEnrolmentClosesOn(),
+                course.isEnrolmentOpen(java.time.LocalDate.now(AccessExpiry.ZONE)),
                 (int) studentCount,
                 (int) activeStudentCount,
                 course.getCreatedAt()
