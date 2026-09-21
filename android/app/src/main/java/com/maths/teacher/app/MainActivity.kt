@@ -166,10 +166,10 @@ class MainActivity : ComponentActivity() {
                             navController = navController
                         )
                     }
-                    composable("reset_password/{mobileNumber}") { backStackEntry ->
-                        val mobile = backStackEntry.arguments?.getString("mobileNumber") ?: ""
+                    composable("reset_password/{email}") { backStackEntry ->
+                        val email = backStackEntry.arguments?.getString("email") ?: ""
                         val resetPasswordViewModel: ResetPasswordViewModel = viewModel(
-                            factory = ResetPasswordViewModelFactory(api, mobile)
+                            factory = ResetPasswordViewModelFactory(api, email)
                         )
                         ResetPasswordScreen(
                             viewModel = resetPasswordViewModel,

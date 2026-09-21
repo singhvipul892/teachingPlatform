@@ -68,7 +68,7 @@ fun ResetPasswordScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = "Enter the OTP sent to your mobile number and set a new password.",
+                text = "Enter the OTP we emailed you (check your spam folder too) and set a new password.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth()
