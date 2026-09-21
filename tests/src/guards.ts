@@ -30,8 +30,8 @@ export class ReadOnlyViolation extends Error {
  * checks — cannot run at all.
  *
  * Nothing else belongs here. /api/auth/signup creates a permanently
- * undeletable user, and /api/auth/forgot-password sends a real SMS through AWS
- * SNS to whoever owns that number.
+ * undeletable user, and /api/auth/forgot-password sends a real email through
+ * Gmail to whoever owns that address.
  */
 const SAFE_POST_PATHS = ['/api/auth/login'];
 
