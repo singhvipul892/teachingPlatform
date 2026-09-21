@@ -17,75 +17,81 @@ import org.springframework.web.server.ResponseStatusException;
 public class PasswordResetService {
 
     private static final int OTP_EXPIRY_MINUTES = 10;
+    private static final int MAX_ATTEMPTS = 5;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final UserRepository userRepository;
     private final PasswordResetOtpRepository otpRepository;
     private final PasswordEncoder passwordEncoder;
-    private final SmsService smsService;
+    private final EmailService emailService;
 
     public PasswordResetService(UserRepository userRepository,
                                 PasswordResetOtpRepository otpRepository,
                                 PasswordEncoder passwordEncoder,
-                                SmsService smsService) {
+                                EmailService emailService) {
         this.userRepository = userRepository;
         this.otpRepository = otpRepository;
         this.passwordEncoder = passwordEncoder;
-        this.smsService = smsService;
+        this.emailService = emailService;
     }
 
     @Transactional
-    public void forgotPassword(String mobileNumber) {
-        String mobile = mobileNumber.trim();
-
-        // Look up user — silently succeed even if not found (don't reveal existence)
-        var userOpt = userRepository.findByMobileNumber(mobile);
+    public void forgotPassword(String email) {
+        var userOpt = userRepository.findByEmail(normalize(email));
         if (userOpt.isEmpty()) {
             // Return without error to avoid user enumeration
             return;
         }
         var user = userOpt.get();
 
-        // Invalidate any existing unused OTPs for this mobile
-        List<PasswordResetOtp> existing = otpRepository.findAllByMobileNumberAndUsedFalse(mobile);
+        List<PasswordResetOtp> existing = otpRepository.findAllByUserIdAndUsedFalse(user.getId());
         existing.forEach(PasswordResetOtp::markUsed);
         otpRepository.saveAll(existing);
 
-        // Generate 6-digit OTP
         String otp = String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
-        String otpHash = passwordEncoder.encode(otp);
-
         Instant expiresAt = Instant.now().plus(OTP_EXPIRY_MINUTES, ChronoUnit.MINUTES);
-        PasswordResetOtp resetOtp = new PasswordResetOtp(user.getId(), mobile, otpHash, expiresAt);
-        otpRepository.save(resetOtp);
+        otpRepository.save(new PasswordResetOtp(
+                user.getId(), user.getMobileNumber(), passwordEncoder.encode(otp), expiresAt));
 
-        smsService.sendOtp(mobile, otp);
+        emailService.sendPasswordResetOtp(user.getEmail(), otp);
     }
 
-    @Transactional
-    public void resetPassword(String mobileNumber, String otp, String newPassword) {
-        String mobile = mobileNumber.trim();
+    // noRollbackFor: a wrong guess must still persist its attempt count when we reject it.
+    @Transactional(noRollbackFor = ResponseStatusException.class)
+    public void resetPassword(String email, String otp, String newPassword) {
+        var user = userRepository.findByEmail(normalize(email))
+                .orElseThrow(PasswordResetService::noActiveOtp);
 
         PasswordResetOtp resetOtp = otpRepository
-                .findTopByMobileNumberAndUsedFalseOrderByCreatedAtDesc(mobile)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST, "No active OTP found. Please request a new one."));
+                .findTopByUserIdAndUsedFalseOrderByCreatedAtDesc(user.getId())
+                .orElseThrow(PasswordResetService::noActiveOtp);
 
         if (Instant.now().isAfter(resetOtp.getExpiresAt())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "OTP has expired. Please request a new one.");
         }
 
         if (!passwordEncoder.matches(otp, resetOtp.getOtpHash())) {
+            resetOtp.recordFailedAttempt();
+            if (resetOtp.getAttempts() >= MAX_ATTEMPTS) {
+                resetOtp.markUsed();
+                otpRepository.save(resetOtp);
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Too many wrong attempts. Please request a new OTP.");
+            }
+            otpRepository.save(resetOtp);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid OTP.");
         }
 
         resetOtp.markUsed();
         otpRepository.save(resetOtp);
+        userRepository.updatePasswordHash(user.getId(), passwordEncoder.encode(newPassword));
+    }
 
-        var user = userRepository.findByMobileNumber(mobile)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found."));
+    private static String normalize(String email) {
+        return email.trim().toLowerCase();
+    }
 
-        String newHash = passwordEncoder.encode(newPassword);
-        userRepository.updatePasswordHash(user.getId(), newHash);
+    private static ResponseStatusException noActiveOtp() {
+        return new ResponseStatusException(HttpStatus.BAD_REQUEST, "No active OTP found. Please request a new one.");
     }
 }

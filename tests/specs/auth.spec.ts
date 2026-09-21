@@ -9,7 +9,7 @@ import { EPHEMERAL_STUDENT } from '../src/config';
  *
  * Signup, forgot-password and reset-password are deliberately absent: signup
  * creates a user the API has no way to delete, and forgot-password sends a
- * real SMS through AWS SNS.
+ * real email through Gmail.
  */
 test.describe('@readonly login', () => {
   function credentials(ephemeral: boolean) {

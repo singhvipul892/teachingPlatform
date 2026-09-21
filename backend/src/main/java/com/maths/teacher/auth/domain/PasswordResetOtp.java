@@ -13,7 +13,8 @@ import java.time.Instant;
 @Table(
         name = "password_reset_otps",
         indexes = {
-                @Index(name = "idx_prt_mobile", columnList = "mobile_number")
+                @Index(name = "idx_prt_mobile", columnList = "mobile_number"),
+                @Index(name = "idx_prt_user", columnList = "user_id")
         }
 )
 public class PasswordResetOtp {
@@ -39,6 +40,9 @@ public class PasswordResetOtp {
 
     @Column(name = "used", nullable = false)
     private boolean used;
+
+    @Column(name = "attempts", nullable = false)
+    private int attempts;
 
     protected PasswordResetOtp() {
         // for JPA
@@ -83,5 +87,13 @@ public class PasswordResetOtp {
 
     public void markUsed() {
         this.used = true;
+    }
+
+    public int getAttempts() {
+        return attempts;
+    }
+
+    public void recordFailedAttempt() {
+        this.attempts++;
     }
 }

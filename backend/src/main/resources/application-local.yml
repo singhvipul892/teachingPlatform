@@ -19,6 +19,8 @@ app:
       bucket: teacherplatform.503561455300.local
   sms:
     mock: true
+  mail:
+    mock: true
   razorpay:
     key-id: rzp_test_SP86pvPiQnFUbQ
     key-secret: 0j3002i8Sx1c1AIis9Cfbcpb

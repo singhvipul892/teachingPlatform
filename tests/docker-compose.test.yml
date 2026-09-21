@@ -51,6 +51,8 @@ services:
 
       # Never send a real SMS from a test run. Prod has this false.
       SMS_MOCK: "true"
+      # Nor a real email: the OTP is only logged.
+      MAIL_MOCK: "true"
 
       APP_STORAGE_S3_REGION: ap-south-1
       APP_STORAGE_S3_BUCKET: singhsir-tests-no-such-bucket

@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PasswordResetOtpRepository extends JpaRepository<PasswordResetOtp, Long> {
 
-    Optional<PasswordResetOtp> findTopByMobileNumberAndUsedFalseOrderByCreatedAtDesc(String mobileNumber);
+    Optional<PasswordResetOtp> findTopByUserIdAndUsedFalseOrderByCreatedAtDesc(Long userId);
 
-    List<PasswordResetOtp> findAllByMobileNumberAndUsedFalse(String mobileNumber);
+    List<PasswordResetOtp> findAllByUserIdAndUsedFalse(Long userId);
 }

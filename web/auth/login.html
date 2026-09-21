@@ -141,6 +141,14 @@
       text-decoration: underline;
     }
 
+    .hint {
+      font-size: 0.88rem;
+      color: var(--muted);
+      margin-bottom: 1rem;
+      line-height: 1.4;
+      overflow-wrap: anywhere;
+    }
+
     /* ── Footer ── */
     .site-footer {
       text-align: center;
@@ -177,7 +185,52 @@
       </div>
       <button class="btn-primary" id="btn-login">Sign In</button>
       <div class="auth-switch">
+        <a onclick="showScreen('screen-forgot')">Forgot password?</a>
+      </div>
+      <div class="auth-switch">
         Don't have an account? <a onclick="showScreen('screen-signup')">Sign Up</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Forgot Password: request OTP ── -->
+  <div id="screen-forgot" class="screen">
+    <div class="auth-card">
+      <h2>Forgot Password</h2>
+      <div id="forgot-msg"></div>
+      <p class="hint">Enter your registered email and we'll email you a 6-digit code to reset your password.</p>
+      <div class="form-group">
+        <label>Email</label>
+        <input id="forgot-email" type="email" placeholder="you@email.com" autocomplete="email" />
+      </div>
+      <button class="btn-primary" id="btn-forgot">Send OTP</button>
+      <div class="auth-switch">
+        <a onclick="showScreen('screen-login')">Back to Sign In</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Forgot Password: enter OTP + new password ── -->
+  <div id="screen-reset" class="screen">
+    <div class="auth-card">
+      <h2>Reset Password</h2>
+      <div id="reset-msg"></div>
+      <p class="hint">Enter the code we emailed to <strong id="reset-email-label"></strong>. It's valid for 10 minutes. Check your spam folder if you can't find it.</p>
+      <div class="form-group">
+        <label>6-digit OTP</label>
+        <input id="reset-otp" type="text" inputmode="numeric" maxlength="6" placeholder="123456" autocomplete="one-time-code" />
+      </div>
+      <div class="form-group">
+        <label>New Password (min 8 characters)</label>
+        <input id="reset-password" type="password" placeholder="••••••••" autocomplete="new-password" />
+      </div>
+      <div class="form-group">
+        <label>Confirm New Password</label>
+        <input id="reset-confirm" type="password" placeholder="••••••••" autocomplete="new-password" />
+      </div>
+      <button class="btn-primary" id="btn-reset">Reset Password</button>
+      <div class="auth-switch">
+        Didn't get it? <a onclick="showScreen('screen-forgot')">Send a new OTP</a>
       </div>
     </div>
   </div>
@@ -306,6 +359,85 @@
       showMsg('signup-msg', error.message || 'Signup failed. Please try again.', 'error');
       btn.disabled = false;
       btn.textContent = 'Create Account';
+    }
+  });
+
+  // ── Forgot / Reset Password ──────────────────────────────────
+  // Not apiFetch: it replaces the server's message ("Invalid OTP.") with "HTTP 400".
+  async function postAuth(path, body) {
+    const base = (typeof API_BASE !== 'undefined') ? API_BASE : '';
+    const res = await fetch(base + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.message || 'Something went wrong. Please try again.');
+    return data;
+  }
+
+  // textContent, not showMsg: these messages echo server text.
+  function showText(elementId, text, type) {
+    const el = document.getElementById(elementId);
+    el.innerHTML = '';
+    const div = document.createElement('div');
+    div.className = `msg ${type}`;
+    div.textContent = text;
+    el.appendChild(div);
+  }
+
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  let resetEmail = '';
+
+  document.getElementById('btn-forgot').addEventListener('click', async () => {
+    clearMsg('forgot-msg');
+    const email = document.getElementById('forgot-email').value.trim();
+    if (!EMAIL_RE.test(email)) {
+      return showText('forgot-msg', 'Enter a valid email address.', 'error');
+    }
+
+    const btn = document.getElementById('btn-forgot');
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+    try {
+      await postAuth('/api/auth/forgot-password', { email });
+      resetEmail = email;
+      document.getElementById('reset-email-label').textContent = email;
+      ['reset-otp', 'reset-password', 'reset-confirm'].forEach(id => document.getElementById(id).value = '');
+      clearMsg('reset-msg');
+      showScreen('screen-reset');
+    } catch (error) {
+      showText('forgot-msg', error.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Send OTP';
+    }
+  });
+
+  document.getElementById('btn-reset').addEventListener('click', async () => {
+    clearMsg('reset-msg');
+    const otp = document.getElementById('reset-otp').value.trim();
+    const newPassword = document.getElementById('reset-password').value;
+    const confirm = document.getElementById('reset-confirm').value;
+
+    if (!/^\d{6}$/.test(otp)) return showText('reset-msg', 'Enter the 6-digit OTP.', 'error');
+    if (newPassword.length < 8) return showText('reset-msg', 'Password must be at least 8 characters.', 'error');
+    if (newPassword !== confirm) return showText('reset-msg', 'Passwords do not match.', 'error');
+
+    const btn = document.getElementById('btn-reset');
+    btn.disabled = true;
+    btn.textContent = 'Resetting…';
+    try {
+      await postAuth('/api/auth/reset-password', { email: resetEmail, otp, newPassword });
+      document.getElementById('login-identifier').value = resetEmail;
+      document.getElementById('login-password').value = '';
+      showScreen('screen-login');
+      showText('login-msg', 'Password reset. Sign in with your new password.', 'success');
+    } catch (error) {
+      showText('reset-msg', error.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Reset Password';
     }
   });
 </script>

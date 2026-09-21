@@ -17,6 +17,21 @@ spring:
       hibernate:
         format_sql: true
     open-in-view: false
+  # Password-reset OTPs go out through a Gmail account. MAIL_PASSWORD is a Gmail
+  # App Password (Google account > Security > App passwords), not the login password.
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.starttls.required: true
+      # JavaMail waits forever by default; a stuck SMTP connection would hang the request.
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
 
 server:
   port: 8080
@@ -34,6 +49,9 @@ app:
       presign-expiry-minutes: ${APP_STORAGE_S3_PRESIGN_EXPIRY_MINUTES:10}
   sms:
     mock: ${SMS_MOCK:false}
+  mail:
+    mock: ${MAIL_MOCK:false}
+    from: ${MAIL_USERNAME:}
   razorpay:
     key-id: ${RAZORPAY_KEY_ID}
     key-secret: ${RAZORPAY_KEY_SECRET}

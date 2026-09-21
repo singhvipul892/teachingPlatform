@@ -154,6 +154,8 @@ CREATE TABLE IF NOT EXISTS password_reset_otps (
     otp_hash        VARCHAR(255) NOT NULL,
     created_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     expires_at      TIMESTAMPTZ  NOT NULL,
-    used            BOOLEAN      NOT NULL DEFAULT FALSE
+    used            BOOLEAN      NOT NULL DEFAULT FALSE,
+    attempts        INTEGER      NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_prt_mobile ON password_reset_otps(mobile_number);
+CREATE INDEX IF NOT EXISTS idx_prt_user ON password_reset_otps(user_id);
