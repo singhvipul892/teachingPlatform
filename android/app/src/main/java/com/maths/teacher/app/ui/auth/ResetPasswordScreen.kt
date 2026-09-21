@@ -21,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -138,6 +139,30 @@ fun ResetPasswordScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Reset Password")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            state.infoMessage?.let { msg ->
+                Text(
+                    text = msg,
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            if (state.resendSecondsLeft > 0) {
+                Text(
+                    text = "Didn't get it? Resend code in ${state.resendSecondsLeft}s",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                TextButton(onClick = viewModel::resendOtp, enabled = !state.isLoading) {
+                    Text("Didn't get it? Resend code")
                 }
             }
         }

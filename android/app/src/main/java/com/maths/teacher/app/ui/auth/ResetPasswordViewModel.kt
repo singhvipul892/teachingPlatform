@@ -6,10 +6,14 @@ import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.maths.teacher.app.data.api.TeacherApi
 import com.maths.teacher.app.data.model.ErrorResponse
+import com.maths.teacher.app.data.model.ForgotPasswordRequest
 import com.maths.teacher.app.data.model.ResetPasswordRequest
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 
@@ -18,8 +22,13 @@ data class ResetPasswordUiState(
     val newPassword: String = "",
     val confirmPassword: String = "",
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val infoMessage: String? = null,
+    val resendSecondsLeft: Int = RESEND_COOLDOWN_SECONDS
 )
+
+// Matches the server's cooldown: a resend inside this window is silently ignored.
+private const val RESEND_COOLDOWN_SECONDS = 60
 
 class ResetPasswordViewModel(
     private val api: TeacherApi,
@@ -28,6 +37,43 @@ class ResetPasswordViewModel(
 
     private val _uiState = MutableStateFlow(ResetPasswordUiState())
     val uiState: StateFlow<ResetPasswordUiState> = _uiState.asStateFlow()
+
+    private var countdown: Job? = null
+
+    init {
+        startResendCountdown()
+    }
+
+    private fun startResendCountdown() {
+        countdown?.cancel()
+        countdown = viewModelScope.launch {
+            for (left in RESEND_COOLDOWN_SECONDS downTo 0) {
+                _uiState.update { it.copy(resendSecondsLeft = left) }
+                if (left > 0) delay(1000)
+            }
+        }
+    }
+
+    fun resendOtp() {
+        if (_uiState.value.resendSecondsLeft > 0) return
+        _uiState.update { it.copy(errorMessage = null, infoMessage = null) }
+        startResendCountdown()
+        viewModelScope.launch {
+            try {
+                api.forgotPassword(ForgotPasswordRequest(email = email))
+                _uiState.update {
+                    it.copy(infoMessage = "A new code is on its way. Use the newest email — older codes stop working.")
+                }
+            } catch (e: HttpException) {
+                val message = parseErrorMessage(e)
+                _uiState.update { it.copy(errorMessage = message) }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(errorMessage = e.message ?: "Could not resend the code. Please try again.")
+                }
+            }
+        }
+    }
 
     fun updateOtp(value: String) {
         _uiState.value = _uiState.value.copy(otp = value, errorMessage = null)
@@ -48,11 +94,11 @@ class ResetPasswordViewModel(
         if (state.newPassword.length < 8) errors.add("Password must be at least 8 characters.")
         if (state.newPassword != state.confirmPassword) errors.add("Passwords do not match.")
         if (errors.isNotEmpty()) {
-            _uiState.value = state.copy(errorMessage = errors.joinToString(" "))
+            _uiState.update { it.copy(errorMessage = errors.joinToString(" "), infoMessage = null) }
             return
         }
         viewModelScope.launch {
-            _uiState.value = state.copy(isLoading = true, errorMessage = null)
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
             try {
                 api.resetPassword(
                     ResetPasswordRequest(
@@ -61,16 +107,15 @@ class ResetPasswordViewModel(
                         newPassword = state.newPassword
                     )
                 )
-                _uiState.value = state.copy(isLoading = false)
+                _uiState.update { it.copy(isLoading = false) }
                 onSuccess()
             } catch (e: HttpException) {
                 val message = parseErrorMessage(e)
-                _uiState.value = state.copy(isLoading = false, errorMessage = message)
+                _uiState.update { it.copy(isLoading = false, errorMessage = message) }
             } catch (e: Exception) {
-                _uiState.value = state.copy(
-                    isLoading = false,
-                    errorMessage = e.message ?: "Something went wrong. Please try again."
-                )
+                _uiState.update {
+                    it.copy(isLoading = false, errorMessage = e.message ?: "Something went wrong. Please try again.")
+                }
             }
         }
     }
