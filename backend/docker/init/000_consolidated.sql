@@ -12,8 +12,9 @@ CREATE TABLE IF NOT EXISTS videos (
     video_id     VARCHAR(64)  NOT NULL,
     title        VARCHAR(200) NOT NULL,
     course_id    BIGINT       NULL,        -- FK to courses (set after courses table exists)
+    chapter_id   BIGINT       NOT NULL,    -- FK to chapters (set after chapters table exists)
     thumbnail_url VARCHAR(500) NOT NULL,
-    duration     VARCHAR(20)  NOT NULL,
+    duration     VARCHAR(20)  NULL,        -- optional; the admin form doesn't ask for it
     display_order INTEGER      NOT NULL
 );
 
@@ -83,6 +84,29 @@ DO $$ BEGIN
   ) THEN
     ALTER TABLE videos ADD CONSTRAINT fk_videos_course
     FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE;
+  END IF;
+END $$;
+
+-- Chapters: a course's ordered sections (Percentage, Profit & Loss, ...).
+-- Every video belongs to one; see migrations/007_chapters.sql.
+CREATE TABLE IF NOT EXISTS chapters (
+    id            BIGSERIAL PRIMARY KEY,
+    course_id     BIGINT       NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+    title         VARCHAR(200) NOT NULL,
+    display_order INTEGER      NOT NULL,
+    created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_chapters_course_order ON chapters(course_id, display_order);
+CREATE INDEX IF NOT EXISTS idx_videos_chapter_order  ON videos(chapter_id, display_order);
+
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'fk_videos_chapter' AND table_name = 'videos'
+  ) THEN
+    ALTER TABLE videos ADD CONSTRAINT fk_videos_chapter
+    FOREIGN KEY (chapter_id) REFERENCES chapters(id) ON DELETE CASCADE;
   END IF;
 END $$;
 

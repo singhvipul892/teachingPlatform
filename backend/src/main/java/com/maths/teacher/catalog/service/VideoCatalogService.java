@@ -1,13 +1,11 @@
 package com.maths.teacher.catalog.service;
 
-import com.maths.teacher.catalog.domain.Video;
+import com.maths.teacher.catalog.repository.ChapterRepository;
 import com.maths.teacher.catalog.repository.VideoPdfRepository;
 import com.maths.teacher.catalog.repository.VideoRepository;
-import com.maths.teacher.catalog.web.dto.PdfResponse;
+import com.maths.teacher.catalog.web.dto.ChapterResponse;
 import com.maths.teacher.catalog.web.dto.VideoResponse;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -19,64 +17,46 @@ public class VideoCatalogService {
 
     private final VideoRepository videoRepository;
     private final VideoPdfRepository videoPdfRepository;
+    private final ChapterRepository chapterRepository;
     private final CourseAccessGuard courseAccessGuard;
 
     public VideoCatalogService(
             VideoRepository videoRepository,
             VideoPdfRepository videoPdfRepository,
+            ChapterRepository chapterRepository,
             CourseAccessGuard courseAccessGuard
     ) {
         this.videoRepository = videoRepository;
         this.videoPdfRepository = videoPdfRepository;
+        this.chapterRepository = chapterRepository;
         this.courseAccessGuard = courseAccessGuard;
     }
 
+    /**
+     * Flat list in course order (chapter by chapter). Kept for app builds that
+     * predate chapters; newer builds use {@link #getChaptersByCourse}.
+     */
     public List<VideoResponse> getVideosByCourse(Long courseId, Long userId) {
         logger.info("Fetching videos for course {} by user {}", courseId, userId);
         courseAccessGuard.requireAccess(userId, courseId);
 
-        var videos = videoRepository.findByCourseIdOrderByDisplayOrderAsc(courseId);
-        var pdfsByVideoId = loadPdfsByVideoId(videos);
+        var videos = videoRepository.findByCourseIdInChapterOrder(courseId);
+        var pdfsByVideoId = VideoResponses.loadPdfsByVideoId(videoPdfRepository, videos);
 
         return videos.stream()
-                .map(video -> toVideoResponse(video, pdfsByVideoId))
+                .map(video -> VideoResponses.toVideoResponse(video, pdfsByVideoId))
                 .toList();
     }
 
-    private Map<Long, List<PdfResponse>> loadPdfsByVideoId(List<Video> videos) {
-        var videoIds = videos.stream()
-                .map(Video::getId)
-                .toList();
-        if (videoIds.isEmpty()) {
-            return Map.of();
-        }
+    /** Chapters with their classes, in order. Chapters with no classes yet are left out. */
+    public List<ChapterResponse> getChaptersByCourse(Long courseId, Long userId) {
+        logger.info("Fetching chapters for course {} by user {}", courseId, userId);
+        courseAccessGuard.requireAccess(userId, courseId);
 
-        return videoPdfRepository.findByVideo_IdInOrderByDisplayOrderAsc(videoIds)
-                .stream()
-                .collect(Collectors.groupingBy(
-                        pdf -> pdf.getVideo().getId(),
-                        Collectors.mapping(
-                                pdf -> new PdfResponse(
-                                        pdf.getId(),
-                                        pdf.getTitle(),
-                                        pdf.getPdfType(),
-                                        pdf.getFileUrl(),
-                                        pdf.getDisplayOrder()
-                                ),
-                                Collectors.toList()
-                        )
-                ));
-    }
+        var chapters = chapterRepository.findByCourseIdOrderByDisplayOrderAscIdAsc(courseId);
+        var videos = videoRepository.findByCourseIdInChapterOrder(courseId);
+        var pdfsByVideoId = VideoResponses.loadPdfsByVideoId(videoPdfRepository, videos);
 
-    private VideoResponse toVideoResponse(Video video, Map<Long, List<PdfResponse>> pdfsByVideoId) {
-        return new VideoResponse(
-                video.getId(),
-                video.getVideoId(),
-                video.getTitle(),
-                video.getThumbnailUrl(),
-                video.getDuration(),
-                video.getDisplayOrder(),
-                pdfsByVideoId.getOrDefault(video.getId(), List.of())
-        );
+        return VideoResponses.toChapterResponses(chapters, videos, pdfsByVideoId, false);
     }
 }

@@ -58,6 +58,7 @@ import com.maths.teacher.app.ui.auth.ResetPasswordViewModelFactory
 import com.maths.teacher.app.ui.auth.SignupScreen
 import com.maths.teacher.app.ui.auth.SignupViewModel
 import com.maths.teacher.app.ui.auth.SignupViewModelFactory
+import com.maths.teacher.app.ui.course.CourseScreen
 import com.maths.teacher.app.ui.home.HomeScreen
 import com.maths.teacher.app.ui.home.HomeViewModel
 import com.maths.teacher.app.ui.home.HomeViewModelFactory
@@ -185,6 +186,27 @@ class MainActivity : ComponentActivity() {
                             navController = navController,
                             sessionManager = sessionManager,
                             api = api
+                        )
+                    }
+                    composable("course/{courseId}") { backStackEntry ->
+                        val courseId = backStackEntry.arguments?.getString("courseId")?.toLongOrNull() ?: 0L
+                        // Reuse Home's ViewModel (and the courses it already loaded) rather
+                        // than fetching the course again. Home is always under this screen.
+                        val homeEntry = remember(backStackEntry) { navController.getBackStackEntry("home") }
+                        val homeViewModel: HomeViewModel = viewModel(
+                            viewModelStoreOwner = homeEntry,
+                            factory = HomeViewModelFactory(repository)
+                        )
+                        val homeState by homeViewModel.uiState.collectAsStateWithLifecycle()
+                        CourseScreen(
+                            course = homeState.courses.firstOrNull { it.courseId == courseId },
+                            isLoading = homeState.isLoading,
+                            onBack = { navController.popBackStack() },
+                            onVideoSelected = { videoId, courseName ->
+                                navController.navigate(
+                                    "video_detail/$videoId/${java.net.URLEncoder.encode(courseName, "UTF-8")}"
+                                )
+                            }
                         )
                     }
                     composable("resources") {

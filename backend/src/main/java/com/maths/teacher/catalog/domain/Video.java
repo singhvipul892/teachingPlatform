@@ -17,7 +17,8 @@ import java.util.List;
         name = "videos",
         indexes = {
                 @Index(name = "idx_videos_course_id", columnList = "course_id"),
-                @Index(name = "idx_videos_course_order", columnList = "course_id,display_order")
+                @Index(name = "idx_videos_course_order", columnList = "course_id,display_order"),
+                @Index(name = "idx_videos_chapter_order", columnList = "chapter_id,display_order")
         }
 )
 public class Video {
@@ -34,6 +35,10 @@ public class Video {
 
     @Column(name = "course_id", nullable = false)
     private Long courseId;
+
+    /** Always a chapter of courseId; the service keeps the two in step. */
+    @Column(name = "chapter_id", nullable = false)
+    private Long chapterId;
 
     @Column(name = "thumbnail_url", nullable = false, length = 500)
     private String thumbnailUrl;
@@ -56,6 +61,7 @@ public class Video {
             String videoId,
             String title,
             Long courseId,
+            Long chapterId,
             String thumbnailUrl,
             String duration,
             Integer displayOrder
@@ -64,6 +70,7 @@ public class Video {
         this.videoId = videoId;
         this.title = title;
         this.courseId = courseId;
+        this.chapterId = chapterId;
         this.thumbnailUrl = thumbnailUrl;
         this.duration = duration;
         this.displayOrder = displayOrder;
@@ -73,6 +80,7 @@ public class Video {
     public String getVideoId() { return videoId; }
     public String getTitle() { return title; }
     public Long getCourseId() { return courseId; }
+    public Long getChapterId() { return chapterId; }
     public String getThumbnailUrl() { return thumbnailUrl; }
     public String getDuration() { return duration; }
     public Integer getDisplayOrder() { return displayOrder; }
@@ -81,4 +89,5 @@ public class Video {
     public void setTitle(String title) { this.title = title; }
     public void setDuration(String duration) { this.duration = duration; }
     public void setDisplayOrder(Integer displayOrder) { this.displayOrder = displayOrder; }
+    public void setChapterId(Long chapterId) { this.chapterId = chapterId; }
 }

@@ -2,6 +2,19 @@ package com.maths.teacher.app.ui.home
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import coil.compose.AsyncImage
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,7 +30,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Folder
@@ -205,6 +217,9 @@ fun HomeScreen(
                                 onVideoSelected = { id, courseName ->
                                     navController.navigate("video_detail/$id/${java.net.URLEncoder.encode(courseName, "UTF-8")}")
                                 },
+                                onCourseSelected = { courseId ->
+                                    navController.navigate("course/$courseId")
+                                },
                                 displayName = displayName,
                                 api = api,
                                 userId = userId,
@@ -267,6 +282,7 @@ private fun HomeContent(
     searchQuery: String,
     searchResults: List<CourseSearchResult>,
     onVideoSelected: (Long, String) -> Unit,
+    onCourseSelected: (Long) -> Unit,
     displayName: String?,
     api: TeacherApi,
     userId: Long?,
@@ -384,20 +400,119 @@ private fun HomeContent(
         }
 
         // Keys are prefixed because a course can appear in both the results region and here.
-        itemsIndexed(courses, key = { _, course -> "all-${course.courseId}" }) { index, course ->
-            SectionBlock(
+        // Each course is one banner; its chapters and classes are one tap away.
+        items(courses, key = { course -> "all-${course.courseId}" }) { course ->
+            CourseBanner(
                 course = course,
-                onVideoSelected = { id -> onVideoSelected(id, course.name) },
-                api = api,
-                userId = userId,
-                onOpenPdf = onOpenPdf,
-                onShowPdfList = onShowPdfList
+                onClick = { onCourseSelected(course.courseId) }
             )
-            if (index < courses.size - 1) {
-                SectionDivider(modifier = Modifier.padding(top = 32.dp))
+        }
+
+        item(key = "bottom-space") { Spacer(modifier = Modifier.height(8.dp)) }
+    }
+}
+
+/**
+ * A purchased course on Home: thumbnail, name, what's inside and how long access lasts.
+ * Tapping opens the course's chapter list. An expired course can't be opened, so it
+ * says why instead.
+ */
+@Composable
+private fun CourseBanner(
+    course: CourseWithVideos,
+    onClick: () -> Unit
+) {
+    val shape = RoundedCornerShape(20.dp)
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(elevation = 6.dp, shape = shape, clip = false)
+            .clip(shape)
+            .clickable(enabled = !course.expired, onClick = onClick),
+        shape = shape,
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(16f / 9f)
+                .background(
+                    Brush.linearGradient(listOf(Color(0xFF1A56DB), Color(0xFF3B82F6)))
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            if (course.thumbnailUrl != null) {
+                AsyncImage(
+                    model = course.thumbnailUrl,
+                    contentDescription = course.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Text(
+                    text = course.name,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(24.dp)
+                )
+            }
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = course.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (course.expired) {
+                    Text(
+                        text = "Your access to this course has ended. Purchase it again on the website to continue.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    Text(
+                        text = courseContentSummary(course),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                ValidityLabel(course)
+            }
+            if (!course.expired) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = "Open course",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(32.dp)
+                )
             }
         }
     }
+}
+
+/** "12 chapters · 96 classes", or a plain note while the teacher is still adding them. */
+private fun courseContentSummary(course: CourseWithVideos): String {
+    val chapters = course.chapters.size
+    val classes = course.videos.size
+    if (classes == 0) return "Classes coming soon"
+    val chapterText = if (chapters == 1) "1 chapter" else "$chapters chapters"
+    val classText = if (classes == 1) "1 class" else "$classes classes"
+    return "$chapterText · $classText"
 }
 
 @Composable

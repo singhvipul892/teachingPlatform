@@ -3,7 +3,10 @@ package com.maths.teacher.catalog.web.admin;
 import com.maths.teacher.catalog.service.AdminCourseService;
 import com.maths.teacher.catalog.service.AdminReportService;
 import com.maths.teacher.catalog.service.AdminService;
+import com.maths.teacher.catalog.service.ChapterService;
+import com.maths.teacher.catalog.web.admin.request.ChapterRequests;
 import com.maths.teacher.catalog.web.dto.AdminCourseResponse;
+import com.maths.teacher.catalog.web.dto.ChapterResponse;
 import com.maths.teacher.catalog.web.dto.CreateCourseRequest;
 import com.maths.teacher.catalog.web.dto.PaymentRecordResponse;
 import com.maths.teacher.catalog.web.dto.StudentResponse;
@@ -43,12 +46,14 @@ public class AdminCourseController {
     private final AdminCourseService adminCourseService;
     private final AdminService adminService;
     private final AdminReportService adminReportService;
+    private final ChapterService chapterService;
 
     public AdminCourseController(AdminCourseService adminCourseService, AdminService adminService,
-                                 AdminReportService adminReportService) {
+                                 AdminReportService adminReportService, ChapterService chapterService) {
         this.adminCourseService = adminCourseService;
         this.adminService = adminService;
         this.adminReportService = adminReportService;
+        this.chapterService = chapterService;
     }
 
     /**
@@ -239,5 +244,30 @@ public class AdminCourseController {
     @GetMapping("/{courseId}/videos")
     public List<VideoResponse> getVideosForCourse(@PathVariable Long courseId) {
         return adminService.getVideosForCourse(courseId);
+    }
+
+    /** Every chapter (empty ones too) with its classes, in order — the Content screen's one load. */
+    @GetMapping("/{courseId}/content")
+    public List<ChapterResponse> getContent(@PathVariable Long courseId) {
+        return chapterService.getContent(courseId);
+    }
+
+    /** Appends one or more chapters; send {"titles": [...]}. */
+    @PostMapping(value = "/{courseId}/chapters", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public List<ChapterResponse> addChapters(
+            @PathVariable Long courseId,
+            @RequestBody ChapterRequests.AddChapters request
+    ) {
+        return chapterService.addChapters(courseId, request.titles());
+    }
+
+    /** Rewrites chapter order; chapterIds must be all of the course's chapters. */
+    @PutMapping(value = "/{courseId}/chapters/order", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public List<ChapterResponse> reorderChapters(
+            @PathVariable Long courseId,
+            @RequestBody ChapterRequests.ChapterOrder request
+    ) {
+        return chapterService.reorderChapters(courseId, request.chapterIds());
     }
 }

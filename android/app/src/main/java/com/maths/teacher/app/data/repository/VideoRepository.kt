@@ -1,6 +1,8 @@
 package com.maths.teacher.app.data.repository
 
 import com.maths.teacher.app.data.api.TeacherApi
+import com.maths.teacher.app.data.model.VideoDto
+import com.maths.teacher.app.domain.model.Chapter
 import com.maths.teacher.app.domain.model.CourseWithVideos
 import com.maths.teacher.app.domain.model.Pdf
 import com.maths.teacher.app.domain.model.Video
@@ -19,37 +21,28 @@ class DefaultVideoRepository(
         return coursesResponse.purchasedCourses.map { courseDto ->
             // An expired course would answer 403 and take the whole Home load down
             // with it. The course still belongs on Home, just without its classes.
-            val videos = if (courseDto.expired) {
+            val chapters = if (courseDto.expired) {
                 emptyList()
             } else {
-                api.getCourseVideos(courseDto.id)
+                api.getCourseChapters(courseDto.id)
                     .sortedBy { it.displayOrder }
-                    .map { dto ->
-                        Video(
-                            id = dto.id,
-                            videoId = dto.videoId,
-                            title = dto.title,
-                            thumbnailUrl = dto.thumbnailUrl,
-                            duration = dto.duration,
-                            pdfs = dto.pdfs.map { pdfDto ->
-                                Pdf(
-                                    id = pdfDto.id,
-                                    title = pdfDto.title,
-                                    pdfType = pdfDto.pdfType,
-                                    fileUrl = pdfDto.fileUrl,
-                                    displayOrder = pdfDto.displayOrder
-                                )
-                            }.sortedBy { it.displayOrder }
+                    .map { chapterDto ->
+                        Chapter(
+                            id = chapterDto.id,
+                            title = chapterDto.title,
+                            videos = chapterDto.videos.sortedBy { it.displayOrder }.map { it.toVideo() }
                         )
                     }
             }
             CourseWithVideos(
                 courseId = courseDto.id,
                 name = courseDto.title,
-                videos = videos,
+                videos = chapters.flatMap { it.videos },
                 expiryDate = courseDto.expiryDate,
                 expired = courseDto.expired,
-                daysRemaining = courseDto.daysRemaining
+                daysRemaining = courseDto.daysRemaining,
+                thumbnailUrl = courseDto.thumbnailUrl?.takeIf { it.isNotBlank() },
+                chapters = chapters
             )
         }
     }
@@ -59,4 +52,21 @@ class DefaultVideoRepository(
             .flatMap { it.videos }
             .firstOrNull { it.id == videoId }
     }
+
+    private fun VideoDto.toVideo() = Video(
+        id = id,
+        videoId = videoId,
+        title = title,
+        thumbnailUrl = thumbnailUrl,
+        duration = duration,
+        pdfs = pdfs.map { pdfDto ->
+            Pdf(
+                id = pdfDto.id,
+                title = pdfDto.title,
+                pdfType = pdfDto.pdfType,
+                fileUrl = pdfDto.fileUrl,
+                displayOrder = pdfDto.displayOrder
+            )
+        }.sortedBy { it.displayOrder }
+    )
 }

@@ -414,6 +414,133 @@
       border-radius: 4px;
       border: 1px solid var(--border);
     }
+    /* ── Course Content (chapters → classes) ── */
+    .btn-link {
+      background: none; border: none; color: var(--primary); font-weight: 600;
+      font-size: 0.9rem; cursor: pointer; padding: 0.4rem 0;
+    }
+    .btn-link:hover { text-decoration: underline; }
+    .btn-secondary-solid {
+      padding: 0.65rem 1rem; background: #fff; color: var(--text);
+      border: 1px solid var(--border); border-radius: 8px; font-weight: 600;
+      font-size: 0.9rem; cursor: pointer;
+    }
+    .btn-secondary-solid:hover { background: #f1f5f9; }
+    .btn-secondary-solid:disabled { opacity: 0.6; cursor: not-allowed; }
+    .content-back { margin-bottom: 0.5rem; }
+    .content-summary { color: var(--muted); font-size: 0.9rem; }
+    .content-help { color: var(--muted); font-size: 0.87rem; line-height: 1.55; margin-bottom: 1.25rem; max-width: 760px; }
+    .drag-handle-inline { font-weight: 700; letter-spacing: -2px; }
+
+    .chapters-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .chapter {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    }
+    .chapter-head {
+      display: flex; align-items: center; gap: 0.6rem; padding: 0.75rem 0.9rem;
+    }
+    .drag-handle {
+      cursor: grab; color: #94a3b8; font-weight: 700; letter-spacing: -2px;
+      padding: 0.25rem 0.35rem; border-radius: 4px; user-select: none; touch-action: none;
+    }
+    .drag-handle:hover { background: #f1f5f9; color: var(--text); }
+    .chapter-num { font-weight: 700; color: var(--primary); min-width: 1.6rem; }
+    .chapter-title {
+      font-weight: 700; font-size: 1rem; cursor: text; padding: 0.15rem 0.3rem;
+      border-radius: 4px; min-width: 0; overflow-wrap: anywhere;
+    }
+    .chapter-title:hover { background: #f1f5f9; }
+    .chapter-title-input {
+      font: inherit; font-weight: 700; font-size: 1rem; padding: 0.2rem 0.4rem;
+      border: 1px solid var(--primary); border-radius: 6px; outline: none; min-width: 0; flex: 1;
+    }
+    .chapter-count { color: var(--muted); font-size: 0.85rem; white-space: nowrap; }
+    .chapter-spacer { flex: 1; }
+    .icon-btn {
+      background: none; border: 1px solid transparent; border-radius: 6px; cursor: pointer;
+      color: var(--muted); padding: 0.3rem 0.5rem; font-size: 0.85rem; font-weight: 600;
+    }
+    .icon-btn:hover { border-color: var(--border); color: var(--text); }
+    .icon-btn.danger:hover { color: var(--error); border-color: #fecaca; background: #fef2f2; }
+    .chapter-body { border-top: 1px solid var(--border); padding: 0.5rem 0.9rem 0.9rem; }
+    .chapter.collapsed .chapter-body { display: none; }
+    .chapter.collapsed .chev { transform: rotate(-90deg); }
+    .chev { display: inline-block; transition: transform 0.15s; }
+
+    .class-list { list-style: none; min-height: 2.75rem; border-radius: 8px; }
+    .class-list:empty::before {
+      content: "No classes yet. Add one below, or drag a class here from another chapter.";
+      display: block; padding: 0.8rem; color: var(--muted); font-size: 0.85rem;
+      border: 1px dashed var(--border); border-radius: 8px; text-align: center;
+    }
+    .class-row {
+      display: flex; align-items: center; gap: 0.6rem; padding: 0.45rem 0.25rem;
+      border-bottom: 1px solid #f1f5f9; background: var(--card);
+    }
+    .class-row:last-child { border-bottom: none; }
+    .class-num { color: var(--muted); font-size: 0.85rem; min-width: 1.4rem; text-align: right; }
+    .class-title { flex: 1; min-width: 0; font-size: 0.92rem; overflow-wrap: anywhere; }
+    .class-meta { color: var(--muted); font-size: 0.8rem; white-space: nowrap; }
+    .class-actions { display: flex; gap: 0.15rem; flex-shrink: 0; }
+    .sortable-ghost { opacity: 0.4; background: #eff6ff; }
+    .sortable-chosen { box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12); }
+    .btn-add-class {
+      margin-top: 0.6rem; width: 100%; padding: 0.55rem; border: 1px dashed #93c5fd;
+      background: #eff6ff; color: var(--primary); border-radius: 8px; font-weight: 600;
+      cursor: pointer; font-size: 0.88rem;
+    }
+    .btn-add-class:hover { background: #dbeafe; }
+
+    .add-class-form {
+      margin-top: 0.75rem; padding: 1rem; border: 1px solid #bfdbfe; border-radius: 10px; background: #f8fbff;
+    }
+    .ac-preview-row { display: flex; gap: 0.75rem; align-items: flex-end; margin-bottom: 0.75rem; }
+    .ac-preview-row .video-thumb { width: 96px; height: 54px; flex-shrink: 0; }
+    .ac-hint { font-weight: 400; color: var(--muted); }
+    .ac-pdfs { margin-bottom: 0.75rem; font-size: 0.88rem; }
+    .ac-pdfs summary { cursor: pointer; color: var(--primary); font-weight: 600; padding: 0.25rem 0; }
+    .ac-pdf-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.5rem; margin-top: 0.5rem; }
+    .ac-pdf-grid .file-input-label { font-size: 0.82rem; padding: 0.5rem; }
+    .ac-actions { display: flex; gap: 0.6rem; justify-content: flex-end; align-items: center; flex-wrap: wrap; }
+
+    .add-chapter-box {
+      margin-top: 1rem; background: var(--card); border: 1px dashed #93c5fd;
+      border-radius: 12px; padding: 1rem;
+    }
+    .add-chapter-box label { display: block; font-weight: 700; margin-bottom: 0.5rem; }
+    .add-chapter-row { display: flex; gap: 0.5rem; }
+    .add-chapter-row input {
+      flex: 1; min-width: 0; padding: 0.65rem 0.85rem; border: 1px solid var(--border);
+      border-radius: 8px; font-size: 0.95rem; outline: none;
+    }
+    .add-chapter-row input:focus { border-color: var(--primary); }
+    .add-chapter-box small { display: block; color: var(--muted); font-size: 0.8rem; margin-top: 0.5rem; }
+    .content-empty {
+      text-align: center; padding: 2rem 1rem; color: var(--muted);
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    }
+    .content-empty strong { display: block; color: var(--text); font-size: 1.05rem; margin-bottom: 0.35rem; }
+
+    .toast {
+      position: fixed; left: 50%; bottom: 1.5rem; transform: translate(-50%, 1rem);
+      background: #0f172a; color: #fff; padding: 0.6rem 1rem; border-radius: 8px;
+      font-size: 0.88rem; opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s;
+      z-index: 300; max-width: calc(100% - 2rem);
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .toast.error { background: var(--error); }
+
+    @media (max-width: 640px) {
+      .chapter-head { flex-wrap: wrap; }
+      .class-meta { display: none; }
+      .class-row { flex-wrap: wrap; row-gap: 0.1rem; }
+      .class-row .video-thumb { display: none; }
+      .class-actions { width: 100%; justify-content: flex-end; }
+      .chapter-head .chapter-title { flex: 1 1 60%; }
+      .add-chapter-row .btn-primary { width: auto; }
+      .ac-actions button { flex: 1; }
+    }
+
     .btn-success { background: var(--success); }
     .btn-success:hover { background: #15803d; }
     .btn-warning { background: #f59e0b; color: white; }
@@ -527,6 +654,33 @@
     <h2 style="margin-bottom: 1.5rem;">Reports & Analytics</h2>
     <div id="reports-content">
       <div class="loading"><div class="spinner"></div> Loading data...</div>
+    </div>
+  </div>
+
+  <!-- Course Content Panel (chapters → classes). Not a tab: opened from a course row. -->
+  <div id="panel-content" class="panel">
+    <button class="btn-link content-back" onclick="closeContentView()">← All courses</button>
+    <div class="panel-header" style="margin-bottom:0.5rem;">
+      <h2 id="content-title">Course content</h2>
+      <span id="content-summary" class="content-summary"></span>
+    </div>
+    <p class="content-help">
+      Add chapters, then add classes inside each one. Drag <span class="drag-handle-inline">⋮⋮</span> to change the order,
+      or drag a class onto another chapter to move it. Every change saves by itself.
+      Students only see chapters that have at least one class.
+    </p>
+    <div id="content-msg"></div>
+    <div id="chapters-list" class="chapters-list">
+      <div class="loading"><div class="spinner"></div> Loading...</div>
+    </div>
+    <div class="add-chapter-box">
+      <label for="new-chapter-input" id="new-chapter-label">Add a chapter</label>
+      <form class="add-chapter-row" onsubmit="event.preventDefault(); addChapterFromInput();">
+        <input type="text" id="new-chapter-input" maxlength="200" autocomplete="off" enterkeyhint="done"
+               placeholder="Type a chapter name and press Enter — e.g., Percentage" />
+        <button type="submit" class="btn-primary" id="btn-add-chapter">Add</button>
+      </form>
+      <small>Have a syllabus? Paste the whole list here, one chapter per line, and they're all added in order.</small>
     </div>
   </div>
 
@@ -668,72 +822,50 @@
   </div>
 </div>
 
-<!-- ── Course Videos Modal ── -->
-<div id="modal-videos" class="modal-overlay">
-  <div class="modal large">
-    <div class="modal-header">
-      <h2 id="videos-modal-title">Videos</h2>
-      <button class="btn-close" onclick="closeModal('modal-videos')">×</button>
+<!-- ── Add Class form ──
+     One form, moved into whichever chapter card the teacher clicked
+     "+ Add class" on. Kept out here while unused so re-rendering the
+     chapter list never throws away what was typed or picked. -->
+<div id="add-class-holder" hidden>
+  <form id="add-class-form" class="add-class-form" onsubmit="handleAddClass(event)" novalidate>
+    <div id="add-class-msg"></div>
+    <div class="form-group">
+      <label for="ac-url">YouTube link *</label>
+      <input type="url" id="ac-url" placeholder="Paste the YouTube link — the title fills in by itself" autocomplete="off" />
     </div>
-    <div id="videos-msg"></div>
-    <div style="display:flex; justify-content:flex-end; margin-bottom:1rem;">
-      <button class="btn-primary" onclick="openAddVideoModal()">+ Add Video</button>
-    </div>
-    <div id="videos-content" class="table-container">
-      <div class="loading"><div class="spinner"></div> Loading...</div>
-    </div>
-  </div>
-</div>
-
-<!-- ── Add Video Modal ── -->
-<div id="modal-add-video" class="modal-overlay">
-  <div class="modal">
-    <div class="modal-header">
-      <h2>Add Video</h2>
-      <button class="btn-close" onclick="closeModal('modal-add-video')">×</button>
-    </div>
-    <div id="add-video-msg"></div>
-    <form id="form-add-video" onsubmit="handleAddVideo(event)">
-      <div class="form-group">
-        <label>YouTube URL *</label>
-        <input type="url" id="video-youtube-url" required placeholder="https://www.youtube.com/watch?v=..." />
+    <div class="ac-preview-row">
+      <img id="ac-thumb" class="video-thumb" alt="" hidden />
+      <div class="form-group" style="flex:1; margin-bottom:0;">
+        <label for="ac-title">Title * <span id="ac-title-hint" class="ac-hint"></span></label>
+        <input type="text" id="ac-title" maxlength="200" placeholder="e.g., Type 1 — Basic percentage" />
       </div>
-      <div class="form-group">
-        <label>Title *</label>
-        <input type="text" id="video-title" required placeholder="e.g., Lecture 1: Introduction" />
-      </div>
-      <div class="form-group">
-        <label>Display Order *</label>
-        <input type="number" id="video-order" required min="1" placeholder="e.g., 1" />
-      </div>
-      <div class="form-group">
-        <label>Notes PDF (optional)</label>
+    </div>
+    <details class="ac-pdfs">
+      <summary>Attach PDFs (optional)</summary>
+      <div class="ac-pdf-grid">
         <div class="file-input-wrapper">
           <input type="file" id="video-pdf-notes" accept="application/pdf" />
-          <label class="file-input-label" id="label-pdf-notes" for="video-pdf-notes">📄 Upload Notes PDF</label>
+          <label class="file-input-label" id="label-pdf-notes" for="video-pdf-notes">📄 Notes</label>
         </div>
-      </div>
-      <div class="form-group">
-        <label>Solved Practice Set PDF (optional)</label>
         <div class="file-input-wrapper">
           <input type="file" id="video-pdf-solved" accept="application/pdf" />
-          <label class="file-input-label" id="label-pdf-solved" for="video-pdf-solved">📄 Upload Solved Practice PDF</label>
+          <label class="file-input-label" id="label-pdf-solved" for="video-pdf-solved">📄 Solved Practice Set</label>
         </div>
-      </div>
-      <div class="form-group">
-        <label>Annotated Practice Set PDF (optional)</label>
         <div class="file-input-wrapper">
           <input type="file" id="video-pdf-annotated" accept="application/pdf" />
-          <label class="file-input-label" id="label-pdf-annotated" for="video-pdf-annotated">📄 Upload Annotated Practice PDF</label>
+          <label class="file-input-label" id="label-pdf-annotated" for="video-pdf-annotated">📄 Annotated Practice Set</label>
         </div>
       </div>
-      <div class="modal-actions">
-        <button type="button" class="btn-secondary" onclick="closeModal('modal-add-video')">Cancel</button>
-        <button type="submit" class="btn-primary" id="btn-add-video">Add Video</button>
-      </div>
-    </form>
-  </div>
+    </details>
+    <div class="ac-actions">
+      <button type="button" class="btn-link" onclick="closeAddClassForm()">Cancel</button>
+      <button type="submit" class="btn-secondary-solid" value="close" id="ac-save">Save</button>
+      <button type="submit" class="btn-primary" value="another" id="ac-save-another">Save &amp; add another</button>
+    </div>
+  </form>
 </div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <!-- ── Edit Video Modal ── -->
 <div id="modal-edit-video" class="modal-overlay">
@@ -749,12 +881,8 @@
         <input type="text" id="edit-video-title" required placeholder="e.g., Lecture 1: Introduction" />
       </div>
       <div class="form-group">
-        <label>Duration *</label>
-        <input type="text" id="edit-video-duration" required placeholder="e.g., 12:45" />
-      </div>
-      <div class="form-group">
-        <label>Display Order *</label>
-        <input type="number" id="edit-video-order" required min="1" placeholder="e.g., 1" />
+        <label>Duration <span style="font-weight:400;">(optional)</span></label>
+        <input type="text" id="edit-video-duration" placeholder="e.g., 12:45" />
       </div>
       <div class="modal-actions">
         <button type="button" class="btn-secondary" onclick="closeModal('modal-edit-video')">Cancel</button>
@@ -811,6 +939,8 @@
 <!-- Auth & Router Libraries -->
 <script src="/web/lib/auth.js"></script>
 <script src="/web/lib/router.js"></script>
+<!-- Drag-and-drop for chapters and classes (mouse + touch). -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
 
 <script>
   // ── Configuration ──
@@ -988,7 +1118,7 @@
               </td>
               <td>${formatDate(course.createdAt)}</td>
               <td>
-                <button class="btn-small btn-success" onclick="openVideosModal(${course.id}, '${course.title}')">Videos</button>
+                <button class="btn-small btn-success" onclick="openContentView(${course.id})">Content</button>
                 <button class="btn-small" onclick="editCourse(${course.id})">Edit</button>
                 <button class="btn-small" onclick="viewStudents(${course.id}, '${course.title}')">View</button>
                 <button class="btn-small ${course.active ? 'btn-warning' : 'btn-success'}" onclick="toggleCourseStatus(${course.id}, ${course.active})">${course.active ? 'Deactivate' : 'Activate'}</button>
@@ -1165,9 +1295,16 @@
         throw new Error(error.message || 'Failed to save course');
       }
 
+      const saved = await response.json().catch(() => null);
       await loadCourses();
       closeModal('modal-course-form');
-      showMsg('courses-msg', currentEditingCourseId ? 'Course updated!' : 'Course created!', 'success');
+      if (!currentEditingCourseId && saved && saved.id) {
+        // A new course has nothing in it yet — go straight to adding chapters.
+        openContentView(saved.id);
+        toast('Course created. Now add its chapters.');
+      } else {
+        showMsg('courses-msg', currentEditingCourseId ? 'Course updated!' : 'Course created!', 'success');
+      }
     } catch (e) {
       showMsg('modal-form-msg', e.message, 'error');
     } finally {
@@ -1624,147 +1761,398 @@ This undoes the removal without recording a payment.`)) return;
     });
   }
 
-  // ── Videos Management ──
+  // ── Course Content: chapters → classes ──
+  //
+  // The teacher never types an order number. New chapters and classes go to
+  // the end; dragging sends the full new order and the server writes 1..n.
+  // Every call returns the whole course content, and the screen is always
+  // re-drawn from that, so what is shown is what was saved.
 
-  async function openVideosModal(courseId, courseTitle) {
-    currentVideosModalCourseId = courseId;
-    document.getElementById('videos-modal-title').textContent = 'Videos — ' + courseTitle;
-    document.getElementById('videos-msg').innerHTML = '';
-    openModal('modal-videos');
-    await loadVideos();
+  let contentCourseId = null;
+  let contentChapters = [];            // [{id, title, displayOrder, videos:[...]}]
+  const collapsedChapterIds = new Set();
+  let addClassChapterId = null;        // chapter whose card holds the add-class form
+  let sortables = [];
+  let titleWasAutofilled = false;
+  let lastLookedUpUrl = '';
+
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[c]);
   }
 
-  async function loadVideos() {
-    const contentEl = document.getElementById('videos-content');
-    contentEl.innerHTML = '<div class="loading"><div class="spinner"></div> Loading...</div>';
+  let toastTimer = null;
+  function toast(text, type) {
+    const el = document.getElementById('toast');
+    el.textContent = text;
+    el.className = 'toast show' + (type === 'error' ? ' error' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.className = 'toast'; }, type === 'error' ? 5000 : 2200);
+  }
+
+  function openContentView(courseId) {
+    const course = allCourses.find(c => c.id === courseId);
+    contentCourseId = courseId;
+    currentVideosModalCourseId = courseId;   // PDF modal reads this
+    collapsedChapterIds.clear();
+    closeAddClassForm();
+    document.getElementById('content-title').textContent = course ? course.title : 'Course content';
+    document.getElementById('content-summary').textContent = '';
+    clearMsg('content-msg');
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-content').classList.add('active');
+    window.scrollTo({ top: 0 });
+    loadContent();
+  }
+
+  function closeContentView() {
+    closeAddClassForm();
+    contentCourseId = null;
+    document.getElementById('panel-content').classList.remove('active');
+    document.getElementById('panel-courses').classList.add('active');
+    document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
+  }
+
+  async function loadContent() {
+    if (!contentCourseId) return;
     try {
-      const data = await apiFetch(`/api/admin/courses/${currentVideosModalCourseId}/videos`);
-      currentCourseVideos = data || [];
-      renderVideosList(currentCourseVideos);
+      const data = await apiFetch(`/api/admin/courses/${contentCourseId}/content`);
+      if (data) applyContent(data);
     } catch (e) {
-      showMsg('videos-msg', 'Failed to load videos: ' + e.message, 'error');
-      contentEl.innerHTML = '';
+      showMsg('content-msg', 'Failed to load course content: ' + escapeHtml(e.message), 'error');
+      document.getElementById('chapters-list').innerHTML = '';
     }
   }
 
-  function renderVideosList(videos) {
-    const contentEl = document.getElementById('videos-content');
-    if (!videos.length) {
-      contentEl.innerHTML = '<div class="loading">No videos yet. Click "+ Add Video" to get started.</div>';
+  function applyContent(chapters) {
+    contentChapters = chapters || [];
+    currentCourseVideos = contentChapters.flatMap(c => c.videos);   // Edit / PDF modals read this
+    renderContent();
+  }
+
+  /** Runs a change against the API, re-draws from the answer, and says "Saved". */
+  async function saveContent(path, options, successText) {
+    try {
+      const data = await apiFetch(path, options);
+      if (data) applyContent(data);
+      if (successText) toast(successText);
+      return true;
+    } catch (e) {
+      toast(e.message || 'Could not save', 'error');
+      await loadContent();   // never leave an order on screen that wasn't saved
+      return false;
+    }
+  }
+
+  function renderContent() {
+    const listEl = document.getElementById('chapters-list');
+    const holder = document.getElementById('add-class-holder');
+    const form = document.getElementById('add-class-form');
+    holder.appendChild(form);            // park the form so re-drawing can't destroy it
+    sortables.forEach(s => s.destroy());
+    sortables = [];
+
+    const classCount = contentChapters.reduce((n, c) => n + c.videos.length, 0);
+    document.getElementById('content-summary').textContent = contentChapters.length
+      ? `${contentChapters.length} chapter${contentChapters.length === 1 ? '' : 's'} · ${classCount} class${classCount === 1 ? '' : 'es'}`
+      : '';
+    document.getElementById('new-chapter-label').textContent =
+      contentChapters.length ? 'Add another chapter' : 'Add your first chapter';
+
+    if (!contentChapters.length) {
+      listEl.innerHTML = `
+        <div class="content-empty">
+          <strong>No chapters yet</strong>
+          Start by adding the chapters of this course below (Percentage, Profit &amp; Loss, …).
+          You can add the classes inside each chapter after that.
+        </div>`;
+      document.getElementById('new-chapter-input').focus();
       return;
     }
-    const html = `
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Thumbnail</th>
-            <th>Title</th>
-            <th>Duration</th>
-            <th>PDFs</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${videos.map(v => `
-            <tr>
-              <td>${v.displayOrder}</td>
-              <td><img class="video-thumb" src="https://img.youtube.com/vi/${v.videoId}/mqdefault.jpg" alt="thumb" onerror="this.style.display='none'" /></td>
-              <td>${v.title}</td>
-              <td>${v.duration}</td>
-              <td>${v.pdfs ? v.pdfs.length : 0}</td>
-              <td>
-                <button class="btn-small btn-primary" onclick="openEditVideoModal(${v.id})">Edit</button>
-                <button class="btn-small" onclick="openPdfsModal(${v.id})">PDFs</button>
-                <button class="btn-small btn-danger" onclick="confirmDeleteVideo(${v.id})">Delete</button>
-              </td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
-    contentEl.innerHTML = html;
+
+    listEl.innerHTML = contentChapters.map((ch, i) => {
+      const n = ch.videos.length;
+      const collapsed = collapsedChapterIds.has(ch.id);
+      const rows = ch.videos.map((v, j) => `<li class="class-row" data-id="${v.id}">
+          <span class="drag-handle cl-handle" title="Drag to reorder or move to another chapter">⋮⋮</span>
+          <span class="class-num">${j + 1}.</span>
+          <img class="video-thumb" src="https://img.youtube.com/vi/${encodeURIComponent(v.videoId)}/mqdefault.jpg" alt="" loading="lazy" onerror="this.style.visibility='hidden'" />
+          <span class="class-title">${escapeHtml(v.title)}</span>
+          <span class="class-meta">${v.duration ? escapeHtml(v.duration) + ' · ' : ''}${(v.pdfs || []).length} PDF${(v.pdfs || []).length === 1 ? '' : 's'}</span>
+          <span class="class-actions">
+            <button class="icon-btn" onclick="openEditVideoModal(${v.id})">Edit</button>
+            <button class="icon-btn" onclick="openPdfsModal(${v.id})">PDFs</button>
+            <button class="icon-btn danger" onclick="confirmDeleteVideo(${v.id})" title="Delete class">Delete</button>
+          </span>
+        </li>`).join('');
+      return `
+        <div class="chapter${collapsed ? ' collapsed' : ''}" data-id="${ch.id}">
+          <div class="chapter-head">
+            <span class="drag-handle ch-handle" title="Drag to reorder chapters">⋮⋮</span>
+            <span class="chapter-num">${i + 1}.</span>
+            <span class="chapter-title" title="Click to rename" onclick="startRenameChapter(${ch.id}, this)">${escapeHtml(ch.title)}</span>
+            <span class="chapter-count">${n} class${n === 1 ? '' : 'es'}</span>
+            <span class="chapter-spacer"></span>
+            <button class="icon-btn danger" onclick="confirmDeleteChapter(${ch.id})" title="Delete chapter">Delete</button>
+            <button class="icon-btn" onclick="toggleChapter(${ch.id})" title="${collapsed ? 'Expand' : 'Collapse'}"><span class="chev">▾</span></button>
+          </div>
+          <div class="chapter-body">
+            <ul class="class-list" data-chapter-id="${ch.id}">${rows}</ul>
+            <div class="add-class-slot"></div>
+            <button class="btn-add-class" onclick="openAddClassForm(${ch.id})"${addClassChapterId === ch.id ? ' hidden' : ''}>+ Add class to “${escapeHtml(ch.title)}”</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    // Put the add-class form back where it was, with whatever was typed intact.
+    if (addClassChapterId !== null) {
+      const card = listEl.querySelector(`.chapter[data-id="${addClassChapterId}"]`);
+      if (card) {
+        card.querySelector('.add-class-slot').appendChild(form);
+      } else {
+        addClassChapterId = null;   // its chapter was deleted
+      }
+    }
+
+    if (typeof Sortable === 'undefined') {
+      showMsg('content-msg', 'Drag-and-drop could not load (no internet to cdn.jsdelivr.net?). Everything else works.', 'warning');
+      return;
+    }
+    sortables.push(Sortable.create(listEl, {
+      handle: '.ch-handle',
+      draggable: '.chapter',
+      animation: 150,
+      forceFallback: true,   // pointer events, not native DnD: same feel on mouse and touch
+      fallbackTolerance: 3,
+      onEnd: (evt) => {
+        if (evt.oldIndex === evt.newIndex) return;
+        const ids = [...listEl.querySelectorAll(':scope > .chapter')].map(el => Number(el.dataset.id));
+        saveContent(`/api/admin/courses/${contentCourseId}/chapters/order`,
+          { method: 'PUT', body: JSON.stringify({ chapterIds: ids }) }, 'Chapter order saved');
+      }
+    }));
+    listEl.querySelectorAll('.class-list').forEach(ul => {
+      sortables.push(Sortable.create(ul, {
+        group: 'classes',
+        handle: '.cl-handle',
+        draggable: '.class-row',
+        animation: 150,
+        forceFallback: true,
+        fallbackTolerance: 3,
+        onEnd: (evt) => {
+          if (evt.from === evt.to && evt.oldIndex === evt.newIndex) return;
+          const target = evt.to;
+          const ids = [...target.querySelectorAll('.class-row')].map(el => Number(el.dataset.id));
+          const moved = evt.from !== evt.to;
+          const toTitle = contentChapters.find(c => c.id === Number(target.dataset.chapterId))?.title;
+          saveContent(`/api/admin/chapters/${target.dataset.chapterId}/videos/order`,
+            { method: 'PUT', body: JSON.stringify({ videoIds: ids }) },
+            moved ? `Moved to “${toTitle}”` : 'Class order saved');
+        }
+      }));
+    });
   }
 
-  let currentEditVideoId = null;
-
-  function openEditVideoModal(videoId) {
-    const video = currentCourseVideos.find(v => v.id === videoId);
-    if (!video) return;
-    currentEditVideoId = videoId;
-    document.getElementById('edit-video-title').value = video.title;
-    document.getElementById('edit-video-duration').value = video.duration;
-    document.getElementById('edit-video-order').value = video.displayOrder;
-    clearMsg('edit-video-msg');
-    openModal('modal-edit-video');
+  function toggleChapter(chapterId) {
+    if (collapsedChapterIds.has(chapterId)) collapsedChapterIds.delete(chapterId);
+    else collapsedChapterIds.add(chapterId);
+    document.querySelector(`.chapter[data-id="${chapterId}"]`)?.classList.toggle('collapsed');
   }
 
-  async function handleEditVideo(event) {
-    event.preventDefault();
-    const btn = document.getElementById('btn-save-video');
+  // ── Chapters: add (typed or pasted list), rename, delete ──
+
+  // "1. Percentage", "2) Profit & Loss" → numbering is automatic, so drop a
+  // leading number the teacher copied from a syllabus. "2D Geometry" is kept.
+  function cleanChapterName(s) {
+    return s.replace(/^\s*(chapter\s*)?\d+\s*[.):\-–]\s*/i, '').trim();
+  }
+
+  async function addChapters(titles) {
+    const clean = titles.map(cleanChapterName).filter(Boolean);
+    if (!clean.length) return false;
+    const btn = document.getElementById('btn-add-chapter');
     btn.disabled = true;
-    btn.textContent = 'Saving...';
-    clearMsg('edit-video-msg');
+    const ok = await saveContent(`/api/admin/courses/${contentCourseId}/chapters`,
+      { method: 'POST', body: JSON.stringify({ titles: clean }) },
+      clean.length === 1 ? `Added “${clean[0]}”` : `Added ${clean.length} chapters`);
+    btn.disabled = false;
+    return ok;
+  }
 
+  let addingChapter = false;
+  async function addChapterFromInput() {
+    const input = document.getElementById('new-chapter-input');
+    const value = input.value.trim();
+    if (!value) { input.focus(); return; }
+    if (addingChapter) return;
+    addingChapter = true;
     try {
-      const updated = await apiFetch(`/admin/videos/${currentEditVideoId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          title: document.getElementById('edit-video-title').value.trim(),
-          duration: document.getElementById('edit-video-duration').value.trim(),
-          displayOrder: parseInt(document.getElementById('edit-video-order').value, 10)
-        })
-      });
-      const idx = currentCourseVideos.findIndex(v => v.id === currentEditVideoId);
-      if (idx !== -1) currentCourseVideos[idx] = { ...currentCourseVideos[idx], ...updated };
-      renderVideosList(currentCourseVideos);
-      closeModal('modal-edit-video');
-      showMsg('videos-msg', 'Video updated successfully!', 'success');
-    } catch (e) {
-      showMsg('edit-video-msg', 'Failed to update: ' + e.message, 'error');
+      if (await addChapters([value])) {
+        input.value = '';
+        const list = document.getElementById('chapters-list');
+        list.lastElementChild?.scrollIntoView({ block: 'nearest' });
+      }
     } finally {
-      btn.disabled = false;
-      btn.textContent = 'Save Changes';
+      addingChapter = false;
+      input.focus();   // ready for the next name straight away
     }
   }
 
-  function openAddVideoModal() {
-    document.getElementById('form-add-video').reset();
-    ['label-pdf-notes', 'label-pdf-solved', 'label-pdf-annotated'].forEach(id => {
+  // Enter adds the chapter. The surrounding <form> covers the Add button and a
+  // phone keyboard's "Go"; handling keydown too (and cancelling it) means one
+  // Enter never adds twice.
+  document.getElementById('new-chapter-input').addEventListener('keydown', (e) => {
+    if ((e.key === 'Enter' || e.keyCode === 13) && !e.isComposing) {
+      e.preventDefault();
+      addChapterFromInput();
+    }
+  });
+
+  document.getElementById('new-chapter-input').addEventListener('paste', async (e) => {
+    const text = (e.clipboardData || window.clipboardData).getData('text');
+    const lines = text.split(/\r?\n/).map(cleanChapterName).filter(Boolean);
+    if (lines.length < 2) return;   // a single name pastes normally
+    e.preventDefault();
+    const preview = lines.slice(0, 15).map((l, i) => `${i + 1}. ${l}`).join('\n')
+      + (lines.length > 15 ? `\n… and ${lines.length - 15} more` : '');
+    if (!confirm(`Add these ${lines.length} chapters, in this order?\n\n${preview}`)) return;
+    if (await addChapters(lines)) document.getElementById('new-chapter-input').value = '';
+  });
+
+  function startRenameChapter(chapterId, span) {
+    const chapter = contentChapters.find(c => c.id === chapterId);
+    if (!chapter) return;
+    const input = document.createElement('input');
+    input.className = 'chapter-title-input';
+    input.value = chapter.title;
+    input.maxLength = 200;
+    span.replaceWith(input);
+    input.focus();
+    input.select();
+    let done = false;
+    const finish = async (save) => {
+      if (done) return;
+      done = true;
+      const title = input.value.trim();
+      if (!save || !title || title === chapter.title) { renderContent(); return; }
+      await saveContent(`/api/admin/chapters/${chapterId}`,
+        { method: 'PATCH', body: JSON.stringify({ title }) }, 'Chapter renamed');
+    };
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.keyCode === 13) { e.preventDefault(); finish(true); }
+      if (e.key === 'Escape' || e.keyCode === 27) { e.preventDefault(); finish(false); }
+    });
+    input.addEventListener('blur', () => finish(true));
+  }
+
+  function confirmDeleteChapter(chapterId) {
+    const chapter = contentChapters.find(c => c.id === chapterId);
+    if (!chapter) return;
+    const n = chapter.videos.length;
+    const message = n
+      ? `Delete “${chapter.title}” and its ${n} class${n === 1 ? '' : 'es'}?\n\nTheir PDFs are deleted too, and students lose these classes. This can't be undone.\n\nTo keep a class, drag it to another chapter first.`
+      : `Delete the empty chapter “${chapter.title}”?`;
+    if (!confirm(message)) return;
+    if (addClassChapterId === chapterId) closeAddClassForm();
+    saveContent(`/api/admin/chapters/${chapterId}`, { method: 'DELETE' }, `Deleted “${chapter.title}”`);
+  }
+
+  // ── Classes: add inline inside a chapter ──
+
+  function resetAddClassForm() {
+    document.getElementById('add-class-form').reset();
+    clearMsg('add-class-msg');
+    document.getElementById('ac-title-hint').textContent = '';
+    const thumb = document.getElementById('ac-thumb');
+    thumb.hidden = true;
+    thumb.removeAttribute('src');
+    titleWasAutofilled = false;
+    lastLookedUpUrl = '';
+    [['label-pdf-notes', '📄 Notes'], ['label-pdf-solved', '📄 Solved Practice Set'],
+     ['label-pdf-annotated', '📄 Annotated Practice Set']].forEach(([id, text]) => {
       const el = document.getElementById(id);
       el.classList.remove('has-file');
-      el.textContent = id === 'label-pdf-notes' ? '📄 Upload Notes PDF'
-                     : id === 'label-pdf-solved' ? '📄 Upload Solved Practice PDF'
-                     : '📄 Upload Annotated Practice PDF';
+      el.textContent = text;
     });
-    clearMsg('add-video-msg');
-    openModal('modal-add-video');
   }
 
-  async function handleAddVideo(event) {
-    event.preventDefault();
-    clearMsg('add-video-msg');
+  function openAddClassForm(chapterId) {
+    if (addClassChapterId !== chapterId) resetAddClassForm();
+    addClassChapterId = chapterId;
+    collapsedChapterIds.delete(chapterId);
+    renderContent();
+    const form = document.getElementById('add-class-form');
+    form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    document.getElementById('ac-url').focus();
+  }
 
-    const youtubeUrl = document.getElementById('video-youtube-url').value.trim();
-    const title = document.getElementById('video-title').value.trim();
-    const order = document.getElementById('video-order').value;
+  function closeAddClassForm() {
+    addClassChapterId = null;
+    resetAddClassForm();
+    document.getElementById('add-class-holder').appendChild(document.getElementById('add-class-form'));
+    document.querySelectorAll('.btn-add-class').forEach(b => { b.hidden = false; });
+  }
 
-    if (!youtubeUrl || !title || !order) {
-      showMsg('add-video-msg', 'Please fill in all required fields', 'error');
-      return;
+  async function lookUpYouTube() {
+    const url = document.getElementById('ac-url').value.trim();
+    const hint = document.getElementById('ac-title-hint');
+    const titleInput = document.getElementById('ac-title');
+    const thumb = document.getElementById('ac-thumb');
+    if (!url || url === lastLookedUpUrl) return;
+    lastLookedUpUrl = url;
+    hint.textContent = '— looking it up…';
+    try {
+      const info = await apiFetch(`/admin/videos/youtube-info?url=${encodeURIComponent(url)}`);
+      if (!info || document.getElementById('ac-url').value.trim() !== url) return;   // link changed meanwhile
+      clearMsg('add-class-msg');
+      thumb.src = info.thumbnailUrl;
+      thumb.hidden = false;
+      if (info.title && (!titleInput.value.trim() || titleWasAutofilled)) {
+        titleInput.value = info.title;
+        titleWasAutofilled = true;
+        hint.textContent = '— filled in from YouTube, edit if you like';
+      } else if (!info.title) {
+        hint.textContent = "— couldn't read it from YouTube, please type it";
+      } else {
+        hint.textContent = '';
+      }
+    } catch (e) {
+      hint.textContent = '';
+      thumb.hidden = true;
+      showMsg('add-class-msg', "That doesn't look like a YouTube link. Copy it from the video's Share button.", 'error');
     }
+  }
 
-    const btn = document.getElementById('btn-add-video');
-    btn.disabled = true;
-    btn.textContent = 'Adding...';
+  document.getElementById('ac-url').addEventListener('paste', () => setTimeout(lookUpYouTube, 0));
+  document.getElementById('ac-url').addEventListener('change', lookUpYouTube);
+  document.getElementById('ac-title').addEventListener('input', () => {
+    titleWasAutofilled = false;
+    document.getElementById('ac-title-hint').textContent = '';
+  });
+
+  async function handleAddClass(event) {
+    event.preventDefault();
+    const addAnother = event.submitter && event.submitter.value === 'another';
+    const chapterId = addClassChapterId;
+    const url = document.getElementById('ac-url').value.trim();
+    const title = document.getElementById('ac-title').value.trim();
+    clearMsg('add-class-msg');
+    if (!url) { showMsg('add-class-msg', 'Paste the YouTube link first.', 'error'); document.getElementById('ac-url').focus(); return; }
+    if (!title) { showMsg('add-class-msg', 'Give the class a title.', 'error'); document.getElementById('ac-title').focus(); return; }
+
+    const buttons = [document.getElementById('ac-save'), document.getElementById('ac-save-another')];
+    buttons.forEach(b => { b.disabled = true; });
+    const pressed = addAnother ? buttons[1] : buttons[0];
+    const pressedText = pressed.textContent;
+    pressed.textContent = 'Saving…';
 
     try {
       const formData = new FormData();
-      formData.append('youtubeVideoLink', youtubeUrl);
+      formData.append('youtubeVideoLink', url);
       formData.append('title', title);
-      formData.append('courseId', currentVideosModalCourseId);
-      formData.append('displayOrder', order);
-
+      formData.append('courseId', contentCourseId);
+      formData.append('chapterId', chapterId);
       const notesPdf = document.getElementById('video-pdf-notes').files[0];
       const solvedPdf = document.getElementById('video-pdf-solved').files[0];
       const annotatedPdf = document.getElementById('video-pdf-annotated').files[0];
@@ -1777,42 +2165,91 @@ This undoes the removal without recording a payment.`)) return;
         headers: { 'Authorization': 'Bearer ' + token },
         body: formData
       });
-
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
-        throw new Error(error.message || 'Failed to add video');
+        throw new Error(error.message || 'Could not add the class');
       }
 
-      closeModal('modal-add-video');
-      showMsg('videos-msg', 'Video added successfully!', 'success');
-      await loadVideos();
+      const chapterTitle = contentChapters.find(c => c.id === chapterId)?.title || 'chapter';
+      toast(`Added “${title}” to ${chapterTitle}`);
+      if (addAnother) {
+        resetAddClassForm();
+      } else {
+        closeAddClassForm();
+      }
+      await loadContent();
+      if (addAnother) document.getElementById('ac-url').focus();
     } catch (e) {
-      showMsg('add-video-msg', e.message, 'error');
+      showMsg('add-class-msg', escapeHtml(e.message), 'error');
+    } finally {
+      buttons.forEach(b => { b.disabled = false; });
+      pressed.textContent = pressedText;
+    }
+  }
+
+  // ── Classes: edit / delete (the PDF modal is further down) ──
+
+  let currentEditVideoId = null;
+
+  function openEditVideoModal(videoId) {
+    const video = currentCourseVideos.find(v => v.id === videoId);
+    if (!video) return;
+    currentEditVideoId = videoId;
+    document.getElementById('edit-video-title').value = video.title;
+    document.getElementById('edit-video-duration').value = video.duration || '';
+    clearMsg('edit-video-msg');
+    openModal('modal-edit-video');
+  }
+
+  async function handleEditVideo(event) {
+    event.preventDefault();
+    const btn = document.getElementById('btn-save-video');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+    clearMsg('edit-video-msg');
+
+    try {
+      await apiFetch(`/admin/videos/${currentEditVideoId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          title: document.getElementById('edit-video-title').value.trim(),
+          duration: document.getElementById('edit-video-duration').value.trim()
+        })
+      });
+      closeModal('modal-edit-video');
+      toast('Class updated');
+      await loadContent();
+    } catch (e) {
+      showMsg('edit-video-msg', 'Failed to update: ' + escapeHtml(e.message), 'error');
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Add Video';
+      btn.textContent = 'Save Changes';
     }
   }
 
   function confirmDeleteVideo(videoId) {
     const video = currentCourseVideos.find(v => v.id === videoId);
-    const title = video ? video.title : 'this video';
+    const title = video ? video.title : 'this class';
     currentDeleteVideoId = videoId;
-    if (!confirm(`Delete "${title}"? This will permanently remove the video and all its PDFs.`)) return;
+    if (!confirm(`Delete "${title}"? This will permanently remove the class and all its PDFs.`)) return;
     doDeleteVideo();
   }
 
   async function doDeleteVideo() {
     try {
-      await fetch(API_BASE + `/admin/videos/${currentDeleteVideoId}`, {
+      const res = await fetch(API_BASE + `/admin/videos/${currentDeleteVideoId}`, {
         method: 'DELETE',
         headers: { 'Authorization': 'Bearer ' + token }
       });
-      showMsg('videos-msg', 'Video deleted!', 'success');
-      await loadVideos();
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.message || 'Delete failed');
+      }
+      toast('Class deleted');
     } catch (e) {
-      showMsg('videos-msg', 'Failed to delete video: ' + e.message, 'error');
+      toast('Failed to delete class: ' + e.message, 'error');
     }
+    await loadContent();
   }
 
   // ── PDF Management ──
@@ -1877,6 +2314,7 @@ This undoes the removal without recording a payment.`)) return;
       });
       showMsg('pdfs-msg', 'PDF deleted!', 'success');
       await loadPdfs();
+      loadContent();   // keep the PDF count on the chapter screen current
     } catch (e) {
       showMsg('pdfs-msg', 'Failed to delete PDF: ' + e.message, 'error');
     }
@@ -1924,6 +2362,7 @@ This undoes the removal without recording a payment.`)) return;
       fileLabel.classList.remove('has-file');
       showMsg('pdfs-msg', 'PDF added!', 'success');
       await loadPdfs();
+      loadContent();
     } catch (e) {
       showMsg('pdfs-msg', e.message, 'error');
     } finally {
