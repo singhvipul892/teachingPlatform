@@ -1,5 +1,6 @@
 package com.maths.teacher.app.ui.auth
 
+import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -67,7 +68,7 @@ fun ForgotPasswordScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = "Enter your registered mobile number and we'll send you an OTP to reset your password.",
+                text = "Enter your registered email and we'll email you an OTP to reset your password.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth()
@@ -76,12 +77,12 @@ fun ForgotPasswordScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             OutlinedTextField(
-                value = state.mobileNumber,
-                onValueChange = viewModel::updateMobileNumber,
-                label = { Text("Mobile number") },
+                value = state.email,
+                onValueChange = viewModel::updateEmail,
+                label = { Text("Email") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 enabled = !state.isLoading
             )
 
@@ -102,8 +103,8 @@ fun ForgotPasswordScreen(
             } else {
                 Button(
                     onClick = {
-                        viewModel.sendOtp { mobile ->
-                            navController.navigate("reset_password/$mobile")
+                        viewModel.sendOtp { email ->
+                            navController.navigate("reset_password/${Uri.encode(email)}")
                         }
                     },
                     modifier = Modifier.fillMaxWidth()

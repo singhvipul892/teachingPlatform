@@ -1,13 +1,15 @@
 package com.maths.teacher.auth.web;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public class ResetPasswordRequest {
 
-    @NotBlank(message = "Mobile number is required")
-    @Size(max = 20)
-    private String mobileNumber;
+    @NotBlank(message = "Email is required")
+    @Email(message = "Enter a valid email address")
+    @Size(max = 255)
+    private String email;
 
     @NotBlank(message = "OTP is required")
     @Size(min = 6, max = 6, message = "OTP must be 6 digits")
@@ -17,12 +19,12 @@ public class ResetPasswordRequest {
     @Size(min = 8, message = "Password must be at least 8 characters")
     private String newPassword;
 
-    public String getMobileNumber() {
-        return mobileNumber;
+    public String getEmail() {
+        return email;
     }
 
-    public void setMobileNumber(String mobileNumber) {
-        this.mobileNumber = mobileNumber;
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getOtp() {

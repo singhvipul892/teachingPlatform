@@ -44,6 +44,9 @@ services:
       RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       SMS_MOCK: ${SMS_MOCK:-false}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_MOCK: ${MAIL_MOCK:-false}
       AWS_EC2_METADATA_SERVICE_ENDPOINT: http://host.docker.internal:1338
     ports:
       - "8080:8080"

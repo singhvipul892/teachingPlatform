@@ -279,6 +279,15 @@ fun YouTubePlayer(
     val playerView = remember {
         YouTubePlayerView(context).apply {
             enableAutomaticInitialization = false
+            // YouTubePlayerView is a SixteenByNineFrameLayout: when its layout height is
+            // WRAP_CONTENT (the default AndroidView gives it) it ignores the height it is offered
+            // and measures itself at width * 9/16. On a ~20:9 screen in landscape that is taller
+            // than the screen, so the video overflowed and was cropped top and bottom. MATCH_PARENT
+            // makes it take the box Compose gives it; YouTube then letterboxes inside that.
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
         }
     }
 

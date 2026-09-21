@@ -23,7 +23,7 @@ data class ResetPasswordUiState(
 
 class ResetPasswordViewModel(
     private val api: TeacherApi,
-    private val mobileNumber: String
+    private val email: String
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ResetPasswordUiState())
@@ -56,7 +56,7 @@ class ResetPasswordViewModel(
             try {
                 api.resetPassword(
                     ResetPasswordRequest(
-                        mobileNumber = mobileNumber,
+                        email = email,
                         otp = state.otp.trim(),
                         newPassword = state.newPassword
                     )
@@ -92,12 +92,12 @@ class ResetPasswordViewModel(
 
 class ResetPasswordViewModelFactory(
     private val api: TeacherApi,
-    private val mobileNumber: String
+    private val email: String
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ResetPasswordViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return ResetPasswordViewModel(api, mobileNumber) as T
+            return ResetPasswordViewModel(api, email) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

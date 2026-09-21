@@ -35,13 +35,13 @@ public class AuthController {
 
     @PostMapping("/forgot-password")
     public ResponseEntity<MessageResponse> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
-        passwordResetService.forgotPassword(request.getMobileNumber());
-        return ResponseEntity.ok(new MessageResponse("If an account with this mobile number exists, an OTP has been sent."));
+        passwordResetService.forgotPassword(request.getEmail());
+        return ResponseEntity.ok(new MessageResponse("If an account with this email exists, an OTP has been sent to it."));
     }
 
     @PostMapping("/reset-password")
     public ResponseEntity<MessageResponse> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
-        passwordResetService.resetPassword(request.getMobileNumber(), request.getOtp(), request.getNewPassword());
+        passwordResetService.resetPassword(request.getEmail(), request.getOtp(), request.getNewPassword());
         return ResponseEntity.ok(new MessageResponse("Password reset successfully."));
     }
 }

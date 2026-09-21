@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 import retrofit2.HttpException
 
 data class ForgotPasswordUiState(
-    val mobileNumber: String = "",
+    val email: String = "",
     val isLoading: Boolean = false,
     val errorMessage: String? = null
 )
@@ -26,22 +26,27 @@ class ForgotPasswordViewModel(
     private val _uiState = MutableStateFlow(ForgotPasswordUiState())
     val uiState: StateFlow<ForgotPasswordUiState> = _uiState.asStateFlow()
 
-    fun updateMobileNumber(value: String) {
-        _uiState.value = _uiState.value.copy(mobileNumber = value, errorMessage = null)
+    fun updateEmail(value: String) {
+        _uiState.value = _uiState.value.copy(email = value, errorMessage = null)
     }
 
     fun sendOtp(onSuccess: (String) -> Unit) {
         val state = _uiState.value
-        if (state.mobileNumber.isBlank()) {
-            _uiState.value = state.copy(errorMessage = "Mobile number is required.")
+        val email = state.email.trim()
+        if (email.isEmpty()) {
+            _uiState.value = state.copy(errorMessage = "Email is required.")
+            return
+        }
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            _uiState.value = state.copy(errorMessage = "Enter a valid email address.")
             return
         }
         viewModelScope.launch {
             _uiState.value = state.copy(isLoading = true, errorMessage = null)
             try {
-                api.forgotPassword(ForgotPasswordRequest(mobileNumber = state.mobileNumber.trim()))
+                api.forgotPassword(ForgotPasswordRequest(email = email))
                 _uiState.value = state.copy(isLoading = false)
-                onSuccess(state.mobileNumber.trim())
+                onSuccess(email)
             } catch (e: HttpException) {
                 val message = parseErrorMessage(e)
                 _uiState.value = state.copy(isLoading = false, errorMessage = message)
