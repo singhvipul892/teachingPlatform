@@ -3,7 +3,9 @@ package com.maths.teacher.auth.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +26,9 @@ public class EmailService {
         this.from = from;
     }
 
+    // Async: SMTP to Gmail can take many seconds, and the caller must not wait on it
+    // (the app times out, the user taps again, and a pile of OTPs arrives).
+    @Async
     public void sendPasswordResetOtp(String email, String otp) {
         String subject = "Singh Sir - password reset code";
         String body = "Your Singh Sir password reset code is: " + otp + "\n\n"
@@ -40,6 +45,12 @@ public class EmailService {
         message.setTo(email);
         message.setSubject(subject);
         message.setText(body);
-        mailSender.send(message);
+        long start = System.currentTimeMillis();
+        try {
+            mailSender.send(message);
+            log.info("Password reset email sent to {} in {} ms", email, System.currentTimeMillis() - start);
+        } catch (MailException e) {
+            log.error("Password reset email to {} failed after {} ms", email, System.currentTimeMillis() - start, e);
+        }
     }
 }

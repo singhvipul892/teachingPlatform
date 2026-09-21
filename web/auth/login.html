@@ -230,7 +230,10 @@
       </div>
       <button class="btn-primary" id="btn-reset">Reset Password</button>
       <div class="auth-switch">
-        Didn't get it? <a onclick="showScreen('screen-forgot')">Send a new OTP</a>
+        Didn't get it? <a id="btn-resend" onclick="resendOtp()">Resend code</a><span id="resend-wait"></span>
+      </div>
+      <div class="auth-switch">
+        <a onclick="showScreen('screen-forgot')">Use a different email</a>
       </div>
     </div>
   </div>
@@ -387,7 +390,39 @@
   }
 
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const RESEND_COOLDOWN_SECONDS = 60; // matches the server's cooldown
   let resetEmail = '';
+  let resendTimer = null;
+
+  function startResendCountdown() {
+    const link = document.getElementById('btn-resend');
+    const wait = document.getElementById('resend-wait');
+    let left = RESEND_COOLDOWN_SECONDS;
+    clearInterval(resendTimer);
+    link.hidden = true;
+    wait.textContent = `Resend code in ${left}s`;
+    resendTimer = setInterval(() => {
+      left -= 1;
+      if (left <= 0) {
+        clearInterval(resendTimer);
+        wait.textContent = '';
+        link.hidden = false;
+      } else {
+        wait.textContent = `Resend code in ${left}s`;
+      }
+    }, 1000);
+  }
+
+  async function resendOtp() {
+    clearMsg('reset-msg');
+    try {
+      await postAuth('/api/auth/forgot-password', { email: resetEmail });
+      showText('reset-msg', 'A new code is on its way. Use the newest email — older codes stop working.', 'success');
+      startResendCountdown();
+    } catch (error) {
+      showText('reset-msg', error.message, 'error');
+    }
+  }
 
   document.getElementById('btn-forgot').addEventListener('click', async () => {
     clearMsg('forgot-msg');
@@ -406,6 +441,7 @@
       ['reset-otp', 'reset-password', 'reset-confirm'].forEach(id => document.getElementById(id).value = '');
       clearMsg('reset-msg');
       showScreen('screen-reset');
+      startResendCountdown();
     } catch (error) {
       showText('forgot-msg', error.message, 'error');
     } finally {

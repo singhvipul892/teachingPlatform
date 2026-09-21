@@ -10,4 +10,6 @@ public interface PasswordResetOtpRepository extends JpaRepository<PasswordResetO
     Optional<PasswordResetOtp> findTopByUserIdAndUsedFalseOrderByCreatedAtDesc(Long userId);
 
     List<PasswordResetOtp> findAllByUserIdAndUsedFalse(Long userId);
+
+    Optional<PasswordResetOtp> findTopByUserIdOrderByCreatedAtDesc(Long userId);
 }

@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -18,6 +20,7 @@ public class PasswordResetService {
 
     private static final int OTP_EXPIRY_MINUTES = 10;
     private static final int MAX_ATTEMPTS = 5;
+    private static final int RESEND_COOLDOWN_SECONDS = 60;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final UserRepository userRepository;
@@ -44,6 +47,13 @@ public class PasswordResetService {
         }
         var user = userOpt.get();
 
+        // Repeat taps within the cooldown send nothing and keep the code already emailed valid.
+        var latest = otpRepository.findTopByUserIdOrderByCreatedAtDesc(user.getId());
+        if (latest.isPresent()
+                && latest.get().getCreatedAt().isAfter(Instant.now().minusSeconds(RESEND_COOLDOWN_SECONDS))) {
+            return;
+        }
+
         List<PasswordResetOtp> existing = otpRepository.findAllByUserIdAndUsedFalse(user.getId());
         existing.forEach(PasswordResetOtp::markUsed);
         otpRepository.saveAll(existing);
@@ -53,7 +63,14 @@ public class PasswordResetService {
         otpRepository.save(new PasswordResetOtp(
                 user.getId(), user.getMobileNumber(), passwordEncoder.encode(otp), expiresAt));
 
-        emailService.sendPasswordResetOtp(user.getEmail(), otp);
+        // After commit, so the email never carries a code whose row was rolled back.
+        String to = user.getEmail();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                emailService.sendPasswordResetOtp(to, otp);
+            }
+        });
     }
 
     // noRollbackFor: a wrong guess must still persist its attempt count when we reject it.
