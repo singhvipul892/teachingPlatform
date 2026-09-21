@@ -11,8 +11,8 @@ android {
         applicationId = "com.maths.teacher.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 13
-        versionName = "2.0.9"
+        versionCode = 18
+        versionName = "5.1.0"
     }
 
     buildTypes {
