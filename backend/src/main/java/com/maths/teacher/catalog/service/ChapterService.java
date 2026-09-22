@@ -80,6 +80,18 @@ public class ChapterService {
         }
         cleaned.forEach(ChapterService::requireTitleLength);
 
+        // No two chapters of a course may share a name — not with an existing
+        // chapter, and not twice within one pasted list.
+        Set<String> taken = new HashSet<>();
+        for (Chapter existing : chapterRepository.findByCourseIdOrderByDisplayOrderAscIdAsc(courseId)) {
+            taken.add(nameKey(existing.getTitle()));
+        }
+        for (String title : cleaned) {
+            if (!taken.add(nameKey(title))) {
+                throw duplicateName(title);
+            }
+        }
+
         int order = chapterRepository.findMaxDisplayOrder(courseId);
         var toSave = new ArrayList<Chapter>();
         for (String title : cleaned) {
@@ -97,6 +109,11 @@ public class ChapterService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chapter name can't be empty");
         }
         requireTitleLength(cleaned);
+        boolean clash = chapterRepository.findByCourseIdOrderByDisplayOrderAscIdAsc(chapter.getCourseId()).stream()
+                .anyMatch(other -> !other.getId().equals(chapterId) && nameKey(other.getTitle()).equals(nameKey(cleaned)));
+        if (clash) {
+            throw duplicateName(cleaned);
+        }
         chapter.setTitle(cleaned);
         return getContent(chapter.getCourseId());
     }
@@ -229,6 +246,16 @@ public class ChapterService {
     private Chapter requireChapter(Long chapterId) {
         return chapterRepository.findById(chapterId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found"));
+    }
+
+    /** How names are compared: "Profit  & loss " and "Profit & Loss" are the same chapter. */
+    private static String nameKey(String title) {
+        return title.trim().replaceAll("\\s+", " ").toLowerCase(java.util.Locale.ROOT);
+    }
+
+    private static ResponseStatusException duplicateName(String title) {
+        return new ResponseStatusException(HttpStatus.CONFLICT,
+                "This course already has a chapter called “" + title.trim() + "”");
     }
 
     private static void requireTitleLength(String title) {

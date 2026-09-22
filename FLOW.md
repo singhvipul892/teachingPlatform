@@ -604,6 +604,11 @@ Teacher opens browser → teacherplatform.duckdns.org/web/admin/index.html
     │  automatic ("2D Geometry" is left alone)
     └─ POST /api/admin/courses/{courseId}/chapters  {"titles": [...]}
 
+    Chapter names are unique within a course (case and extra spaces ignored).
+    The panel stops a duplicate before sending and points at the existing
+    chapter; a pasted list adds the new names and lists the skipped ones. The
+    API enforces it too: 409 "This course already has a chapter called …".
+
     Rename: click the title → inline edit → Enter
     └─ PATCH /api/admin/chapters/{chapterId}  {"title": "..."}
 
@@ -631,7 +636,10 @@ Teacher opens browser → teacherplatform.duckdns.org/web/admin/index.html
     content and the screen re-draws from it; a failed save (e.g. 409 because the
     course changed in another tab) re-loads, so an unsaved order is never shown.
 
-    Edit class: title + duration (PATCH /admin/videos/{videoId}) — order is by drag
+    Edit class: title + duration (PATCH /admin/videos/{videoId}) + a Chapter
+    dropdown — picking another chapter moves the class to the end of it (the
+    same videos/order call as a drag). This is the fix for "added to the wrong
+    chapter"; order within a chapter is by drag
     Delete class: DELETE /admin/videos/{videoId}
 
     Students only see chapters that have at least one class, so the teacher can
@@ -832,9 +840,9 @@ Non-admin users receive **403 Forbidden**.
 | `/api/admin/courses/{id}/students/{userId}/expiry` | PUT | Override one student's expiry (`{"expiryDate": "2027-03-09"}`; null = lifetime) |
 | `/api/admin/courses/{id}/videos` | GET | List all videos + PDFs for a course, in chapter order (no purchase check) |
 | `/api/admin/courses/{id}/content` | GET | Every chapter (empty ones too) with its videos — the Content screen's single load |
-| `/api/admin/courses/{id}/chapters` | POST | Append chapters: `{"titles": ["Percentage", ...]}` |
+| `/api/admin/courses/{id}/chapters` | POST | Append chapters: `{"titles": ["Percentage", ...]}`. 409 if a name already exists in the course (case/spaces ignored) |
 | `/api/admin/courses/{id}/chapters/order` | PUT | `{"chapterIds": [...]}` — all of the course's chapters in new order; 409 if the set differs |
-| `/api/admin/chapters/{id}` | PATCH | Rename: `{"title": "..."}` |
+| `/api/admin/chapters/{id}` | PATCH | Rename: `{"title": "..."}`. 409 on a duplicate name |
 | `/api/admin/chapters/{id}` | DELETE | Delete chapter + its videos + their PDFs (S3) |
 | `/api/admin/chapters/{id}/videos/order` | PUT | `{"videoIds": [...]}` — the chapter's classes in order; ids from another chapter of the same course are moved in. 409 if a current class is missing, 400 across courses |
 

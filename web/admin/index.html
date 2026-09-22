@@ -871,7 +871,7 @@
 <div id="modal-edit-video" class="modal-overlay">
   <div class="modal">
     <div class="modal-header">
-      <h2>Edit Video</h2>
+      <h2>Edit class</h2>
       <button class="btn-close" onclick="closeModal('modal-edit-video')">×</button>
     </div>
     <div id="edit-video-msg"></div>
@@ -883,6 +883,11 @@
       <div class="form-group">
         <label>Duration <span style="font-weight:400;">(optional)</span></label>
         <input type="text" id="edit-video-duration" placeholder="e.g., 12:45" />
+      </div>
+      <div class="form-group" id="edit-video-chapter-group">
+        <label for="edit-video-chapter">Chapter</label>
+        <select id="edit-video-chapter"></select>
+        <small style="color: var(--muted); font-size: 0.8rem;">Added it to the wrong chapter? Pick the right one — the class moves to the end of it.</small>
       </div>
       <div class="modal-actions">
         <button type="button" class="btn-secondary" onclick="closeModal('modal-edit-video')">Cancel</button>
@@ -1968,6 +1973,23 @@ This undoes the removal without recording a payment.`)) return;
     return s.replace(/^\s*(chapter\s*)?\d+\s*[.):\-–]\s*/i, '').trim();
   }
 
+  // Same comparison the server uses: capitals and extra spaces don't make a new name.
+  const chapterKey = (t) => t.trim().replace(/\s+/g, ' ').toLowerCase();
+
+  /** The existing chapter with this name (other than exceptId), with its number, or null. */
+  function findChapterNamed(title, exceptId) {
+    const i = contentChapters.findIndex(c => c.id !== exceptId && chapterKey(c.title) === chapterKey(title));
+    return i < 0 ? null : { chapter: contentChapters[i], number: i + 1 };
+  }
+
+  /** Points at the chapter that already has the name, so the teacher sees why. */
+  function flagDuplicate(match) {
+    toast(`“${match.chapter.title}” is already chapter ${match.number}`, 'error');
+    const card = document.querySelector(`.chapter[data-id="${match.chapter.id}"]`);
+    card?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card?.animate([{ boxShadow: '0 0 0 3px #fca5a5' }, { boxShadow: '0 0 0 0 transparent' }], { duration: 1800 });
+  }
+
   async function addChapters(titles) {
     const clean = titles.map(cleanChapterName).filter(Boolean);
     if (!clean.length) return false;
@@ -1985,6 +2007,8 @@ This undoes the removal without recording a payment.`)) return;
     const input = document.getElementById('new-chapter-input');
     const value = input.value.trim();
     if (!value) { input.focus(); return; }
+    const existing = findChapterNamed(cleanChapterName(value));
+    if (existing) { flagDuplicate(existing); input.select(); return; }
     if (addingChapter) return;
     addingChapter = true;
     try {
@@ -2014,10 +2038,23 @@ This undoes the removal without recording a payment.`)) return;
     const lines = text.split(/\r?\n/).map(cleanChapterName).filter(Boolean);
     if (lines.length < 2) return;   // a single name pastes normally
     e.preventDefault();
-    const preview = lines.slice(0, 15).map((l, i) => `${i + 1}. ${l}`).join('\n')
-      + (lines.length > 15 ? `\n… and ${lines.length - 15} more` : '');
-    if (!confirm(`Add these ${lines.length} chapters, in this order?\n\n${preview}`)) return;
-    if (await addChapters(lines)) document.getElementById('new-chapter-input').value = '';
+    // Keep the new names; skip ones the course already has (or that repeat in the list).
+    const seen = new Set(contentChapters.map(c => chapterKey(c.title)));
+    const fresh = [], skipped = [];
+    for (const l of lines) {
+      if (seen.has(chapterKey(l))) skipped.push(l); else { seen.add(chapterKey(l)); fresh.push(l); }
+    }
+    if (!fresh.length) {
+      toast(`All ${lines.length} of these chapters are already in this course`, 'error');
+      return;
+    }
+    const preview = fresh.slice(0, 15).map((l, i) => `${i + 1}. ${l}`).join('\n')
+      + (fresh.length > 15 ? `\n… and ${fresh.length - 15} more` : '');
+    const skippedNote = skipped.length
+      ? `\n\nSkipped — already in this course:\n${skipped.slice(0, 10).join('\n')}${skipped.length > 10 ? `\n… and ${skipped.length - 10} more` : ''}`
+      : '';
+    if (!confirm(`Add these ${fresh.length} chapters, in this order?\n\n${preview}${skippedNote}`)) return;
+    if (await addChapters(fresh)) document.getElementById('new-chapter-input').value = '';
   });
 
   function startRenameChapter(chapterId, span) {
@@ -2036,6 +2073,8 @@ This undoes the removal without recording a payment.`)) return;
       done = true;
       const title = input.value.trim();
       if (!save || !title || title === chapter.title) { renderContent(); return; }
+      const clash = findChapterNamed(title, chapterId);
+      if (clash) { renderContent(); flagDuplicate(clash); return; }
       await saveContent(`/api/admin/chapters/${chapterId}`,
         { method: 'PATCH', body: JSON.stringify({ title }) }, 'Chapter renamed');
     };
@@ -2197,6 +2236,13 @@ This undoes the removal without recording a payment.`)) return;
     currentEditVideoId = videoId;
     document.getElementById('edit-video-title').value = video.title;
     document.getElementById('edit-video-duration').value = video.duration || '';
+    // Chapter picker: only worth showing when there is somewhere else to go.
+    const from = contentChapters.find(c => c.videos.some(v => v.id === videoId));
+    const select = document.getElementById('edit-video-chapter');
+    select.innerHTML = contentChapters.map((ch, i) =>
+      `<option value="${ch.id}"${ch.id === from?.id ? ' selected' : ''}>${i + 1}. ${escapeHtml(ch.title)}</option>`
+    ).join('');
+    document.getElementById('edit-video-chapter-group').hidden = contentChapters.length < 2;
     clearMsg('edit-video-msg');
     openModal('modal-edit-video');
   }
@@ -2209,18 +2255,40 @@ This undoes the removal without recording a payment.`)) return;
     clearMsg('edit-video-msg');
 
     try {
-      await apiFetch(`/admin/videos/${currentEditVideoId}`, {
+      const videoId = currentEditVideoId;
+      await apiFetch(`/admin/videos/${videoId}`, {
         method: 'PATCH',
         body: JSON.stringify({
           title: document.getElementById('edit-video-title').value.trim(),
           duration: document.getElementById('edit-video-duration').value.trim()
         })
       });
+
+      // Chapter changed: append it to the new chapter. The order endpoint takes
+      // the chapter's full list, so send what's there plus this class.
+      const from = contentChapters.find(c => c.videos.some(v => v.id === videoId));
+      const target = contentChapters.find(c => c.id === Number(document.getElementById('edit-video-chapter').value));
+      let movedTo = null;
+      if (target && from && target.id !== from.id) {
+        await apiFetch(`/api/admin/chapters/${target.id}/videos/order`, {
+          method: 'PUT',
+          body: JSON.stringify({ videoIds: [...target.videos.map(v => v.id), videoId] })
+        });
+        movedTo = target;
+        collapsedChapterIds.delete(target.id);   // show where it went
+      }
+
       closeModal('modal-edit-video');
-      toast('Class updated');
+      toast(movedTo ? `Updated · moved to “${movedTo.title}”` : 'Class updated');
       await loadContent();
+      if (movedTo) {
+        const row = document.querySelector(`.class-row[data-id="${videoId}"]`);
+        row?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        row?.animate([{ background: '#dbeafe' }, { background: '#fff' }], { duration: 1600 });
+      }
     } catch (e) {
       showMsg('edit-video-msg', 'Failed to update: ' + escapeHtml(e.message), 'error');
+      loadContent();   // the title may have saved even if the move didn't
     } finally {
       btn.disabled = false;
       btn.textContent = 'Save Changes';

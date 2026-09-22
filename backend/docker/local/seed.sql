@@ -7,8 +7,9 @@
 --   "SSC CGL Maths (Local demo)": 3 chapters, the last one empty on purpose
 --   (students never see empty chapters).
 --
--- Runs on every `up`, but does nothing once the admin user exists, so anything
--- you add or change through the admin panel is kept. `down -v` to start over.
+-- Runs on every `up`, but does nothing unless the users table is empty — so a
+-- restored production backup gets no demo accounts, and anything you add later
+-- is kept. `down -v` to start over.
 -- Passwords are bcrypt ($2a$) via pgcrypto, which Spring's BCryptPasswordEncoder
 -- accepts.
 -- ============================================================================
@@ -26,8 +27,10 @@ DECLARE
   -- placeholder. Replace with real classes from the admin panel.
   v_yt      CONSTANT TEXT := 'jNQXAC9IVRw';
 BEGIN
-  IF EXISTS (SELECT 1 FROM users WHERE email = 'admin@local.test') THEN
-    RAISE NOTICE 'Local seed already present; leaving the data alone.';
+  -- Only an empty database gets demo data. A restored production copy (or
+  -- anything you've already signed up in) is never touched.
+  IF EXISTS (SELECT 1 FROM users) THEN
+    RAISE NOTICE 'Database already has users; skipping demo seed.';
     RETURN;
   END IF;
 

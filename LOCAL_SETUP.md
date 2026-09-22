@@ -4,7 +4,7 @@ Run the Android app against a backend and database on your own machine instead o
 
 ```
 Android app ("local" variant) ──► API :8080 ──► Postgres :5433
-Admin panel  :8090 ─────────────────┘
+Admin panel  :8081 ─────────────────┘
 ```
 
 Everything runs from `docker-compose.local.yml`. The API image is built from **your working
@@ -29,10 +29,11 @@ docker compose -f docker-compose.local.yml logs -f api
 | What | Where |
 |---|---|
 | API | http://localhost:8080 (from the emulator: http://10.0.2.2:8080) |
-| Admin panel | http://localhost:8090/web/admin/index.html |
+| Admin panel | http://localhost:8081/web/admin/index.html |
 | Postgres | `localhost:5433`, user `teacher`, password `teacher`, db `teacher_videos` |
 
-**Seeded accounts** (`backend/docker/local/seed.sql`):
+**Seeded accounts** (`backend/docker/local/seed.sql`, only on an empty database — a restored
+production backup keeps its real users and gets none of these):
 
 | Login | Password | Use |
 |---|---|---|
@@ -105,4 +106,5 @@ The local stack is kept separate from everything real:
 - It uses its own compose project (`singhsir-local`) and its own volume (`singhsir_local_db`).
   It never uses the `teacher_db` volume from `docker-compose.yml`.
 - Its database runs on port 5433. The test stack uses 55432, and `docker-compose.yml` uses 5432.
-- The seed script runs only in this stack and does nothing once its admin user exists.
+- The seed script runs only in this stack, and only on an empty database (no users). A restored
+  production backup gets no demo accounts.
