@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    "local" build variant only: replaces src/main's config so the app may use
+    plain HTTP to whatever host local.api.url names (the emulator's 10.0.2.2,
+    localhost via `adb reverse`, or this PC's LAN IP). Debug and release builds
+    keep the main config.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

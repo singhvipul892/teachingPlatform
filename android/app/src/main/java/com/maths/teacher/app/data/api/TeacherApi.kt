@@ -1,6 +1,7 @@
 package com.maths.teacher.app.data.api
 
 import com.maths.teacher.app.data.model.AuthResponse
+import com.maths.teacher.app.data.model.ChapterDto
 import com.maths.teacher.app.data.model.ForgotPasswordRequest
 import com.maths.teacher.app.data.model.MessageResponse
 import com.maths.teacher.app.data.model.PdfDownloadResponse
@@ -29,6 +30,10 @@ interface TeacherApi {
 
     @GET("api/courses/{courseId}/videos")
     suspend fun getCourseVideos(@Path("courseId") courseId: Long): List<VideoDto>
+
+    /** Chapters with their classes, in order. Chapters with no classes are not returned. */
+    @GET("api/courses/{courseId}/chapters")
+    suspend fun getCourseChapters(@Path("courseId") courseId: Long): List<ChapterDto>
 
     @GET("api/videos/{videoId}/pdfs/{pdfId}/download")
     suspend fun downloadPdf(

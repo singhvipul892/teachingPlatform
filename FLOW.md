@@ -2,7 +2,7 @@
 
 > **Living Document**: This file captures the current system architecture, user journeys, and data flows. Update this whenever significant features are added or changed.
 >
-> Last Updated: **2026-09-08** — Home screen search (courses + classes, client-side)
+> Last Updated: **2026-09-21** — Chapters: Course → Chapter → Class (admin Content screen, app chapter accordion)
 
 ---
 
@@ -79,9 +79,18 @@ courses (Products)
 ├── id, title, description, pricePaise, currency, thumbnailUrl, active, createdAt
 └── validityDays  ← 0 = lifetime. Days of access a NEW purchase gets.
 
-videos (Content per Course)
-├── id, videoId (Vimeo/YT), title, courseId (FK), thumbnailUrl, duration, displayOrder
-└── FK: courses(id)
+chapters (Sections of a Course — "Percentage", "Profit & Loss", ...)
+├── id, courseId (FK), title, displayOrder, createdAt
+├── displayOrder = position in the course, 1..n, written from drag order
+│   (the teacher never types it). Migration 007_chapters.sql.
+└── FK: courses(id) ON DELETE CASCADE
+
+videos (Classes — each in exactly one Chapter)
+├── id, videoId (YT), title, courseId (FK), chapterId (FK), thumbnailUrl, duration, displayOrder
+├── displayOrder = position inside its chapter, 1..n
+├── courseId is kept alongside chapterId (access checks and the flat
+│   /api/courses/{id}/videos use it); the service keeps it = chapter's course
+└── FKs: courses(id), chapters(id)
 
 video_pdfs (Attachments per Video)
 ├── id, videoIdFk (FK), title, pdfType (NOTES|PRACTICE), fileUrl, displayOrder
@@ -121,9 +130,14 @@ Course validity
          │ (1:N) courseId FK
          │
     ┌────▼─────────────────┐
+    │    chapters          │
+    │ id=7,courseId=1      │  (1. Percentage, 2. Profit & Loss, ...)
+    └────────┬─────────────┘
+             │ (1:N) chapterId FK
+    ┌────────▼─────────────┐
     │    videos            │
-    │ id=1,courseId=1      │  (Lecture 1, Lecture 2, ...)
-    │ id=2,courseId=1      │
+    │ id=1,chapterId=7     │  (Type 1, Type 2, ...)
+    │ id=2,chapterId=7     │
     └────┬──────────┬──────┘
          │(1:N)     │(1:N)
          │videoIdFk │videoIdFk
@@ -434,9 +448,8 @@ video, which returns to our poster instead of YouTube's end-screen grid.
 
 ### Home search (Android) — courses and classes
 
-A course can hold dozens of classes, and Home renders each course as a **horizontal** carousel
-inside a **vertical** course list. Finding `DPB CLASS-27` used to mean swiping the carousel 27
-times. Search removes that.
+A course can hold dozens of classes. Home shows each course as a **banner** that opens the
+course's chapter list (see *Course screen* below), so search is the shortcut straight to a class.
 
 **Client-side only — there is no search endpoint.** `HomeViewModel` already holds the entire
 purchased catalog (`repository.getPurchasedCourses()` runs once on Home load), so filtering happens
@@ -453,9 +466,9 @@ ui/home/HomeScreen.kt          # pinned field + results region
 never scrolls out of reach — which is the point, since it is needed most when the student is deep in
 a long list. It renders only in the loaded-with-courses branch (not during loading/error/empty).
 
-**Results are promoted, never filtered away.** Matches render at the top using the *same*
-`SectionBlock` + `VideoCardCarousel` as always, then a divider and `ALL COURSES`, then the complete
-original list untouched. Because results are prepended, `HomeContent` auto-scrolls to item 0 on
+**Results are promoted, never filtered away.** Matches render at the top as `SectionBlock` +
+`VideoCardCarousel` (a carousel of the matching classes), then a divider and `ALL COURSES`, then the
+course banners untouched. Because results are prepended, `HomeContent` auto-scrolls to item 0 on
 every query change. Item keys are prefixed `result-` / `all-`, since a course appears in both
 regions and duplicate `LazyColumn` keys crash.
 
@@ -466,6 +479,29 @@ keep `displayOrder` (Kotlin's sort is stable). A course matching **by name** ret
 classes; otherwise it carries only the matching ones, labelled "3 of 24 classes".
 
 Matches `CourseWithVideos.name` and `Video.title` only — not PDF titles.
+
+### Course screen (Android) — banners → chapters → classes
+
+```
+Home: one CourseBanner per purchased course (thumbnail, name,
+      "12 chapters · 96 classes", validity) → tap
+        ↓  navController.navigate("course/{courseId}")
+ui/course/CourseScreen.kt
+  numbered chapter cards; tap one → its classes expand in place (accordion,
+  several can be open; a single-chapter course starts open)
+        ↓  tap a class
+  video_detail/{videoId}/{courseName}   (unchanged)
+```
+
+- Data: `VideoRepository.getPurchasedCourses()` calls `GET /api/courses/{id}/chapters` per
+  course → `CourseWithVideos.chapters`. `CourseWithVideos.videos` stays as the flattened
+  list, so search, Resources and `getVideoById` did not change.
+- The course route reads Home's `HomeViewModel` (scoped to the `home` back-stack entry), so
+  opening a course makes no network call. Open chapters are kept in `rememberSaveable` and
+  survive going into a class and back.
+- An expired course's banner can't be opened; it says access has ended instead.
+- **Older APKs** still call `/api/courses/{id}/videos`, which keeps working and returns the
+  classes in chapter order — they just don't see chapter names.
 
 ### Journey 5: Teacher Manages Courses (Admin Panel)
 
@@ -550,37 +586,64 @@ Teacher opens browser → teacherplatform.duckdns.org/web/admin/index.html
               ↓
     Modal shows: Student Name, Email, Mobile, Purchase Date
 
-    ─────── Manage Videos ───────
-    Teacher clicks "Videos" (green button) on a course row
+    ─────── Course Content (chapters → classes) ───────
+    Teacher clicks "Content" (green button) on a course row
+    — or lands here automatically right after creating a course
               ↓
-    GET /api/admin/courses/{courseId}/videos
+    GET /api/admin/courses/{courseId}/content
+    → every chapter (empty ones too), each with its classes, in order
               ↓
-    Course Videos modal: #, thumbnail, title, duration, PDF count, [Edit] [PDFs] [Delete]
-              ↓
-    Teacher clicks "Edit" on a video row
-    Modal opens pre-filled with title, duration, display order
-              ↓
-    Teacher edits values → clicks "Save Changes"
-              ↓
-    PATCH /admin/videos/{videoId} (application/json)
-    { "title": "...", "duration": "...", "displayOrder": N }
-    All fields optional — only provided fields are updated
-              ↓
-    Video row updates in table immediately (no full reload)
+    Full-width Content screen (#panel-content in web/admin/index.html):
+    numbered chapter cards, each listing its classes + "+ Add class"
+    No order numbers anywhere: position IS the order.
 
-    ─────── Add Video ───────
-    Teacher clicks "+ Add Video"
-    Fill in: YouTube URL, title, duration, display order
-    + optional: Notes PDF / Solved Practice PDF / Annotated Practice PDF
-              ↓
-    POST /admin/videos (multipart/form-data)
-    ├─ Extracts YouTube videoId from URL
-    ├─ Auto-generates thumbnail URL (img.youtube.com/vi/{id}/mqdefault.jpg)
-    ├─ Saves Video row in DB
-    ├─ For each PDF: uploads to S3 → saves VideoPdf row
-    └─ Returns VideoResponse
-              ↓
-    Video appears in list with YouTube thumbnail auto-loaded
+    Add chapters
+    ├─ Type a name, press Enter → appended; the box keeps focus for the next
+    ├─ Paste several lines (a syllabus) → "Add these N chapters?" → all appended
+    │  in order. A leading "1." / "2)" / "Chapter 3:" is stripped; numbering is
+    │  automatic ("2D Geometry" is left alone)
+    └─ POST /api/admin/courses/{courseId}/chapters  {"titles": [...]}
+
+    Chapter names are unique within a course (case and extra spaces ignored).
+    The panel stops a duplicate before sending and points at the existing
+    chapter; a pasted list adds the new names and lists the skipped ones. The
+    API enforces it too: 409 "This course already has a chapter called …".
+
+    Rename: click the title → inline edit → Enter
+    └─ PATCH /api/admin/chapters/{chapterId}  {"title": "..."}
+
+    Reorder chapters: drag the ⋮⋮ handle (SortableJS, pointer-event mode so
+    it behaves the same on mouse and touch)
+    └─ PUT /api/admin/courses/{courseId}/chapters/order  {"chapterIds": [all, in order]}
+
+    Delete chapter: one confirm naming how many classes go with it
+    └─ DELETE /api/admin/chapters/{chapterId} → its classes + their PDFs (S3) too
+
+    Add a class: "+ Add class" opens an inline form inside that chapter
+    ├─ Paste the YouTube link → GET /admin/videos/youtube-info?url=...
+    │  (server-side oEmbed; fills the title + shows the thumbnail; a bad link
+    │  says so right there)
+    ├─ Optional PDFs (Notes / Solved / Annotated)
+    ├─ "Save & add another" keeps the form open, focus back on the link box
+    └─ POST /admin/videos (multipart) with chapterId — no displayOrder: appended
+
+    Reorder / move classes: drag the ⋮⋮ handle within a chapter, or onto
+    another chapter of the same course
+    └─ PUT /api/admin/chapters/{chapterId}/videos/order  {"videoIds": [all, in order]}
+       sets chapter + order for every listed class, renumbers the chapter it left
+
+    Every change saves on drop and toasts "Saved". Each call returns the whole
+    content and the screen re-draws from it; a failed save (e.g. 409 because the
+    course changed in another tab) re-loads, so an unsaved order is never shown.
+
+    Edit class: title + duration (PATCH /admin/videos/{videoId}) + a Chapter
+    dropdown — picking another chapter moves the class to the end of it (the
+    same videos/order call as a drag). This is the fix for "added to the wrong
+    chapter"; order within a chapter is by drag
+    Delete class: DELETE /admin/videos/{videoId}
+
+    Students only see chapters that have at least one class, so the teacher can
+    outline a whole syllabus first and fill it in over the weeks.
 
     ─────── Manage PDFs ───────
     Teacher clicks "PDFs" on a video row
@@ -605,8 +668,10 @@ Teacher opens browser → teacherplatform.duckdns.org/web/admin/index.html
 |---|---|---|---|
 | `/api/auth/signup` | POST | ❌ | Create new account |
 | `/api/auth/login` | POST | ❌ | Login (email or mobile + password) |
-| `/api/auth/forgot-password` | POST | ❌ | Request OTP via SMS |
-| `/api/auth/reset-password` | POST | ❌ | Reset password with OTP |
+| `/api/auth/forgot-password` | POST | ❌ | `{email}` — email a 6-digit OTP (10-min expiry). Always 200 immediately (email sent async after commit), even for unknown emails. Repeat requests within 60s are ignored and the earlier code stays valid |
+| `/api/auth/reset-password` | POST | ❌ | `{email, otp, newPassword}` — 5 wrong OTPs burns the code |
+
+**Password reset is by email, not SMS** — free (Gmail SMTP, `MAIL_USERNAME`/`MAIL_PASSWORD` = Gmail App Password) and needs no domain because there is no link, only a code. SMS was dropped: AWS SNS is paid and Indian carriers block non-DLT-registered SMS. `SnsSmsSService` is still in the codebase but nothing calls it. `MAIL_MOCK=true` logs the OTP instead of sending (local/dev/test stack).
 
 **Request / Response:**
 ```json
@@ -675,7 +740,8 @@ Response:
 |---|---|---|---|
 | `/api/courses` | GET | ❌ | List all active courses |
 | `/api/user/courses` | GET | ✅ JWT | Get user's purchased courses |
-| `/api/courses/{id}/videos` | GET | ✅ JWT | Get videos + PDFs for a course (403 unless purchased AND not expired) |
+| `/api/courses/{id}/chapters` | GET | ✅ JWT | Chapters (only those with classes) each with videos + PDFs, in order. Same 403 rule. Used by the app |
+| `/api/courses/{id}/videos` | GET | ✅ JWT | Flat list, chapter order then class order (403 unless purchased AND not expired). Kept for app builds before chapters |
 
 **Request / Response:**
 ```json
@@ -772,7 +838,15 @@ Non-admin users receive **403 Forbidden**.
 | `/api/admin/courses/{id}/students` | POST | Manually enrol a student (stamps expiry; renews an expired one) |
 | `/api/admin/courses/{id}/students/{userId}` | DELETE | Remove a student from a course |
 | `/api/admin/courses/{id}/students/{userId}/expiry` | PUT | Override one student's expiry (`{"expiryDate": "2027-03-09"}`; null = lifetime) |
-| `/api/admin/courses/{id}/videos` | GET | List all videos + PDFs for a course (no purchase check) |
+| `/api/admin/courses/{id}/videos` | GET | List all videos + PDFs for a course, in chapter order (no purchase check) |
+| `/api/admin/courses/{id}/content` | GET | Every chapter (empty ones too) with its videos — the Content screen's single load |
+| `/api/admin/courses/{id}/chapters` | POST | Append chapters: `{"titles": ["Percentage", ...]}`. 409 if a name already exists in the course (case/spaces ignored) |
+| `/api/admin/courses/{id}/chapters/order` | PUT | `{"chapterIds": [...]}` — all of the course's chapters in new order; 409 if the set differs |
+| `/api/admin/chapters/{id}` | PATCH | Rename: `{"title": "..."}`. 409 on a duplicate name |
+| `/api/admin/chapters/{id}` | DELETE | Delete chapter + its videos + their PDFs (S3) |
+| `/api/admin/chapters/{id}/videos/order` | PUT | `{"videoIds": [...]}` — the chapter's classes in order; ids from another chapter of the same course are moved in. 409 if a current class is missing, 400 across courses |
+
+All chapter endpoints return the course's full content (same shape as `/content`).
 
 Course create/update accept `validityDays`. `AdminCourseResponse` carries
 `validityDays`, `studentCount` (everyone who ever enrolled) and
@@ -782,7 +856,8 @@ Course create/update accept `validityDays`. `AdminCourseResponse` carries
 
 | Endpoint | Method | Purpose |
 |---|---|---|
-| `/admin/videos` | POST | Add video (YouTube URL + optional PDFs) |
+| `/admin/videos` | POST | Add video (YouTube URL + optional PDFs). `chapterId` places it; `displayOrder` optional (omitted = appended). Only `courseId` → the course's first chapter, created as "All Classes" if none |
+| `/admin/videos/youtube-info?url=` | GET | `{videoId, title, thumbnailUrl}` for a pasted link (oEmbed; title null if YouTube doesn't answer). 400 for a non-YouTube link |
 | `/admin/videos/{id}` | PATCH | Update video title, duration, and/or displayOrder |
 | `/admin/videos/{id}` | DELETE | Delete video + all its PDFs from S3 and DB |
 | `/admin/videos/{videoId}/pdfs` | POST | Add a PDF to a video |
@@ -1098,7 +1173,7 @@ JWT_SECRET_KEY=your_jwt_secret
 - ✅ Video catalog with PDF attachments
 - ✅ Student web page (courses + checkout)
 - ✅ Policies page (Terms, Privacy, Refund)
-- ✅ Forgot password + reset via SMS OTP
+- ✅ Forgot password + reset via email OTP (Android + web login page) (2026-09-21)
 - ✅ Proper RBAC (role column, UserDetails, @PreAuthorize)
 - ✅ Admin Panel — Course CRUD + image upload + student enrollment
 - ✅ Reports dashboard (revenue, enrollment stats)

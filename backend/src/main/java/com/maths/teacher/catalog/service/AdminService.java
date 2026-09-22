@@ -1,5 +1,6 @@
 package com.maths.teacher.catalog.service;
 
+import com.maths.teacher.catalog.domain.Chapter;
 import com.maths.teacher.catalog.domain.Video;
 import com.maths.teacher.catalog.domain.VideoPdf;
 import com.maths.teacher.catalog.repository.VideoPdfRepository;
@@ -7,6 +8,7 @@ import com.maths.teacher.catalog.repository.VideoRepository;
 import com.maths.teacher.catalog.util.YouTubeUrlExtractor;
 import com.maths.teacher.catalog.web.dto.PdfResponse;
 import com.maths.teacher.catalog.web.dto.VideoResponse;
+import com.maths.teacher.catalog.web.dto.YouTubeInfoResponse;
 import com.maths.teacher.storage.S3StorageService;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,17 +29,45 @@ public class AdminService {
     private final VideoPdfRepository videoPdfRepository;
     private final S3StorageService storageService;
     private final YouTubeUrlExtractor youtubeUrlExtractor;
+    private final ChapterService chapterService;
+    private final YouTubeOEmbedClient youTubeOEmbedClient;
 
     public AdminService(
             VideoRepository videoRepository,
             VideoPdfRepository videoPdfRepository,
             S3StorageService storageService,
-            YouTubeUrlExtractor youtubeUrlExtractor
+            YouTubeUrlExtractor youtubeUrlExtractor,
+            ChapterService chapterService,
+            YouTubeOEmbedClient youTubeOEmbedClient
     ) {
         this.videoRepository = videoRepository;
         this.videoPdfRepository = videoPdfRepository;
         this.storageService = storageService;
         this.youtubeUrlExtractor = youtubeUrlExtractor;
+        this.chapterService = chapterService;
+        this.youTubeOEmbedClient = youTubeOEmbedClient;
+    }
+
+    /**
+     * Video id, thumbnail and (when YouTube answers) title for a pasted link, so
+     * the panel can fill the title in. A bad link is a 400; YouTube being slow or
+     * the video being private just means no title.
+     */
+    public YouTubeInfoResponse getYouTubeInfo(String youtubeVideoLink) {
+        String videoId = extractVideoIdOrBadRequest(youtubeVideoLink);
+        return new YouTubeInfoResponse(
+                videoId,
+                youTubeOEmbedClient.fetchTitle(videoId),
+                youtubeUrlExtractor.generateThumbnailUrl(videoId)
+        );
+    }
+
+    private String extractVideoIdOrBadRequest(String youtubeVideoLink) {
+        try {
+            return youtubeUrlExtractor.extractVideoId(youtubeVideoLink);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
     }
 
     /**
@@ -46,9 +76,10 @@ public class AdminService {
      *
      * @param youtubeVideoLink YouTube video URL (any format)
      * @param title Video title
-     * @param courseId Course ID to associate video with
+     * @param courseId Course ID (optional when chapterId is given)
+     * @param chapterId Chapter to add the video to; without it, the course's first chapter
      * @param duration Video duration (e.g., "12:45")
-     * @param displayOrder Display order within course
+     * @param displayOrder Position within the chapter; omitted = appended at the end
      * @param notesPdf Notes PDF (optional)
      * @param solvedPracticeSetPdf Solved Practice Set PDF (optional)
      * @param annotatedPracticeSetPdf Annotated Practice Set PDF (optional)
@@ -59,18 +90,29 @@ public class AdminService {
             String youtubeVideoLink,
             String title,
             Long courseId,
+            Long chapterId,
             String duration,
             Integer displayOrder,
             MultipartFile notesPdf,
             MultipartFile solvedPracticeSetPdf,
             MultipartFile annotatedPracticeSetPdf
     ) {
-        // Extract video ID from YouTube URL
-        String videoId = youtubeUrlExtractor.extractVideoId(youtubeVideoLink);
+        if (title == null || title.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Enter a title for the class");
+        }
+        if (displayOrder != null && displayOrder < 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "displayOrder must be >= 1");
+        }
+        String videoId = extractVideoIdOrBadRequest(youtubeVideoLink);
         String thumbnailUrl = youtubeUrlExtractor.generateThumbnailUrl(videoId);
 
-        // Create video entity
-        var video = new Video(null, videoId, title, courseId, thumbnailUrl, duration, displayOrder);
+        Chapter chapter = chapterService.resolveChapterForNewVideo(courseId, chapterId);
+        int order = displayOrder != null
+                ? displayOrder
+                : videoRepository.findMaxDisplayOrderInChapter(chapter.getId()) + 1;
+
+        var video = new Video(null, videoId, title.trim(), chapter.getCourseId(), chapter.getId(),
+                thumbnailUrl, duration, order);
         var savedVideo = videoRepository.save(video);
 
         // Process PDFs: upload to S3 first, then batch save to DB
@@ -144,7 +186,7 @@ public class AdminService {
     }
 
     public List<VideoResponse> getVideosForCourse(Long courseId) {
-        List<Video> videos = videoRepository.findByCourseIdOrderByDisplayOrderAsc(courseId);
+        List<Video> videos = videoRepository.findByCourseIdInChapterOrder(courseId);
         if (videos.isEmpty()) {
             return List.of();
         }

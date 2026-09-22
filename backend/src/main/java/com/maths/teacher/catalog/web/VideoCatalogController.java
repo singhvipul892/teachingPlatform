@@ -2,6 +2,7 @@ package com.maths.teacher.catalog.web;
 
 import com.maths.teacher.catalog.service.PdfDownloadService;
 import com.maths.teacher.catalog.service.VideoCatalogService;
+import com.maths.teacher.catalog.web.dto.ChapterResponse;
 import com.maths.teacher.catalog.web.dto.PdfDownloadResponse;
 import com.maths.teacher.catalog.web.dto.VideoResponse;
 import com.maths.teacher.security.AuthService;
@@ -41,6 +42,19 @@ public class VideoCatalogController {
     ) {
         Long userId = Long.parseLong(authService.requireUserId(authHeader));
         return videoCatalogService.getVideosByCourse(courseId, userId);
+    }
+
+    /**
+     * Returns a purchased course's chapters, each with its classes, in order.
+     * Same access rule as the flat listing; chapters with no classes are omitted.
+     */
+    @GetMapping("/courses/{courseId}/chapters")
+    public List<ChapterResponse> getChaptersByCourse(
+            @PathVariable Long courseId,
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        Long userId = Long.parseLong(authService.requireUserId(authHeader));
+        return videoCatalogService.getChaptersByCourse(courseId, userId);
     }
 
     /**

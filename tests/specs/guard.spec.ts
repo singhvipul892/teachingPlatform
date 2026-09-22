@@ -27,13 +27,13 @@ test.describe('@readonly the read-only guard', () => {
     expect(() => api.put('/api/admin/courses/1', { multipart: {} })).toThrow(ReadOnlyViolation);
   });
 
-  test('blocks forgot-password, which would send a real SMS', async ({ api, ephemeral }) => {
-    test.skip(ephemeral, 'SMS_MOCK is true on the throwaway stack');
+  test('blocks forgot-password, which would send a real email', async ({ api, ephemeral }) => {
+    test.skip(ephemeral, 'MAIL_MOCK is true on the throwaway stack');
 
-    // Prod runs with SMS_MOCK=false, so this reaches AWS SNS and texts whoever
-    // owns that number. It is not on the allowlist and must never be.
+    // Prod runs with MAIL_MOCK=false, so this reaches Gmail and emails whoever
+    // owns that address. It is not on the allowlist and must never be.
     expect(() =>
-      api.post('/api/auth/forgot-password', { data: { mobileNumber: '9999999999' } }),
+      api.post('/api/auth/forgot-password', { data: { email: 'guard-probe@ephemeral.invalid' } }),
     ).toThrow(ReadOnlyViolation);
   });
 

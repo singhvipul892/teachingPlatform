@@ -1,6 +1,21 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+}
+
+// Where the "local" build variant sends API calls. Default: the Docker stack
+// from docker-compose.local.yml as seen from the Android emulator (10.0.2.2 is
+// the host machine). For a physical phone set local.api.url in local.properties
+// — see LOCAL_SETUP.md.
+val localApiUrl: String = run {
+    val props = Properties()
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { props.load(it) }
+    val url = props.getProperty("local.api.url")?.trim().takeUnless { it.isNullOrEmpty() }
+        ?: "http://10.0.2.2:8080/"
+    if (url.endsWith("/")) url else "$url/"
 }
 
 android {
@@ -13,6 +28,23 @@ android {
         targetSdk = 36
         versionCode = 18
         versionName = "5.1.0"
+        manifestPlaceholders["appLabel"] = "Singh Sir"
+    }
+
+    // CI signs with the upload key passed in through env vars (see
+    // .github/workflows/android-release.yml). Locally none are set, so release
+    // builds stay unsigned here and Android Studio's "Generate Signed Bundle"
+    // works exactly as before.
+    val ciKeystore = System.getenv("ANDROID_KEYSTORE_PATH")
+    if (ciKeystore != null) {
+        signingConfigs {
+            create("ci") {
+                storeFile = file(ciKeystore)
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
@@ -21,11 +53,23 @@ android {
         }
         release {
             isMinifyEnabled = false
+            if (ciKeystore != null) signingConfig = signingConfigs.getByName("ci")
             buildConfigField("String", "BASE_URL", "\"http://13.205.19.207:8080/\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+        // Debug build against the local Docker backend (docker-compose.local.yml).
+        // Installs next to the normal app (".local" id, "Singh Sir (Local)" label),
+        // so the production app on the same device is untouched.
+        create("local") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".local"
+            versionNameSuffix = "-local"
+            matchingFallbacks += listOf("debug")
+            manifestPlaceholders["appLabel"] = "Singh Sir (Local)"
+            buildConfigField("String", "BASE_URL", "\"$localApiUrl\"")
         }
     }
 

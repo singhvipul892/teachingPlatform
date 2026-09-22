@@ -1,0 +1,114 @@
+# Full local stack: Postgres + the API built from YOUR working tree + the web
+# admin panel — so the Android app can run against a backend on this machine
+# instead of production.
+#
+#   docker compose -f docker-compose.local.yml up -d --build   # first run ~3 min
+#   docker compose -f docker-compose.local.yml logs -f api
+#   docker compose -f docker-compose.local.yml down            # keeps the data
+#   docker compose -f docker-compose.local.yml down -v         # wipes it, reseeds next up
+#
+# What you get
+#   API          http://localhost:8080      (emulator: http://10.0.2.2:8080)
+#   Admin panel  http://localhost:8081/web/admin/index.html
+#   Postgres     localhost:5433  teacher / teacher  db teacher_videos
+#
+# Seeded logins (see backend/docker/local/seed.sql)
+#   admin    admin@local.test    / Admin@1234     (admin panel)
+#   student  student@local.test  / Student@1234   (Android app, enrolled in the demo course)
+#
+# Android: pick the "local" build variant in Android Studio — it points at
+# http://10.0.2.2:8080/. See LOCAL_SETUP.md for a physical phone.
+#
+# Deliberately separate from everything else:
+#   - project name singhsir-local and volume singhsir_local_db — never the
+#     teacher_db volume used by docker-compose.yml
+#   - Postgres on 5433, so it can't collide with docker-compose.yml (5432) or the
+#     test stack (55432)
+#   - SMS / email are mocked, Razorpay uses TEST keys, S3 is a dummy bucket:
+#     nothing here can reach a real student, real money or real storage.
+
+name: singhsir-local
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: teacher_videos
+      POSTGRES_USER: teacher
+      POSTGRES_PASSWORD: teacher
+    ports:
+      - "5433:5432"
+    volumes:
+      - singhsir_local_db:/var/lib/postgresql/data
+      # Runs once, on an empty data directory only — exactly as in production.
+      - ./backend/docker/init/000_consolidated.sql:/docker-entrypoint-initdb.d/000_consolidated.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U teacher -d teacher_videos"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  # One-shot: applies backend/docker/migrations/*.sql not yet applied (the same
+  # ledger as scripts/run-migrations.sh), then seeds demo data if it isn't there.
+  # So pulling a branch with a new migration just needs another `up`.
+  migrate:
+    image: postgres:16
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGUSER: teacher
+      PGPASSWORD: teacher
+      PGDATABASE: teacher_videos
+    volumes:
+      - ./backend/docker/migrations:/migrations:ro
+      - ./backend/docker/local:/local:ro
+    entrypoint: ["sh", "/local/migrate-and-seed.sh"]
+    restart: "no"
+
+  api:
+    build: ./backend
+    image: singhsir-api:local
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      # No profile: the base application.yml with env vars, like production, so
+      # ddl-auto=validate checks the schema the migrations produced.
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/teacher_videos
+      SPRING_DATASOURCE_USERNAME: teacher
+      SPRING_DATASOURCE_PASSWORD: teacher
+
+      # OTPs are logged (docker compose logs api), never sent.
+      SMS_MOCK: "true"
+      MAIL_MOCK: "true"
+
+      # Razorpay TEST keys (same as application-local.yml). No money moves.
+      RAZORPAY_KEY_ID: rzp_test_SP86pvPiQnFUbQ
+      RAZORPAY_KEY_SECRET: 0j3002i8Sx1c1AIis9Cfbcpb
+
+      # No real S3 locally: PDF and course-thumbnail uploads will fail, everything
+      # else works. Dummy credentials stop the AWS SDK from stalling on the EC2
+      # metadata lookup at startup.
+      APP_STORAGE_S3_REGION: ap-south-1
+      APP_STORAGE_S3_BUCKET: singhsir-local-no-such-bucket
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
+      AWS_EC2_METADATA_DISABLED: "true"
+    ports:
+      - "8080:8080"
+
+  # Admin panel + student web pages, same-origin with the API as in production.
+  web:
+    image: nginx:1.27-alpine
+    depends_on:
+      - api
+    volumes:
+      - ./web:/usr/share/nginx/html/web:ro
+      - ./backend/docker/local/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "8081:80"
+
+volumes:
+  singhsir_local_db:
