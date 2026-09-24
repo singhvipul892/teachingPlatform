@@ -1,3 +1,4 @@
+import java.net.URI
 import java.util.Properties
 
 plugins {
@@ -24,7 +25,7 @@ val localApiUrl: String = run {
 // the local variant (Android Studio's Run included) therefore sets it up for every connected
 // device. It is best-effort: with no device, or no adb, the build carries on.
 val adbReverseLocalApi = tasks.register("adbReverseLocalApi") {
-    val uri = java.net.URI(localApiUrl)
+    val uri = URI(localApiUrl)
     val isLoopback = uri.host == "localhost" || uri.host == "127.0.0.1"
     val port = if (uri.port != -1) uri.port else 80
     val adb = androidComponents.sdkComponents.adb
