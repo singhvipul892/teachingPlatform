@@ -2,9 +2,11 @@ package com.maths.teacher.app.ui.videodetail
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,14 +14,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Forward10
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Replay10
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -32,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
@@ -78,6 +87,31 @@ private val EMBED_HOSTS = setOf(
 
 /** How long the transport bar stays up after a tap before fading out during playback. */
 private const val CONTROLS_AUTO_HIDE_MS = 3_000L
+
+/** How far the skip buttons and a double-tap on either half of the video jump. */
+private const val SKIP_SECONDS = 10f
+
+/** How long the "+10s" / "−10s" double-tap feedback stays on screen. */
+private const val SEEK_FEEDBACK_MS = 600L
+
+/**
+ * Speeds offered in the speed menu. The library's PlaybackRate enum has no 0.75/1.25/1.75, so the
+ * rate is set through the player page's own JS function instead -- see [applyPlaybackRate].
+ */
+private val PLAYBACK_RATES = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f)
+
+private fun formatRate(rate: Float): String =
+    if (rate % 1f == 0f) "${rate.toInt()}x" else "${rate}x"
+
+/**
+ * YouTubePlayer.setPlaybackRate only accepts the library's PlaybackRate enum, but all it does is
+ * run `setPlaybackRate(x)` in the player page, which forwards to the IFrame API's
+ * player.setPlaybackRate. Calling that function directly allows any speed YouTube supports.
+ * Float.toString is locale-independent, so the JS literal is always "1.25", never "1,25".
+ */
+private fun applyPlaybackRate(webView: WebView?, rate: Float) {
+    webView?.evaluateJavascript("setPlaybackRate($rate)", null)
+}
 
 /**
  * Extracts the 11-character YouTube video ID from whatever the backend stored — a bare ID,
@@ -275,6 +309,14 @@ fun YouTubePlayer(
     // thumb back under their finger.
     var scrubPosition by remember { mutableStateOf<Float?>(null) }
     var controlsVisible by remember { mutableStateOf(false) }
+    var playbackRate by rememberSaveable { mutableStateOf(1f) }
+    var speedMenuOpen by remember { mutableStateOf(false) }
+    // Bumped on every skip so the auto-hide timer restarts instead of hiding mid-interaction.
+    var interactionCount by remember { mutableStateOf(0) }
+    // Signed skip amount shown briefly after a double-tap; the id restarts the fade-out timer when
+    // the same side is double-tapped repeatedly.
+    var seekFeedback by remember { mutableStateOf<Float?>(null) }
+    var seekFeedbackId by remember { mutableStateOf(0) }
 
     val playerView = remember {
         YouTubePlayerView(context).apply {
@@ -290,6 +332,7 @@ fun YouTubePlayer(
             )
         }
     }
+    val playerWebView = remember(playerView) { playerView.findWebViewDescendant() }
 
     DisposableEffect(playerView) {
         val options = IFramePlayerOptions.Builder()
@@ -341,6 +384,11 @@ fun YouTubePlayer(
                         wasPlaying = true
                         isPlaying = true
                         hasStarted = true
+                        // loadVideo/cueVideo (including the re-cue at ENDED) reset YouTube to 1x,
+                        // so re-assert the student's chosen speed every time playback starts.
+                        if (playbackRate != 1f) {
+                            applyPlaybackRate(playerWebView, playbackRate)
+                        }
                     }
                     PlayerConstants.PlayerState.PAUSED -> {
                         wasPlaying = false
@@ -433,11 +481,29 @@ fun YouTubePlayer(
     }
 
     // Fade the transport bar out again so it does not sit over the video for the whole lesson.
-    LaunchedEffect(controlsVisible, isPlaying, scrubPosition) {
-        if (controlsVisible && isPlaying && scrubPosition == null) {
+    LaunchedEffect(controlsVisible, isPlaying, scrubPosition, speedMenuOpen, interactionCount) {
+        if (controlsVisible && isPlaying && scrubPosition == null && !speedMenuOpen) {
             delay(CONTROLS_AUTO_HIDE_MS)
             controlsVisible = false
         }
+    }
+
+    LaunchedEffect(seekFeedbackId) {
+        if (seekFeedback != null) {
+            delay(SEEK_FEEDBACK_MS)
+            seekFeedback = null
+        }
+    }
+
+    fun seekBy(deltaSeconds: Float) {
+        // Before onVideoDuration lands there is nothing to clamp against.
+        if (durationSeconds <= 0f) return
+        // Stop a second short of the end: seeking onto it fires ENDED and re-cues from zero.
+        val target = (positionSeconds + deltaSeconds)
+            .coerceIn(0f, (durationSeconds - 1f).coerceAtLeast(0f))
+        positionSeconds = target
+        player?.seekTo(target)
+        interactionCount++
     }
 
     // YouTube draws its channel/title/share chrome whenever playback is not running, so cover the
@@ -451,16 +517,37 @@ fun YouTubePlayer(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Taps toggle the transport bar. The WebView below swallows touches anyway; this is what
-        // gives them a purpose.
+        // Taps toggle the controls; a double-tap on the left or right half skips back or forward,
+        // as in YouTube's own app. The WebView below swallows touches anyway; this is what gives
+        // them a purpose.
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null
-                ) { controlsVisible = !controlsVisible }
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onTap = { controlsVisible = !controlsVisible },
+                        onDoubleTap = { offset ->
+                            val delta = if (offset.x < size.width / 2f) -SKIP_SECONDS else SKIP_SECONDS
+                            seekBy(delta)
+                            seekFeedback = delta
+                            seekFeedbackId++
+                        }
+                    )
+                }
         )
+
+        seekFeedback?.let { delta ->
+            Text(
+                text = if (delta < 0f) "−${SKIP_SECONDS.toInt()}s" else "+${SKIP_SECONDS.toInt()}s",
+                color = Color.White,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier
+                    .align(if (delta < 0f) Alignment.CenterStart else Alignment.CenterEnd)
+                    .padding(horizontal = 32.dp)
+                    .background(Color.Black.copy(alpha = 0.55f), CircleShape)
+                    .padding(horizontal = 14.dp, vertical = 8.dp)
+            )
+        }
 
         if (showPoster) {
             Box(
@@ -486,24 +573,30 @@ fun YouTubePlayer(
                         .matchParentSize()
                         .background(Color.Black.copy(alpha = 0.35f))
                 )
-                Icon(
-                    imageVector = Icons.Filled.PlayArrow,
-                    contentDescription = "Play",
-                    tint = Color.White,
-                    modifier = Modifier
-                        .size(64.dp)
-                        .background(Color.Black.copy(alpha = 0.55f), CircleShape)
-                        .padding(10.dp)
-                )
+                // The Play button itself is the centre control row below, drawn over this.
             }
         }
 
         if (showControls) {
-            PlayerTransportBar(
+            PlayerCenterControls(
                 isPlaying = isPlaying,
+                onPlayPause = { if (isPlaying) player?.pause() else player?.play() },
+                onSkipBack = { seekBy(-SKIP_SECONDS) },
+                onSkipForward = { seekBy(SKIP_SECONDS) },
+                modifier = Modifier.align(Alignment.Center)
+            )
+
+            PlayerTransportBar(
                 positionSeconds = scrubPosition ?: positionSeconds,
                 durationSeconds = durationSeconds,
-                onPlayPause = { if (isPlaying) player?.pause() else player?.play() },
+                playbackRate = playbackRate,
+                speedMenuOpen = speedMenuOpen,
+                onSpeedMenuOpenChange = { speedMenuOpen = it },
+                onPlaybackRateSelected = { rate ->
+                    playbackRate = rate
+                    speedMenuOpen = false
+                    applyPlaybackRate(playerWebView, rate)
+                },
                 onScrub = { scrubPosition = it },
                 onScrubFinished = {
                     scrubPosition?.let { target ->
@@ -521,15 +614,75 @@ fun YouTubePlayer(
 }
 
 /**
- * The app's own transport bar: play/pause, elapsed and total time, and a scrubber. It replaces
+ * Skip back, play/pause and skip forward, centred over the video as in YouTube's own app.
+ */
+@Composable
+private fun PlayerCenterControls(
+    isPlaying: Boolean,
+    onPlayPause: () -> Unit,
+    onSkipBack: () -> Unit,
+    onSkipForward: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(28.dp)
+    ) {
+        IconButton(
+            onClick = onSkipBack,
+            modifier = Modifier
+                .size(48.dp)
+                .background(Color.Black.copy(alpha = 0.55f), CircleShape)
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Replay10,
+                contentDescription = "Back ${SKIP_SECONDS.toInt()} seconds",
+                tint = Color.White,
+                modifier = Modifier.size(30.dp)
+            )
+        }
+        IconButton(
+            onClick = onPlayPause,
+            modifier = Modifier
+                .size(64.dp)
+                .background(Color.Black.copy(alpha = 0.55f), CircleShape)
+        ) {
+            Icon(
+                imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                contentDescription = if (isPlaying) "Pause" else "Play",
+                tint = Color.White,
+                modifier = Modifier.size(44.dp)
+            )
+        }
+        IconButton(
+            onClick = onSkipForward,
+            modifier = Modifier
+                .size(48.dp)
+                .background(Color.Black.copy(alpha = 0.55f), CircleShape)
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Forward10,
+                contentDescription = "Forward ${SKIP_SECONDS.toInt()} seconds",
+                tint = Color.White,
+                modifier = Modifier.size(30.dp)
+            )
+        }
+    }
+}
+
+/**
+ * The app's own transport bar: elapsed and total time, a scrubber and the speed menu. It replaces
  * YouTube's, which cannot be used because it carries a share button and a link to the channel.
  */
 @Composable
 private fun PlayerTransportBar(
-    isPlaying: Boolean,
     positionSeconds: Float,
     durationSeconds: Float,
-    onPlayPause: () -> Unit,
+    playbackRate: Float,
+    speedMenuOpen: Boolean,
+    onSpeedMenuOpenChange: (Boolean) -> Unit,
+    onPlaybackRateSelected: (Float) -> Unit,
     onScrub: (Float) -> Unit,
     onScrubFinished: () -> Unit,
     modifier: Modifier = Modifier
@@ -541,19 +694,10 @@ private fun PlayerTransportBar(
                     listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f))
                 )
             )
-            .padding(horizontal = 4.dp, vertical = 2.dp),
+            .padding(start = 12.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(2.dp)
     ) {
-        IconButton(onClick = onPlayPause, modifier = Modifier.size(40.dp)) {
-            Icon(
-                imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                contentDescription = if (isPlaying) "Pause" else "Play",
-                tint = Color.White,
-                modifier = Modifier.size(26.dp)
-            )
-        }
-
         Text(
             text = formatTime(positionSeconds),
             color = Color.White,
@@ -580,5 +724,34 @@ private fun PlayerTransportBar(
             color = Color.White,
             style = MaterialTheme.typography.labelMedium
         )
+
+        Box {
+            TextButton(
+                onClick = { onSpeedMenuOpenChange(true) },
+                contentPadding = PaddingValues(horizontal = 8.dp)
+            ) {
+                Text(
+                    text = formatRate(playbackRate),
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+            DropdownMenu(
+                expanded = speedMenuOpen,
+                onDismissRequest = { onSpeedMenuOpenChange(false) }
+            ) {
+                PLAYBACK_RATES.forEach { rate ->
+                    DropdownMenuItem(
+                        text = { Text(if (rate == 1f) "Normal" else formatRate(rate)) },
+                        onClick = { onPlaybackRateSelected(rate) },
+                        trailingIcon = if (rate == playbackRate) {
+                            { Icon(Icons.Filled.Check, contentDescription = "Selected") }
+                        } else {
+                            null
+                        }
+                    )
+                }
+            }
+        }
     }
 }

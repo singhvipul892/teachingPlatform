@@ -53,15 +53,26 @@ empty chapters. Add your own courses, chapters and classes in the admin panel.
 The `local` variant installs as **"Singh Sir (Local)"** (`com.maths.teacher.app.local`),
 next to the normal app. The `debug` and `release` variants still point at production.
 
+**Which variant to pick** (Android Studio → Build Variants):
+
+| Variant | Talks to | Use it for |
+|---|---|---|
+| `debug` | production API | trying an app-only change (UI, player) on a phone with real data |
+| `local` | Docker on this PC (needs `docker compose ... up` first) | backend changes, or anything that writes data |
+| `release` | production API | Play Store builds |
+
 ### On a physical phone
 
 Pick **one** of these, then rebuild the `local` variant:
 
-- **USB cable (simplest).** Run `adb reverse tcp:8080 tcp:8080` each time the phone connects.
-  Then add this line to `android/local.properties`:
+- **USB cable (simplest).** Add this line to `android/local.properties`:
   ```
   local.api.url=http://localhost:8080/
   ```
+  Building the `local` variant (including Android Studio's Run) runs
+  `adb reverse tcp:8080 tcp:8080` for every connected device. If you plug the phone in
+  *after* installing, press Run again, or run that command yourself. If you skip it, the app
+  shows "Failed to connect to localhost/127.0.0.1:8080".
 - **Same Wi-Fi.** Find your PC's IP with `ipconfig` (for example 192.168.1.20) and add this
   line to `android/local.properties`:
   ```

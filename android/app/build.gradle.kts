@@ -18,6 +18,49 @@ val localApiUrl: String = run {
     if (url.endsWith("/")) url else "$url/"
 }
 
+// On a physical phone "localhost" is the phone itself, so a localhost local.api.url only works
+// after `adb reverse tcp:<port> tcp:<port>` -- which is lost every time the phone reconnects, and
+// forgetting it shows up in the app as "Failed to connect to localhost/127.0.0.1:8080". Building
+// the local variant (Android Studio's Run included) therefore sets it up for every connected
+// device. It is best-effort: with no device, or no adb, the build carries on.
+val adbReverseLocalApi = tasks.register("adbReverseLocalApi") {
+    val uri = java.net.URI(localApiUrl)
+    val isLoopback = uri.host == "localhost" || uri.host == "127.0.0.1"
+    val port = if (uri.port != -1) uri.port else 80
+    val adb = androidComponents.sdkComponents.adb
+    onlyIf { isLoopback }
+    doLast {
+        fun adbCall(vararg args: String): String? = try {
+            val process = ProcessBuilder(adb.get().asFile.absolutePath, *args)
+                .redirectErrorStream(true)
+                .start()
+            val output = process.inputStream.bufferedReader().readText()
+            if (process.waitFor() == 0) output else null
+        } catch (e: Exception) {
+            null
+        }
+
+        val serials = adbCall("devices")
+            ?.lines()
+            ?.drop(1)
+            ?.map { it.split(Regex("\\s+")) }
+            ?.filter { it.size >= 2 && it[1] == "device" }
+            ?.map { it[0] }
+            .orEmpty()
+        if (serials.isEmpty()) {
+            logger.warn("adbReverseLocalApi: no device connected; run `adb reverse tcp:$port tcp:$port` once it is.")
+        }
+        serials.forEach { serial ->
+            if (adbCall("-s", serial, "reverse", "tcp:$port", "tcp:$port") != null) {
+                logger.lifecycle("adbReverseLocalApi: $serial -> localhost:$port forwarded to this PC")
+            } else {
+                logger.warn("adbReverseLocalApi: `adb reverse` failed for $serial")
+            }
+        }
+    }
+}
+tasks.matching { it.name == "preLocalBuild" }.configureEach { dependsOn(adbReverseLocalApi) }
+
 android {
     namespace = "com.maths.teacher.app"
     compileSdk = 35
